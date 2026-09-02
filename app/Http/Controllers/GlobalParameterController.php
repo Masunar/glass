@@ -27,7 +27,7 @@ class GlobalParameterController extends ApiController
     public function list(): JsonResponse
     {
         return $this->secure(fn(): JsonResponse => $this->dataResponse([
-            'data' => $this->service->list(),
+            'parameters' => $this->service->list(),
         ]));
     }
 

@@ -1,6 +1,7 @@
 export enum Permission {
   USERS = 'users',
   ROLES = 'roles',
+  PARAMETERS = 'parameters',
 }
 
 export enum SubPermission {
