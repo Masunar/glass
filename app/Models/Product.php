@@ -30,6 +30,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $vat_rate
  * @property bool $is_made_to_order
  * @property bool $is_active
+ * @property-read ProductGroup|null $group
+ * @property-read ProductGlass|null $glass
+ * @property-read ProductFitting|null $fitting
+ * @property-read ProductService|null $service
  */
 class Product extends Dateable
 {

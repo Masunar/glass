@@ -58,7 +58,8 @@
     "logs": "Logi",
     "margin_schedule": "Harmonogram marż",
     "settings": "Ustawienia",
-    "parameters": "Parametry wyceny"
+    "parameters": "Parametry wyceny",
+    "price_list": "Cennik"
   },
   "user_account": {
     "mfa": {
@@ -213,6 +214,29 @@
       "highest_only": "Obowiązuje tylko najwyższa",
       "before_surcharges": "Przed dopłatami",
       "after_surcharges": "Po dopłatach"
+    }
+  },
+  "price_list": {
+    "title": "Cennik",
+    "lead": "Cennik jest polityką marży, nie tabelą liczb: wpisujesz współczynnik narzutu, cena wynika z niego i z ceny zakupu. Zmiana zapisuje się jako nowa wersja, więc oferta sprzed miesiąca przelicza się starą ceną. Nowa dostawa nie przelicza cennika sama — rozjazd jest pokazany, a decyzja należy do Ciebie.",
+    "saved": "Cennik zapisany.",
+    "save_count": "Zapisz zmiany ({{count}})",
+    "default": "domyślna",
+    "margin": "marża {{value}}%",
+    "stale": "przy nowej cenie zakupu: {{value}}",
+    "no_purchase_price": "brak ceny zakupu",
+    "no_groups": "Ta sekcja nie ma jeszcze grup asortymentowych.",
+    "no_rows": "Ta grupa nie ma jeszcze produktów.",
+    "column": {
+      "product": "Produkt",
+      "purchase": "Cena zakupu"
+    },
+    "section": {
+      "glass": "Szkło",
+      "fittings": "Okucia",
+      "frames": "Ramy",
+      "services": "Usługi",
+      "other": "Inne"
     }
   }
 }
