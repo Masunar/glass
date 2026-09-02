@@ -38,11 +38,15 @@ final readonly class PriceListService
      *
      * @return array<string, mixed>
      */
-    public function matrix(Section $section, ?int $groupId = null, ?Carbon $date = null): array
-    {
+    public function matrix(
+        Section $section,
+        ?int $groupId = null,
+        ?Carbon $date = null,
+        bool $includeInactive = false,
+    ): array {
         $date ??= Carbon::today();
 
-        $groups = $this->groups($section);
+        $groups = $this->groups($section, $includeInactive);
         $group = $groupId === null
             ? $groups->first()
             : $groups->firstWhere('id', $groupId);
@@ -55,6 +59,9 @@ final readonly class PriceListService
                 ->map(static fn(ProductGroup $item): array => [
                     'id' => $item->id,
                     'name' => $item->name,
+                    'manufacturer' => $item->manufacturer,
+                    'series' => $item->series,
+                    'is_active' => (bool) $item->is_active,
                 ])
                 ->values()
                 ->all(),
@@ -67,7 +74,7 @@ final readonly class PriceListService
                 ])
                 ->values()
                 ->all(),
-            'rows' => $group === null ? [] : $this->rows($group, $columns, $date),
+            'rows' => $group === null ? [] : $this->rows($group, $columns, $date, $includeInactive),
         ];
     }
 
@@ -148,13 +155,17 @@ final readonly class PriceListService
      * @param Collection<int, PriceSection> $columns
      * @return list<array<string, mixed>>
      */
-    private function rows(ProductGroup $group, Collection $columns, Carbon $date): array
-    {
+    private function rows(
+        ProductGroup $group,
+        Collection $columns,
+        Carbon $date,
+        bool $includeInactive,
+    ): array {
         /** @var Collection<int, Product> $products */
         $products = Product::query()
-            ->with('glass')
+            ->with(['glass', 'fitting', 'service'])
             ->where('product_group_id', $group->id)
-            ->where('is_active', true)
+            ->when(!$includeInactive, static fn(Builder $query): Builder => $query->where('is_active', true))
             ->get()
             // Jeden klucz sortujacy, nie tablica domkniec: sortBy z tablica
             // traktuje kazde domkniecie jak komparator dwuargumentowy,
@@ -189,11 +200,24 @@ final readonly class PriceListService
                 ];
             }
 
+            // Wiersz niesie komplet pol edytowalnych, zeby otwarcie
+            // formularza nie wymagalo drugiego zapytania.
             $rows[] = [
                 'product_id' => $product->id,
                 'name' => $product->name,
+                'code' => $product->code,
+                'manufacturer_code' => $product->manufacturer_code,
                 'thickness_mm' => $product->glass?->thickness_mm,
+                'variant' => $product->glass?->variant ?? $product->service?->variant,
+                'is_tempered_by_default' => (bool) ($product->glass?->is_tempered_by_default ?? false),
+                'finish' => $product->fitting?->finish,
+                'dimension' => $product->fitting?->dimension,
+                'process_id' => $product->service?->process_id,
+                'glass_thickness_mm' => $product->service?->glass_thickness_mm,
                 'unit' => $product->unit->value,
+                'vat_rate' => $product->vat_rate,
+                'is_made_to_order' => (bool) $product->is_made_to_order,
+                'is_active' => (bool) $product->is_active,
                 'purchase_net_price' => $purchase,
                 'cells' => $cells,
             ];
@@ -224,12 +248,12 @@ final readonly class PriceListService
     }
 
     /** @return Collection<int, ProductGroup> */
-    private function groups(Section $section): Collection
+    private function groups(Section $section, bool $includeInactive = false): Collection
     {
         /** @var Collection<int, ProductGroup> $groups */
         $groups = ProductGroup::query()
             ->where('section', $section->value)
-            ->where('is_active', true)
+            ->when(!$includeInactive, static fn(Builder $query): Builder => $query->where('is_active', true))
             ->orderBy('position')
             ->orderBy('name')
             ->get();

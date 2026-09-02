@@ -16,4 +16,5 @@ enum Permission: string
     case AUDIT = 'audit';
     case PARAMETERS = 'parameters';
     case PRICE_LIST = 'price_list';
+    case PRODUCTS = 'products';
 }

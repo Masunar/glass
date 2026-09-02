@@ -38,6 +38,8 @@ class PriceListController extends ApiController
             return $this->dataResponse($this->service->matrix(
                 $section,
                 $group === null || $group === '' ? null : (int) $group,
+                null,
+                $request->boolean('include_inactive'),
             ));
         });
     }

@@ -237,6 +237,38 @@
       "frames": "Ramy",
       "services": "Usługi",
       "other": "Inne"
+    },
+    "show_inactive": "Pokaż nieaktywne",
+    "active": "Aktywny",
+    "active_hint": "Wyłączenie ukrywa pozycję na nowych zleceniach, ale zostawia ją w historii — słowniki nie usuwają, tylko dezaktywują.",
+    "group": {
+      "add": "Dodaj grupę",
+      "edit": "Edytuj grupę",
+      "name": "Nazwa grupy",
+      "manufacturer": "Producent",
+      "manufacturer_hint": "Osobne pole, nie część nazwy — stary system trzymał „CDA - ETNA” w jednym polu tekstowym.",
+      "series": "Seria"
+    },
+    "product": {
+      "add": "Dodaj produkt",
+      "edit": "Edytuj produkt",
+      "name": "Nazwa",
+      "thickness": "Grubość (mm)",
+      "variant": "Wariant materiału",
+      "variant_hint": "Osobne pole zamiast ułamka w grubości: float, ornament, VSG.",
+      "finish": "Wykończenie",
+      "dimension": "Wymiar",
+      "service_thickness": "Grubość obrabianego szkła (mm)",
+      "service_thickness_hint": "Cena procesu zależy od grubości szkła.",
+      "code": "Kod własny",
+      "manufacturer_code": "Kod producenta",
+      "unit": "Jednostka",
+      "vat": "VAT",
+      "purchase": "Cena zakupu netto",
+      "purchase_hint": "Zmiana zakłada nową wersję; poprzednia zostaje w historii.",
+      "tempered": "Hartowane domyślnie",
+      "made_to_order": "Na zamówienie",
+      "made_to_order_hint": "Sprowadzane pod zlecenie, nietrzymane na stanie — nie trafia na listę braków."
     }
   }
 }
