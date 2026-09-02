@@ -1,0 +1,196 @@
+/* Warstwa list: pasma, wiersze, paski decyzyjne.
+   To one niosą gęstość, której komponenty MUI nie dają — wiersz ma
+   9 px pionu w biurze i 13 px na hali. Siatka kolumn przychodzi
+   z propsa jako zmienna --cols, więc każdy ekran deklaruje własną,
+   a reszta zachowania jest wspólna. */
+
+.ge-list { --cols: 1fr; display: flex; flex-direction: column; }
+
+.ge-list__head,
+.ge-row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: center;
+  padding-inline: 24px;
+}
+
+.ge-list__head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+.ge-list__head .r { text-align: right; }
+
+/* ---------- pasma pilności ---------- */
+
+.ge-band {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 24px;
+  border-top: 1px solid var(--ge-divider);
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-band__title {
+  font-family: var(--ge-font-heading);
+  font-size: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ge-band__meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-band__end { margin-left: auto; font-size: 12.5px; }
+
+.ge-band--mod { background: var(--ge-mod-tint); border-top: 0; }
+.ge-band--mod .ge-band__title,
+.ge-band--mod .ge-band__meta { color: color-mix(in oklab, var(--ge-mod) 70%, black); }
+
+.ge-band--alert { background: var(--m-alert-tint); border-left: 4px solid var(--m-alert); }
+.ge-band--alert .ge-band__title { color: var(--m-alert); }
+
+/* ---------- wiersz ---------- */
+
+.ge-row {
+  padding-block: 9px;
+  border-bottom: 1px solid var(--ge-divider);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.ge-row:hover { background: color-mix(in srgb, var(--ge-mod) 6%, transparent); }
+.ge-row.is-selected { box-shadow: inset 4px 0 0 var(--ge-mod); }
+.ge-row.is-alert { box-shadow: inset 4px 0 0 var(--m-alert); }
+.ge-row.is-static { cursor: default; }
+.ge-row:focus-visible { outline: 2px solid var(--ge-mod); outline-offset: -2px; }
+
+/* Hala: wieksze cele dotykowe i numer czytelny z odleglosci. */
+.ge-shop .ge-row { padding-block: 13px; }
+.ge-shop .ge-num { font-size: 22px; }
+
+.ge-num { font-family: var(--ge-font-heading); font-size: 19px; line-height: 1.1; }
+.ge-sub { font-size: 11.5px; color: var(--ge-neutral-600); }
+.ge-name { font-size: 15px; font-weight: 500; }
+.ge-note {
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ge-note--warn { color: var(--m-alert); }
+
+/* ---------- etap: kropka i slowo, nie pigulka ---------- */
+
+.ge-stage { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.ge-dot { width: 7px; height: 7px; flex: none; background: var(--ge-neutral-400); }
+.ge-dot--new { background: var(--m-zlec); }
+.ge-dot--prod { background: var(--m-prod); }
+.ge-dot--done { background: var(--m-mag); }
+.ge-dot--claim { background: var(--m-alert); }
+
+/* ---------- termin slowem ---------- */
+
+.ge-due { font-size: 14px; }
+.ge-due--today { color: color-mix(in oklab, var(--ge-mod) 85%, black); font-weight: 500; }
+.ge-due--late { color: var(--m-alert); font-weight: 500; }
+
+/* ---------- kwota i pasek zaplaty ---------- */
+
+.ge-money { text-align: right; }
+.ge-money__value { font-family: var(--ge-font-heading); font-size: 19px; line-height: 1.15; }
+.ge-money__note { font-size: 11.5px; color: var(--ge-neutral-600); }
+/* Przy zerze pasek zostaje widoczny jako tlo - inaczej wiersz bez
+   wplaty wygladalby jak wiersz bez informacji. */
+.ge-bar { height: 4px; background: var(--ge-neutral-300); margin: 3px 0 2px; }
+.ge-bar__fill { height: 100%; background: var(--ge-mod); }
+.ge-bar__fill--prod { background: var(--m-prod); }
+.ge-bar__fill--done { background: var(--m-mag); }
+.ge-bar__fill--alert { background: var(--m-alert); }
+
+/* ---------- co dalej ---------- */
+
+.ge-next { display: flex; align-items: center; gap: 10px; }
+.ge-next__text { font-size: 13px; color: var(--ge-neutral-600); }
+.ge-avatar {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--ge-neutral-200);
+  color: var(--ge-neutral-700);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ge-avatar--me { background: var(--ge-mod-tint); color: color-mix(in oklab, var(--ge-mod) 70%, black); }
+
+/* ---------- paski decyzyjne ---------- */
+
+.ge-strips { display: flex; align-items: stretch; gap: 16px; padding: 0 24px 16px; }
+.ge-strip {
+  flex: 1;
+  padding: 10px 14px;
+  border-left: 4px solid var(--ge-accent-400);
+  background: var(--ge-surface);
+}
+.ge-strip--mod { border-left-color: var(--ge-mod); background: var(--ge-mod-tint); }
+.ge-strip--money { border-left-color: var(--m-ksie); }
+.ge-strip--prod { border-left-color: var(--m-prod); }
+.ge-strip--alert { border-left-color: var(--m-alert); background: var(--m-alert-tint); }
+.ge-strip--wide { flex: 1.2; }
+
+.ge-strip__label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-700);
+}
+.ge-strip--mod .ge-strip__label { color: color-mix(in oklab, var(--ge-mod) 72%, black); }
+.ge-strip--money .ge-strip__label { color: color-mix(in oklab, var(--m-ksie) 82%, black); }
+.ge-strip--alert .ge-strip__label { color: var(--m-alert); }
+.ge-strip__value { font-family: var(--ge-font-heading); font-size: 26px; line-height: 1.15; }
+.ge-strip__note { font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-strip__note--warn { color: var(--m-alert); }
+.ge-strip__text { font-size: 15px; line-height: 1.45; margin-top: 4px; }
+
+/* ---------- filtry i stopka ---------- */
+
+.ge-filters {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-filters button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ge-neutral-700);
+  padding: 10px 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.ge-filters button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-filters button.is-active {
+  color: var(--ge-text);
+  font-weight: 500;
+  border-bottom-color: var(--ge-mod);
+}
+.ge-filters__end { margin-left: auto; color: var(--ge-neutral-600); font-size: 13px; }
+
+.ge-footbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--ge-neutral-900);
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+}
+.ge-footbar__end { margin-left: auto; }

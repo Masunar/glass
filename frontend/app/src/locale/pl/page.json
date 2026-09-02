@@ -59,7 +59,10 @@
     "margin_schedule": "Harmonogram marż",
     "settings": "Ustawienia",
     "parameters": "Parametry wyceny",
-    "price_list": "Cennik"
+    "price_list": "Cennik",
+    "contractors": "Kontrahenci",
+    "designers": "Projektanci",
+    "offers": "Oferty"
   },
   "user_account": {
     "mfa": {
@@ -270,5 +273,19 @@
       "made_to_order": "Na zamówienie",
       "made_to_order_hint": "Sprowadzane pod zlecenie, nietrzymane na stanie — nie trafia na listę braków."
     }
+  },
+  "module": {
+    "nav": "Moduły",
+    "kicker": "Moduł",
+    "in_module": "W module",
+    "empty": "moduł jeszcze pusty",
+    "account": "Konto",
+    "zlec": "Zlecenia",
+    "prod": "Produkcja",
+    "mag": "Magazyn",
+    "ksie": "Księgowość",
+    "rap": "Raporty",
+    "alert": "Zaległe",
+    "adm": "Administracja"
   }
 }

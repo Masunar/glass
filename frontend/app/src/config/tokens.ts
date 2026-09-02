@@ -56,3 +56,44 @@ export const industry = {
     md: '0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent)',
   },
 } as const;
+
+/**
+ * Odcienie modułów — hue niesie znaczenie, nie dekorację.
+ *
+ * Wszystkie mają tę samą jasność i nasycenie, zmienia się wyłącznie
+ * hue, więc kolory nie konkurują ze sobą: żaden nie jest „mocniejszy”
+ * od pozostałych, a ekran nie krzyczy wszystkim naraz.
+ *
+ * ⚠️ Te wartości NIE MOGĄ trafić do palety MUI. Funkcje alpha(),
+ * lighten() i darken() parsują kolor samodzielnie i wywracają się na
+ * notacji CSS Color 4, a Salvon używa ich w wielu miejscach. Paleta MUI
+ * zostaje na hexach z `industry`, a te odcienie żyją jako zmienne CSS
+ * używane wprost w warstwie list i nawigacji.
+ */
+export const modules = {
+  /** Zlecenia, sprzedaż — stal. To samo, co akcent systemu. */
+  zlec: { base: 'oklch(0.58 0.12 250)', tint: 'oklch(0.94 0.03 250)' },
+  /** Produkcja, hartownia — morski. */
+  prod: { base: 'oklch(0.55 0.10 195)', tint: 'oklch(0.94 0.04 195)' },
+  /** Magazyn, dostawy, „gotowe” — zielony. */
+  mag: { base: 'oklch(0.55 0.10 145)', tint: 'oklch(0.94 0.04 145)' },
+  /** Księgowość, pieniądze, limity — ochra. */
+  ksie: { base: 'oklch(0.52 0.11 85)', tint: 'oklch(0.95 0.05 85)' },
+  /** Raporty, statystyki — śliwka. */
+  rap: { base: 'oklch(0.52 0.11 320)', tint: 'oklch(0.94 0.04 320)' },
+  /** Zaległe, reklamacje — terakota. Nie jest modułem, tylko stanem. */
+  alert: { base: 'oklch(0.46 0.13 25)', tint: 'oklch(0.96 0.02 25)' },
+  /** Administracja — neutralny, bo nie niesie pilności. */
+  adm: { base: 'oklch(0.52 0.01 250)', tint: 'oklch(0.94 0.00 250)' },
+} as const;
+
+export type ModuleKey = keyof typeof modules;
+
+/** Ciemna listwa modułów — jedyne ciemne miejsce w jasnym motywie. */
+export const rail = {
+  bg: 'oklch(0.24 0.03 250)',
+  fg: 'oklch(0.95 0.01 250)',
+  tile: 'oklch(0.34 0.04 250)',
+  brandBg: 'oklch(0.72 0.13 250)',
+  brandFg: 'oklch(0.22 0.04 250)',
+} as const;
