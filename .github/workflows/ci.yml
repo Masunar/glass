@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (PHP 8.5)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Konfiguracja PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: curl, fileinfo, gd, imagick, intl, json, mbstring, pdo, pdo_sqlite, sqlite3, simplexml, soap, xml, zip
+          coverage: none
+
+      - name: Cache zaleznosci Composera
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-php85-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php85-
+
+      - name: Plik srodowiska
+        run: cp .env.example .env
+
+      - name: Instalacja zaleznosci
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Klucz aplikacji
+        run: php artisan key:generate
+
+      # Analiza statyczna przed testami: jest szybsza i wylapuje inna
+      # klase bledow - wywolania metod, ktore nie istnieja, i adnotacje
+      # rozjezdzajace sie ze schematem bazy.
+      - name: Analiza statyczna
+        run: vendor/bin/phpstan analyse --no-progress
+
+      # Testy chodza na sqlite w pamieci (phpunit.xml), wiec nie potrzebuja
+      # uslugi bazodanowej.
+      - name: Testy
+        run: php artisan test
+
+  frontend:
+    name: Frontend (Node 24)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Konfiguracja Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Plik srodowiska frontu
+        run: cp frontend/env.example.ts frontend/env.ts
+
+      - name: Instalacja zaleznosci
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      # Kontrola typow lapie miedzy innymi bledna wielkosc liter w importach.
+      # Runner jest Linuksem, wiec to samo, co na macOS przechodzi niezauwazone,
+      # tutaj wywali build - i o to chodzi.
+      - name: Kontrola typow
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build produkcyjny
+        working-directory: frontend
+        run: npm run build

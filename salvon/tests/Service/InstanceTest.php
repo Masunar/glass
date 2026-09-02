@@ -9,7 +9,7 @@ use ReflectionClass;
 use ReflectionException;
 use Salvon\Contract\DataTransferObject;
 use Salvon\DTO\DTO;
-use Salvon\DTO\Request\QueryParamDTO;
+use Salvon\Repository\QueryParam;
 use Salvon\Service\Instance;
 use Salvon\Tests\Service\Resources\DTO\TestDTO;
 use Salvon\Tests\TestCase;
@@ -44,7 +44,7 @@ class InstanceTest extends TestCase
                 'expected' => true,
             ],
             [
-                'item' => new QueryParamDTO(0, 10, 'id', 'desc', ''),
+                'item' => new QueryParam(0, 10, 'id', 'desc', ''),
                 'of' => DataTransferObject::class,
                 'expected' => true,
             ],
@@ -84,7 +84,7 @@ class InstanceTest extends TestCase
                 'expected' => true,
             ],
             [
-                'item' => new QueryParamDTO(0, 10, 'id', 'desc', ''),
+                'item' => new QueryParam(0, 10, 'id', 'desc', ''),
                 'of' => DTO::class,
                 'expected' => false,
             ],
