@@ -1,4 +1,4 @@
-import { CssBaseline, NoSsr } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { authRoutes } from '@router/auth-router';
 import { redirectRoutes } from '@router/redirect-router';
@@ -106,36 +106,34 @@ export default function Layout({ loaderData }: any) {
   });
 
   return (
-    <NoSsr>
-      <Providers
-        i18n={i18n}
-        defaultLocale={defaultLocale}
-        theme={{
-          lightTheme,
-          darkTheme,
-        }}
-      >
-        <UserProvider user={user}>
-          <UserModalProvider
-            defaultOpen={mfaRecovered}
-            defaultPage={mfaRecovered ? 'mfa' : 'main'}
-            mfaRecovered={mfaRecovered}
+    <Providers
+      i18n={i18n}
+      defaultLocale={defaultLocale}
+      theme={{
+        lightTheme,
+        darkTheme,
+      }}
+    >
+      <UserProvider user={user}>
+        <UserModalProvider
+          defaultOpen={mfaRecovered}
+          defaultPage={mfaRecovered ? 'mfa' : 'main'}
+          mfaRecovered={mfaRecovered}
+        >
+          <NavigationIndicator
+            height="3px"
+            // sx={{
+            //   [`& .${linearProgressClasses.bar}`]: {
+            //     borderRadius: 5,
+            //     backgroundColor: 'primary.main',
+            //   },
+            // }}
           >
-            <NavigationIndicator
-              height="3px"
-              // sx={{
-              //   [`& .${linearProgressClasses.bar}`]: {
-              //     borderRadius: 5,
-              //     backgroundColor: 'primary.main',
-              //   },
-              // }}
-            >
-              <Template />
-            </NavigationIndicator>
-          </UserModalProvider>
-        </UserProvider>
-      </Providers>
-    </NoSsr>
+            <Template />
+          </NavigationIndicator>
+        </UserModalProvider>
+      </UserProvider>
+    </Providers>
   );
 }
 

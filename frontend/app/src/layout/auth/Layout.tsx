@@ -10,6 +10,11 @@ export const loader: LoaderFunction = async (params) => {
   if (user?.id) {
     return redirect('/');
   }
+
+  // Loader musi zwrocic wartosc. undefined trafia do strumienia
+  // single fetch jako nierozwiazywalna referencja - klient nie tworzy
+  // wtedy routera i strona zostaje pusta, bez zadnego bledu.
+  return null;
 };
 
 export default function Layout() {

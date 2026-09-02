@@ -1,4 +1,4 @@
-import { Button, NoSsr } from '@mui/material';
+import { Button } from '@mui/material';
 
 import type { Route } from '@router-types/app/+types/root';
 
@@ -20,20 +20,18 @@ type Props = Route.ErrorBoundaryProps;
 
 export default function ErrorBoundaryHandler({ error }: Props) {
   return (
-    <NoSsr>
-      <Providers
-        i18n={i18n}
-        defaultLocale={defaultLocale}
-        theme={{
-          lightTheme,
-          darkTheme,
-          defaultMode: themeMode.light,
-          forceMode: 'light',
-        }}
-      >
-        <ErrorContent error={error} />
-      </Providers>
-    </NoSsr>
+    <Providers
+      i18n={i18n}
+      defaultLocale={defaultLocale}
+      theme={{
+        lightTheme,
+        darkTheme,
+        defaultMode: themeMode.light,
+        forceMode: 'light',
+      }}
+    >
+      <ErrorContent error={error} />
+    </Providers>
   );
 }
 

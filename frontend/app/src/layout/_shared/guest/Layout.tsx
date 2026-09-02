@@ -1,4 +1,4 @@
-import { Grid, NoSsr } from '@mui/material';
+import { Grid } from '@mui/material';
 
 import GlassScene from './_components/glass/GlassScene';
 import type { ReactNode } from 'react';
@@ -16,53 +16,51 @@ import { darkTheme, lightTheme } from '@app/config/theme';
 
 export default function Layout() {
   return (
-    <NoSsr>
-      <Providers
-        i18n={i18n}
-        defaultLocale={defaultLocale}
-        theme={{
-          lightTheme,
-          darkTheme,
-          defaultMode: themeMode.light,
-          forceMode: 'light',
-        }}
-      >
-        <NavigationIndicator height="3px">
-          <GuestTemplate brand={<Brand />}>
-            <Flex center fw fh>
-              <Flex
-                center
-                fw
-                sx={{
-                  background: '#fff',
-                  padding: {
-                    xs: '20px 20px',
-                    sm: '30px 30px',
-                    md: '40px 40px',
-                  },
-                  borderRadius: '12px',
-                  maxWidth: {
-                    xs: '90%',
-                    sm: '80%',
-                    md: '70%',
-                    ws: '70%',
-                    lg: '65%',
-                    xl: '59%',
-                    fhd: '60%',
-                    qhd: '50%',
-                    uhd: '40%',
-                  },
-                  border: '1px solid #dbe1ea',
-                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                }}
-              >
-                <Outlet />
-              </Flex>
+    <Providers
+      i18n={i18n}
+      defaultLocale={defaultLocale}
+      theme={{
+        lightTheme,
+        darkTheme,
+        defaultMode: themeMode.light,
+        forceMode: 'light',
+      }}
+    >
+      <NavigationIndicator height="3px">
+        <GuestTemplate brand={<Brand />}>
+          <Flex center fw fh>
+            <Flex
+              center
+              fw
+              sx={{
+                background: '#fff',
+                padding: {
+                  xs: '20px 20px',
+                  sm: '30px 30px',
+                  md: '40px 40px',
+                },
+                borderRadius: '12px',
+                maxWidth: {
+                  xs: '90%',
+                  sm: '80%',
+                  md: '70%',
+                  ws: '70%',
+                  lg: '65%',
+                  xl: '59%',
+                  fhd: '60%',
+                  qhd: '50%',
+                  uhd: '40%',
+                },
+                border: '1px solid #dbe1ea',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+              }}
+            >
+              <Outlet />
             </Flex>
-          </GuestTemplate>
-        </NavigationIndicator>
-      </Providers>
-    </NoSsr>
+          </Flex>
+        </GuestTemplate>
+      </NavigationIndicator>
+    </Providers>
   );
 }
 
