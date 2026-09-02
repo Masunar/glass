@@ -4,9 +4,9 @@ import { authRoutes } from '@router/auth-router';
 import { redirectRoutes } from '@router/redirect-router';
 import { securityRoutes } from '@router/security-router';
 
-import UserModal from '../../components/User/Modal/UserModal';
-import User from '../../components/User/User';
-import { UserModalProvider } from '../../components/User/UserModalContext';
+import UserModal from '../../components/user/modal/UserModal';
+import User from '../../components/user/User';
+import { UserModalProvider } from '../../components/user/UserModalContext';
 import { appRoutes } from '../../router/app-router';
 import OfflineModal from './_components/OfflineModal';
 import {
