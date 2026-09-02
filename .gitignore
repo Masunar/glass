@@ -54,6 +54,9 @@ yarn-error.log*
 Thumbs.db
 desktop.ini
 
+# --- Materialy analityczne (zrzuty starej bazy, ekrany) ---
+/_analiza
+
 # --- Lokalne bazy / dumpy ---
 /database/*.sqlite
 /database/*.sqlite-journal
