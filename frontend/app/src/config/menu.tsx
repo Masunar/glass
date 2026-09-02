@@ -3,6 +3,7 @@ import { BiSolidDashboard } from 'react-icons/bi';
 import {
   PiChartLine,
   PiSlidersHorizontal,
+  PiTag,
   PiUserCircleGear,
 } from 'react-icons/pi';
 
@@ -29,6 +30,11 @@ export const menu: MenuEntries = [
     icon: PiUserCircleGear,
     translation: 'page.menu.users',
     route: appRoutes.users,
+  },
+  {
+    icon: PiTag,
+    translation: 'page.menu.price_list',
+    route: appRoutes.priceList,
   },
   {
     icon: PiSlidersHorizontal,

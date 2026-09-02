@@ -20,6 +20,13 @@ export const appRoutes = {
       { permission: Permission.PARAMETERS, subPermission: SubPermission.LIST },
     ],
   },
+  priceList: {
+    path: '/price-list',
+    file: 'price-list',
+    permissions: [
+      { permission: Permission.PRICE_LIST, subPermission: SubPermission.LIST },
+    ],
+  },
 } satisfies RouteItems;
 
 export default router({
