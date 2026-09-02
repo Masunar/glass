@@ -3,7 +3,6 @@ import { authRoutes } from '@router/auth-router';
 import { redirectRoutes } from '@router/redirect-router';
 import { securityRoutes } from '@router/security-router';
 
-import User from '../../components/user/User';
 import { UserModalProvider } from '../../components/user/UserModalContext';
 import UserModal from '../../components/user/modal/UserModal';
 import { appRoutes } from '../../router/app-router';
@@ -13,25 +12,18 @@ import {
   Outlet,
   matchPath,
   redirect,
+  useLocation,
   useNavigate,
 } from 'react-router';
 import SimpleBar from 'simplebar-react';
 
 import { Div, Flex } from '@salvon/components/div';
 import { NavigationIndicator } from '@salvon/components/progress';
-import Menu from '@salvon/components/sidebar-menu/Menu';
-import Sidebar from '@salvon/components/sidebar/Sidebar';
-import SidebarCollapse from '@salvon/components/sidebar/SidebarCollapse';
-import Topbar from '@salvon/components/topbar/Topbar';
-import TopbarSizer from '@salvon/components/topbar/TopbarSizer';
 import ChangeLanguage from '@salvon/components/topbar/actions/ChangeLanguage';
 import Logout from '@salvon/components/topbar/actions/Logout';
-import MobileMenuToggle from '@salvon/components/topbar/actions/MobileMenuToggle';
 import { themeMode } from '@salvon/consts/theme-mode';
-import { useMenuControl } from '@salvon/hooks/useMenuControl';
 import { useMounted } from '@salvon/hooks/useMounted';
 import { useSearchParam } from '@salvon/hooks/useSearchParams';
-import { usePalette } from '@salvon/hooks/useTheme';
 import { Providers } from '@salvon/provider';
 import type { ApplicationRoute } from '@salvon/router';
 import '@salvon/styles.css';
@@ -41,12 +33,16 @@ import { userLoader } from '@app/auth/user-loader';
 import i18n from '@app/config/i18n';
 import { locales } from '@app/config/locales';
 import { defaultLocale } from '@app/config/locales';
-import menu from '@app/config/menu';
+import { moduleForPath } from '@app/config/modules';
 import { lightTheme } from '@app/config/theme';
-import { useHasPermission, userHasPermission } from '@app/hook/use-permissions';
-import LogoBadge from '@app/layout/app/_components/LogoBadge';
+import { userHasPermission } from '@app/hook/use-permissions';
+import { useUser } from '@app/hook/use-user';
 import GlobalSearch from '@app/layout/app/_components/global-search/GlobalSearch';
+import ModulePanel from '@app/layout/app/_components/shell/ModulePanel';
+import Rail from '@app/layout/app/_components/shell/Rail';
 import UserProvider from '@app/provider/UserProvider';
+import '@app/styles/list.css';
+import '@app/styles/shell.css';
 import { stripDataSuffix } from '@app/utils/return-to';
 
 export const loader: LoaderFunction = async (params) => {
@@ -138,97 +134,62 @@ export default function Layout({ loaderData }: any) {
 }
 
 function Template() {
-  const { compactMode, mobileOpen } = useMenuControl();
-  const renderCompactMode = compactMode && !mobileOpen;
-  const palette = usePalette();
-  const sidebarWidth = renderCompactMode && !mobileOpen ? 85 : 280;
   const navigate = useNavigate();
-  const hasPermissionTo = useHasPermission();
+  const { pathname } = useLocation();
+  const user = useUser();
+  const module = moduleForPath(pathname);
 
   const handleLogout = () => navigate(redirectRoutes.logout.path);
 
+  const initials = [user?.first_name, user?.last_name]
+    .filter(Boolean)
+    .map((part) => String(part).charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2);
+
   return (
     <div
-      className="salvon-animate-all"
+      className="ge-shell"
       style={{
-        background: palette.salvon?.background?.default,
+        ['--ge-mod' as string]: `var(--m-${module.key})`,
+        ['--ge-mod-tint' as string]: `var(--m-${module.key}-tint)`,
       }}
     >
       <CssBaseline enableColorScheme />
       <OfflineModal />
       <UserModal />
-      <SidebarCollapse width={280} compactWidth={90} />
-      <Sidebar width={sidebarWidth} padding={0}>
-        <TopbarSizer
-          height="64px"
-          sx={{ px: renderCompactMode ? '10px' : '18px' }}
-        >
-          <LogoBadge renderCompactMode={renderCompactMode} />
-        </TopbarSizer>
-        <Div
-          sx={{
-            px: renderCompactMode ? '10px' : '12px',
-            flexShrink: 0,
-            mt: renderCompactMode ? '14px' : '10px',
-          }}
-        >
-          <User compactMode={renderCompactMode} />
-        </Div>
-        <Div
-          sx={{
-            flex: '1 1 auto',
-            overflow: 'hidden',
-            minHeight: 0,
-            px: renderCompactMode ? '10px' : '12px',
-            paddingRight: '2px !important',
-            paddingTop: '15px',
-          }}
-        >
-          <Menu
-            items={menu}
-            compactMode={renderCompactMode}
-            hasPermissionTo={hasPermissionTo}
-          />
-        </Div>
-      </Sidebar>
-      <Topbar drawerWidth={sidebarWidth} height="64px">
-        <Flex justify="space-between" fw>
-          <Flex gap={1}>
-            <MobileMenuToggle />
-            <GlobalSearch />
-          </Flex>
-          <Flex align="center" gap={1}>
+
+      <Rail
+        active={module}
+        initials={initials || 'GE'}
+        onUserClick={() => {}}
+      />
+
+      <ModulePanel
+        module={module}
+        footer={
+          <Flex align="center" justify="space-between" gap={1}>
             <ChangeLanguage locales={locales} />
             <Logout logout={handleLogout} />
           </Flex>
-        </Flex>
-      </Topbar>
-      <Div
-        sx={{
-          width: { md: `calc(100% - ${sidebarWidth}px)` },
-          ml: { md: `${sidebarWidth}px` },
-          paddingRight: '3px',
-        }}
+        }
       >
+        <Div sx={{ px: '20px', py: '10px' }}>
+          <GlobalSearch />
+        </Div>
+      </ModulePanel>
+
+      <div className="ge-shell__content">
         <SimpleBar
           forceVisible="y"
           autoHide={false}
-          style={{
-            height: 'calc(100vh - 64px)',
-          }}
+          style={{ height: '100vh' }}
         >
-          <Div
-            sx={{
-              padding: '25px',
-              paddingRight: '23px',
-              ...(palette.salvon?.page_container ?? {}),
-              minHeight: 'calc(100vh - 64px)',
-            }}
-          >
+          <div className="ge-page">
             <Outlet />
-          </Div>
+          </div>
         </SimpleBar>
-      </Div>
+      </div>
     </div>
   );
 }

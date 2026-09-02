@@ -1,0 +1,199 @@
+/* Powłoka aplikacji: listwa modułów i panel modułu.
+   Wszystkie wartości ze zmiennych generowanych z config/tokens.ts —
+   żadnych kolorów wpisanych wprost. */
+
+.ge-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--ge-bg);
+  color: var(--ge-text);
+  /* aplikacja biurowa: ponizej tej szerokosci pojawia sie przewijanie
+     w poziomie, kolumny nie sciskaja sie do nieczytelnych szerokosci */
+  min-width: 1280px;
+}
+
+.ge-shell__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- listwa modułów ---------- */
+
+.ge-rail {
+  width: 64px;
+  flex: none;
+  background: var(--ge-rail-bg);
+  color: var(--ge-rail-fg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.ge-rail__brand {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--ge-rail-brand-bg);
+  color: var(--ge-rail-brand-fg);
+  font-family: var(--ge-font-heading);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.ge-rail__mod {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-family: var(--ge-font-heading);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ge-rail-fg);
+  text-decoration: none;
+  border: 0;
+  background: color-mix(in oklab, var(--ge-mod) 34%, var(--ge-rail-bg));
+  cursor: pointer;
+}
+.ge-rail__mod:hover { filter: brightness(1.25); }
+.ge-rail__mod:focus-visible { outline: 2px solid var(--ge-rail-fg); outline-offset: 2px; }
+.ge-rail__mod.is-active { background: var(--ge-mod); color: #fff; }
+/* Modul bez ekranow jest widoczny, ale nie udaje, ze dziala. */
+.ge-rail__mod.is-empty { opacity: 0.45; cursor: default; }
+.ge-rail__mod.is-empty:hover { filter: none; }
+
+.ge-rail__user {
+  margin-top: auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: var(--ge-rail-tile);
+  color: var(--ge-rail-fg);
+  font-size: 12px;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ---------- panel modułu ---------- */
+
+.ge-panel {
+  width: 260px;
+  flex: none;
+  border-right: 1px solid var(--ge-neutral-900);
+  display: flex;
+  flex-direction: column;
+  background: var(--ge-surface);
+}
+.ge-panel--narrow { width: 236px; }
+
+.ge-panel__head {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-panel__kicker {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ge-mod) 80%, black);
+}
+.ge-panel__title {
+  margin: 0;
+  font-family: var(--ge-font-heading);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.ge-panel__meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+
+.ge-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  font-size: 14.5px;
+  font-family: var(--ge-font-body);
+  color: var(--ge-text);
+  text-decoration: none;
+  border: 0;
+  border-bottom: 1px solid var(--ge-divider);
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.ge-panel__item:hover { background: color-mix(in srgb, var(--ge-mod) 8%, transparent); }
+.ge-panel__item:focus-visible { outline: 2px solid var(--ge-mod); outline-offset: -2px; }
+.ge-panel__item.is-active {
+  font-weight: 500;
+  background: var(--ge-mod-tint);
+  box-shadow: inset 4px 0 0 var(--ge-mod);
+  border-bottom-color: transparent;
+}
+
+.ge-panel__count { margin-left: auto; font-size: 12px; color: var(--ge-neutral-600); }
+.ge-panel__count--mod { color: color-mix(in oklab, var(--ge-mod) 85%, black); }
+.ge-panel__count--alert { color: var(--m-alert); font-weight: 600; }
+.ge-panel__count--money { color: color-mix(in oklab, var(--m-ksie) 90%, black); }
+.ge-panel__count--badge { background: var(--ge-mod); color: #fff; padding: 1px 7px; }
+
+.ge-panel__group {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding: 16px 20px 6px;
+}
+
+.ge-panel__link {
+  display: block;
+  padding: 8px 20px;
+  font-size: 14px;
+  color: var(--ge-text);
+  text-decoration: none;
+}
+.ge-panel__link:hover { background: color-mix(in srgb, var(--ge-mod) 8%, transparent); }
+.ge-panel__link.is-active { font-weight: 500; box-shadow: inset 4px 0 0 var(--ge-mod); }
+
+.ge-panel__foot {
+  margin-top: auto;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ge-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Ekrany docelowe sa pelnej szerokosci - naglowek i lista maja wlasny
+   padding poziomy. Ekrany zbudowane na komponentach MUI potrzebuja
+   kontenera, wiec dostaja go jawnie. */
+.ge-page { padding: 20px 24px; }
+.ge-page--flush { padding: 0; }
+
+/* ---------- nagłówek ekranu ---------- */
+
+.ge-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 24px 14px;
+}
+.ge-head__kicker {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ge-mod) 80%, black);
+}
+.ge-head__title {
+  margin: 0;
+  font-family: var(--ge-font-heading);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.1;
+}
+.ge-head__actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }

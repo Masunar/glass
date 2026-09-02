@@ -1,4 +1,5 @@
 import './root.css';
+import { buildCssVariables } from './src/config/css-variables';
 import type { ReactNode } from 'react';
 import { Links, Meta, Scripts, ScrollRestoration } from 'react-router';
 
@@ -24,6 +25,9 @@ export default function RootLayout({ children }: Props) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap"
         />
+        {/* Zmienne wyprowadzone z config/tokens.ts - jeden rejestr
+            kolorow dla palety MUI i dla warstwy list. */}
+        <style dangerouslySetInnerHTML={{ __html: buildCssVariables() }} />
         <Meta />
         <Links />
       </head>
