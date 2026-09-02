@@ -37,23 +37,19 @@ class GlobalParameter extends Dateable
         ];
     }
 
-    /** @param Builder<self> $query */
-    public function scopeEffective(Builder $query, ?Carbon $date = null): Builder
+    public static function value(string $key, ?Carbon $date = null): ?string
     {
         $date ??= Carbon::today();
 
-        $query->whereDate('valid_from', '<=', $date)
-            ->where(static fn(Builder $inner) => $inner
-                ->whereNull('valid_to')
-                ->orWhereDate('valid_to', '>=', $date));
-
-        return $query;
-    }
-
-    public static function value(string $key, ?Carbon $date = null): ?string
-    {
         /** @var self|null $parameter */
-        $parameter = self::query()->where('key', $key)->effective($date)->orderByDesc('valid_from')->first();
+        $parameter = self::query()
+            ->where('key', $key)
+            ->whereDate('valid_from', '<=', $date)
+            ->where(static fn(Builder $query): Builder => $query
+                ->whereNull('valid_to')
+                ->orWhereDate('valid_to', '>=', $date))
+            ->orderByDesc('valid_from')
+            ->first();
 
         return $parameter?->value;
     }

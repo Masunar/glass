@@ -87,9 +87,10 @@ class Product extends Dateable
         $date ??= Carbon::today();
 
         /** @var PurchasePrice|null */
-        return $this->purchasePrices()
+        return PurchasePrice::query()
+            ->where('product_id', $this->id)
             ->whereDate('valid_from', '<=', $date)
-            ->where(static fn(Builder $query) => $query
+            ->where(static fn(Builder $query): Builder => $query
                 ->whereNull('valid_to')
                 ->orWhereDate('valid_to', '>=', $date))
             ->orderByDesc('valid_from')
