@@ -7,21 +7,26 @@ namespace App\Services\Pricing;
 use Carbon\Carbon;
 use App\Models\Product;
 use App\Enum\PriceSource;
+use App\Models\Contractor;
 use App\Models\PriceSection;
 use App\Models\PriceListItem;
 use App\DTO\Pricing\QuoteStep;
+use App\Models\ContractorPrice;
 use App\DTO\Pricing\ResolvedPrice;
 use App\Enum\PriceUnavailableReason;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Pierwszy z czterech poziomów ustalania ceny: cena katalogowa.
+ * Trzy z czterech poziomów ustalania ceny.
  *
- * Kolejne trzy — sekcja cenowa kontrahenta, cena indywidualna i rabat
- * na zleceniu — dokładają się do tego wyniku, gdy powstaną moduły
- * kontrahentów i zleceń. Każdy poziom dopisuje krok do śladu, więc
- * handlowiec widzi, skąd wzięła się kwota, zamiast patrzeć na liczbę
- * bez pochodzenia (`99-model-danych.md` §6.3).
+ * `catalogue()` daje poziom 1 — cenę katalogową produktu w danej sekcji
+ * cenowej. `forContractor()` dokłada poziom 2 (sekcja cenowa
+ * kontrahenta) i 3 (cena indywidualna). Poziom 4 — rabat na zleceniu —
+ * należy do modułu zleceń, bo zależy od pozycji, nie od kontrahenta.
+ *
+ * Każdy poziom dopisuje krok do śladu, więc handlowiec widzi, skąd
+ * wzięła się kwota, zamiast patrzeć na liczbę bez pochodzenia
+ * (`99-model-danych.md` §6.3).
  *
  * Cena cennikowa jest zamrożona do momentu świadomego zapisu w module
  * cennika. To nie jest niedopatrzenie, tylko wymaganie: w starym
@@ -30,7 +35,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final readonly class PriceResolver
 {
-    public function resolve(
+    public function catalogue(
         Product $product,
         ?PriceSection $priceSection = null,
         ?Carbon $date = null,
@@ -92,6 +97,76 @@ final readonly class PriceResolver
                 ),
             ],
         );
+    }
+
+
+    /**
+     * Pełna ścieżka ceny dla kontrahenta — poziomy 1–3.
+     *
+     * 1. cena katalogowa produktu
+     * 2. sekcja cenowa kontrahenta (per sekcja asortymentu)
+     * 3. cena indywidualna kontrahenta
+     *
+     * Poziom 4 — rabat na zleceniu — dokłada moduł zleceń, bo zależy
+     * od pozycji, nie od kontrahenta. Każdy poziom dopisuje krok do
+     * śladu, więc handlowiec widzi, skąd wzięła się kwota, zamiast
+     * patrzeć na liczbę bez pochodzenia.
+     */
+    public function forContractor(
+        Product $product,
+        ?Contractor $contractor = null,
+        ?Carbon $date = null,
+    ): ResolvedPrice {
+        $date ??= Carbon::today();
+
+        // Brak przypisanej sekcji nie blokuje wyceny: obowiązuje wtedy
+        // domyślna (K-02). Blokada oznaczałaby, że nowego klienta nie da
+        // się wycenić, dopóki ktoś nie uzupełni pięciu wierszy.
+        $section = $contractor?->priceSectionFor($product->section);
+        $price = $this->catalogue($product, $section, $date);
+
+        $individual = $contractor === null
+            ? null
+            : $this->individualPriceAt($contractor->id, $product->id, $date);
+
+        if ($individual === null) {
+            return $price;
+        }
+
+        $net = (string) $individual->net_price;
+
+        return ResolvedPrice::of(
+            netPrice: $net,
+            source: PriceSource::INDIVIDUAL,
+            coefficient: $price->coefficient,
+            purchaseNetPrice: $price->purchaseNetPrice,
+            recomputedNetPrice: $price->recomputedNetPrice,
+            priceSectionId: $price->priceSectionId,
+            priceSectionName: $price->priceSectionName,
+            steps: [
+                ...$price->steps,
+                new QuoteStep(
+                    'individual',
+                    'Cena indywidualna',
+                    $net,
+                    sprintf('ustalona dla %s', $contractor->displayName()),
+                ),
+            ],
+        );
+    }
+
+    private function individualPriceAt(int $contractorId, int $productId, Carbon $date): ?ContractorPrice
+    {
+        /** @var ContractorPrice|null */
+        return ContractorPrice::query()
+            ->where('contractor_id', $contractorId)
+            ->where('product_id', $productId)
+            ->whereDate('valid_from', '<=', $date)
+            ->where(static function (Builder $query) use ($date): void {
+                $query->whereNull('valid_to')->orWhereDate('valid_to', '>=', $date);
+            })
+            ->orderByDesc('valid_from')
+            ->first();
     }
 
     /**

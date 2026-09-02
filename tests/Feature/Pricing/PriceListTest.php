@@ -94,7 +94,7 @@ class PriceListTest extends TestCase
 
         $this->assertSame([], $errors);
 
-        $price = $this->resolver->resolve($product, $section);
+        $price = $this->resolver->catalogue($product, $section);
 
         $this->assertTrue($price->isAvailable());
         $this->assertSame($expected, $price->netPrice);
@@ -114,7 +114,7 @@ class PriceListTest extends TestCase
             'coefficient' => '4.0',
         ]]);
 
-        $price = $this->resolver->resolve($product);
+        $price = $this->resolver->catalogue($product);
 
         $this->assertSame('208.00', $price->netPrice);
         $this->assertSame($default->id, $price->priceSectionId);
@@ -122,7 +122,7 @@ class PriceListTest extends TestCase
 
     public function test_produkt_bez_pozycji_cennika_nie_kosztuje_zera(): void
     {
-        $price = $this->resolver->resolve($this->product('float 8mm'));
+        $price = $this->resolver->catalogue($this->product('float 8mm'));
 
         $this->assertFalse($price->isAvailable());
         $this->assertNull($price->netPrice);
@@ -144,7 +144,7 @@ class PriceListTest extends TestCase
 
         $this->assertSame([], $errors);
 
-        $price = $this->resolver->resolve($product, $section);
+        $price = $this->resolver->catalogue($product, $section);
 
         $this->assertFalse($price->isAvailable());
         $this->assertSame(PriceUnavailableReason::NO_PRICE, $price->unavailableReason);
@@ -162,7 +162,7 @@ class PriceListTest extends TestCase
             'manual_net_price' => '265.00',
         ]]);
 
-        $price = $this->resolver->resolve($product, $section);
+        $price = $this->resolver->catalogue($product, $section);
 
         $this->assertSame('265.00', $price->netPrice);
         $this->assertSame(PriceSource::MANUAL, $price->source);
@@ -190,7 +190,7 @@ class PriceListTest extends TestCase
             'valid_from' => Carbon::today(),
         ]);
 
-        $price = $this->resolver->resolve($product->refresh(), $section);
+        $price = $this->resolver->catalogue($product->refresh(), $section);
 
         $this->assertSame('260.00', $price->netPrice);
         $this->assertSame('300.00', $price->recomputedNetPrice);
@@ -226,11 +226,11 @@ class PriceListTest extends TestCase
         // Oferta sprzed tygodnia liczy się starą ceną.
         $this->assertSame(
             '260.00',
-            $this->resolver->resolve($product, $section, $lastWeek)->netPrice,
+            $this->resolver->catalogue($product, $section, $lastWeek)->netPrice,
         );
         $this->assertSame(
             '208.00',
-            $this->resolver->resolve($product, $section)->netPrice,
+            $this->resolver->catalogue($product, $section)->netPrice,
         );
     }
 
@@ -251,10 +251,10 @@ class PriceListTest extends TestCase
         );
 
         $this->assertSame(1, PriceListItem::query()->count());
-        $this->assertFalse($this->resolver->resolve($product, $section)->isAvailable());
+        $this->assertFalse($this->resolver->catalogue($product, $section)->isAvailable());
         $this->assertSame(
             '260.00',
-            $this->resolver->resolve($product, $section, $lastWeek)->netPrice,
+            $this->resolver->catalogue($product, $section, $lastWeek)->netPrice,
         );
     }
 
