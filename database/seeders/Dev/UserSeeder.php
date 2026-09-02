@@ -6,6 +6,7 @@ namespace Database\Seeders\Dev;
 
 use App\Models\User;
 use Salvon\Database\Seeder;
+use Database\Seeders\Core\RoleSeeder;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
@@ -18,9 +19,9 @@ class UserSeeder extends Seeder
 
     public function createAdmin(): void
     {
-        $role = new Role(['name' => 'Administrator']);
-        $role->forceFill(['is_superuser' => true]);
-        $role->save();
+        // Role zaklada Core\RoleSeeder - sa danymi referencyjnymi,
+        // a nie deweloperskimi, bo odwoluja sie do nich limity rabatowe.
+        $role = Role::query()->where('name', RoleSeeder::ADMINISTRATOR)->firstOrFail();
 
         $envEmail = getenv('SEEDER_ADMIN_EMAIL');
         $envPass = getenv('SEEDER_ADMIN_PW');

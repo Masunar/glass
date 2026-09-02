@@ -13,6 +13,13 @@ export const appRoutes = {
       { permission: Permission.USERS, subPermission: SubPermission.LIST },
     ],
   },
+  parameters: {
+    path: '/parameters',
+    file: 'parameters',
+    permissions: [
+      { permission: Permission.PARAMETERS, subPermission: SubPermission.LIST },
+    ],
+  },
 } satisfies RouteItems;
 
 export default router({

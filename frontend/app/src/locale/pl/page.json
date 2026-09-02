@@ -57,7 +57,8 @@
     "newsletter_subscribers": "Newsletter",
     "logs": "Logi",
     "margin_schedule": "Harmonogram marż",
-    "settings": "Ustawienia"
+    "settings": "Ustawienia",
+    "parameters": "Parametry wyceny"
   },
   "user_account": {
     "mfa": {
@@ -175,5 +176,33 @@
   },
   "users": {
     "title": "Użytkownicy"
+  },
+  "parameters": {
+    "title": "Parametry wyceny",
+    "lead": "Wartości wpływające na każdą nową wycenę i na treść ofert. Zmiana jest zapisywana jako nowa wersja, a poprzednia zostaje w historii — dzięki temu wycenę sprzed zmiany da się odtworzyć.",
+    "saved": "Parametry zapisane.",
+    "save_count": "Zapisz zmiany ({{count}})",
+    "group": {
+      "pricing": "Wzór wyceny formatki",
+      "limits": "Limity i czasy",
+      "offer": "Oferta"
+    },
+    "field": {
+      "min_billable_m2_tempered": "Minimalna wartość obliczeniowa — formatka hartowana",
+      "min_billable_m2_untempered": "Minimalna wartość obliczeniowa — formatka niehartowana",
+      "oversize_threshold_m2": "Próg gabarytu",
+      "oversize_surcharge_percent": "Dopłata za przekroczenie gabarytu",
+      "shape_surcharge_percent": "Dopłata za nieregularny kształt",
+      "min_pane_price": "Próg minimalnej ceny formatki",
+      "min_pane_surcharge_percent": "Dopłata do formatki poniżej progu",
+      "max_pane_width_mm": "Maksymalna szerokość formatki",
+      "max_pane_height_mm": "Maksymalna wysokość formatki",
+      "assembly_duration_days": "Czas montażu",
+      "offer_validity_days": "Ważność oferty",
+      "offer_validity_text": "Tekst o ważności oferty",
+      "offer_payment_terms": "Warunki płatności",
+      "offer_delivery_time": "Termin realizacji",
+      "bank_account_iban": "Rachunek do przedpłat"
+    }
   }
 }

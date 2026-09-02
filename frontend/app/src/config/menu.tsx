@@ -1,6 +1,10 @@
 import { appRoutes } from '../router/app-router';
 import { BiSolidDashboard } from 'react-icons/bi';
-import { PiChartLine, PiUserCircleGear } from 'react-icons/pi';
+import {
+  PiChartLine,
+  PiSlidersHorizontal,
+  PiUserCircleGear,
+} from 'react-icons/pi';
 
 import type { MenuEntries } from '@salvon/components/sidebar-menu';
 
@@ -25,6 +29,11 @@ export const menu: MenuEntries = [
     icon: PiUserCircleGear,
     translation: 'page.menu.users',
     route: appRoutes.users,
+  },
+  {
+    icon: PiSlidersHorizontal,
+    translation: 'page.menu.parameters',
+    route: appRoutes.parameters,
   },
 ];
 
