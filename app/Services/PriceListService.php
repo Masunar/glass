@@ -188,7 +188,7 @@ final readonly class PriceListService
             $cells = [];
 
             foreach ($columns as $column) {
-                $price = $this->resolver->resolve($product, $column, $date);
+                $price = $this->resolver->catalogue($product, $column, $date);
 
                 $cells[(string) $column->id] = [
                     'coefficient' => $price->coefficient,

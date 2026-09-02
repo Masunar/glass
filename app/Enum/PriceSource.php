@@ -20,4 +20,7 @@ enum PriceSource: string
 
     /** Cena wpisana ręcznie, nadpisująca wyliczenie. */
     case MANUAL = 'manual';
+
+    /** Cena indywidualna kontrahenta — nadrzędna wobec cennika. */
+    case INDIVIDUAL = 'individual';
 }
