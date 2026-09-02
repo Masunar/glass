@@ -14,4 +14,5 @@ enum Permission: string
     case STATUSES = 'statuses';
     case ALERTS = 'alerts';
     case AUDIT = 'audit';
+    case PARAMETERS = 'parameters';
 }
