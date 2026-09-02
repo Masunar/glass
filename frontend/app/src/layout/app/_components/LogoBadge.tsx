@@ -1,7 +1,8 @@
-import { PiCellTower, PiCube } from 'react-icons/pi';
-
 import { Div, Flex } from '@salvon/components/div';
 import { usePalette } from '@salvon/hooks/useTheme';
+import { useTranslation } from '@salvon/hooks/useTranslation';
+
+import LogoMark from '@app/components/layout/LogoMark';
 
 type Props = {
   renderCompactMode: boolean;
@@ -9,7 +10,9 @@ type Props = {
 
 export default function LogoBadge({ renderCompactMode }: Props) {
   const palette = usePalette();
-  const name = 'Salvon Framework';
+  const t = useTranslation();
+  const name = t('brand_name');
+
   return (
     <Flex
       aCenter
@@ -31,12 +34,10 @@ export default function LogoBadge({ renderCompactMode }: Props) {
           //@ts-ignore
           background: palette.secondary?.main,
           color: '#fff',
-          fontWeight: 700,
-          fontSize: '1.15rem',
           flexShrink: 0,
         }}
       >
-        <PiCube />
+        <LogoMark size={19} color="#fff" title={name} />
       </Flex>
       {!renderCompactMode && (
         <Div
