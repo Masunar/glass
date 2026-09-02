@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use Salvon\Model\Model as Model;
+use Illuminate\Http\JsonResponse;
+use Salvon\Controller\ApiCrudController;
+
+class TestController extends ApiCrudController
+{
+    public function __construct(
+        private readonly Service $crudService,
+    ) {
+        parent::__construct();
+    }
+
+    public function list(): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->list();
+        });
+    }
+
+    public function listWithTrashed(): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->list(true);
+        });
+    }
+
+    public function create(): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->create();
+        });
+    }
+
+    public function update(Model $item): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->update($item);
+        });
+    }
+
+    public function delete(Model $item): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->delete($item);
+        });
+    }
+
+    public function restore(Model $item): JsonResponse
+    {
+        return $this->secure(function (): JsonResponse {
+            return $this->crudService->restore($item);
+        });
+    }
+}

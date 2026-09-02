@@ -1,0 +1,61 @@
+# --- PHP / Laravel ---
+/vendor
+/salvon/vendor
+/.phpunit.cache
+/.phpunit.result.cache
+/storage/*.key
+/storage/pail
+/storage/debugbar
+/public/storage
+/public/hot
+/public/build
+/bootstrap/cache/*.php
+.php-cs-fixer.cache
+.phpstan.cache
+/rector-cache
+
+# --- Env / sekrety ---
+.env
+.env.*
+!.env.example
+/docker/.docker.env
+/frontend/env.ts
+auth.json
+*.pem
+*.p12
+*.key
+!/database/**/*.key
+
+# --- Node / frontend ---
+node_modules/
+/frontend/node_modules
+/frontend/build
+/frontend/.react-router
+/frontend/.vite
+/frontend/public/build
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Docker (dane lokalne) ---
+/docker/mysql_data
+/docker/data
+
+# --- IDE ---
+/.idea
+/.vscode
+/.fleet
+/.nova
+/.zed
+*.iml
+
+# --- System ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Lokalne bazy / dumpy ---
+/database/*.sqlite
+/database/*.sqlite-journal
+*.sql.gz
+*.dump

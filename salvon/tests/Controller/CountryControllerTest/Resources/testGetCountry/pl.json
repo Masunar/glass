@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "data": {
+    "name": "Poland",
+    "official_name": "Republic of Poland",
+    "native_official_name": "Rzeczpospolita Polska",
+    "iso_3166_1_alpha2": "PL",
+    "iso_3166_1_alpha3": "POL",
+    "calling_code": "48",
+    "currency": "PLN",
+    "emoji": "\ud83c\uddf5\ud83c\uddf1",
+    "display_name": "Polska \ud83c\uddf5\ud83c\uddf1"
+  }
+}

@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE_VERSION: ${NODE_IMAGE_VERSION}
+        NPM_VERSION: ${NPM_VERSION}
+    ports:
+      - ${APP_SERVE_PORT}:3000
+    container_name: ${CONTAINER_PREFIX}_app
+    volumes:
+      - ${PWD}:/var/www/project/
+    restart: on-failure
+    pull_policy: missing

@@ -1,0 +1,156 @@
+{
+  "required": "To pole jest wymagane.",
+  "email": {
+    "invalid": "Wprowadź poprawny adres E-Mail."
+  },
+  "length": {
+    "min": "To pole musi mieć minimum {{min}} znaków.",
+    "max": "To pole może mieć maksymalnie {{min}} znaków."
+  },
+  "number": {
+    "invalid": "Wartość tego pola musi być liczbą.",
+    "positive_int": "Wartość tego pola musi być całkowitą liczbą większą od zera."
+  },
+  "phone": {
+    "invalid": "Wprowadź poprawny numer telefonu."
+  },
+  "date": {
+    "invalid": "Wprowadź poprawną datę.",
+    "too_early": "Wprowadzona data jest zbyt wczesna."
+  },
+  "password": {
+    "mismatch": "Podane hasła są różne.",
+    "strength": "Siła hasła",
+    "weak": "Słabe hasło",
+    "medium": "Średnie hasło",
+    "strong": "Silne hasło",
+    "do_not_match": "Podane hasła są od siebie różne",
+    "min_length": "Hasło musi mieć minimum {{min}} znaków.",
+    "criteria": "Hasło musi mieć minimum 8 znaków, jedną dużą literę, jedną małą literę oraz znak specjalny."
+  },
+  "nip": {
+    "invalid": "Wprowadzony numer NIP nie jest prawidłowy."
+  },
+  "postal_code": {
+    "invalid": "Wprowadź poprawny kod pocztowy (format 00-000)."
+  },
+  "building_number": {
+    "invalid": "Wprowadź poprawny numer domu."
+  },
+  "apartment_number": {
+    "invalid": "Wprowadź poprawny numer lokalu."
+  },
+  "unique": "Wartość tego pola musi być unikalna.",
+  "accepted": "To pole musi zostać zaakceptowane.",
+  "active_url": "To pole nie jest prawidłowym adresem URL.",
+  "after": "Wprowadzona data jest zbyt wczesna.",
+  "after_or_equal": "Wprowadzona data jest zbyt wczesna.",
+  "alpha": "To pole może zawierać tylko litery.",
+  "alpha_dash": "To pole może zawierać tylko litery, cyfry, myślniki oraz podkreślenia.",
+  "alpha_num": "To pole może zawierać tylko litery oraz cyfry.",
+  "array": "To pole musi być tablicą.",
+  "ascii": "To pole może zawierać tylko jednobajtowe znaki alfanumeryczne i symbole.",
+  "before": "Wprowadzona data jest zbyt późna.",
+  "before_or_equal": "Wprowadzona data jest zbyt późna.",
+  "between": {
+    "array": "Liczba elementów w tym polu jest poza dozwolonym zakresem.",
+    "file": "Rozmiar pliku jest poza dozwolonym zakresem.",
+    "numeric": "Wartość tego pola jest poza dozwolonym zakresem.",
+    "string": "Długość tego pola jest poza dozwolonym zakresem."
+  },
+  "boolean": "To pole musi mieć wartość prawda lub fałsz.",
+  "confirmed": "Potwierdzenie tego pola nie zgadza się.",
+  "contains": "To pole nie zawiera wymaganej wartości.",
+  "current_password": "Hasło jest nieprawidłowe.",
+  "date_equals": "Wprowadzona data jest nieprawidłowa.",
+  "date_format": "Format daty jest nieprawidłowy.",
+  "decimal": "Liczba miejsc po przecinku jest nieprawidłowa.",
+  "declined": "To pole musi zostać odrzucone.",
+  "different": "Wartości tych pól muszą się różnić.",
+  "digits": "Liczba cyfr w tym polu jest nieprawidłowa.",
+  "digits_between": "Liczba cyfr w tym polu jest poza dozwolonym zakresem.",
+  "dimensions": "To pole ma nieprawidłowe wymiary.",
+  "distinct": "To pole ma zduplikowaną wartość.",
+  "ends_with": "To pole musi kończyć się jedną z dozwolonych wartości.",
+  "enum": "Wybrana wartość jest nieprawidłowa.",
+  "exists": "Wybrana wartość jest nieprawidłowa.",
+  "extensions": "To pole musi mieć jedno z dozwolonych rozszerzeń.",
+  "file": "To pole musi być plikiem.",
+  "filled": "To pole musi mieć wartość.",
+  "gt": {
+    "array": "Liczba elementów w tym polu jest za mała.",
+    "file": "Plik jest za mały.",
+    "numeric": "Wartość tego pola jest za mała.",
+    "string": "Wartość tego pola jest za krótka."
+  },
+  "gte": {
+    "array": "Liczba elementów w tym polu jest za mała.",
+    "file": "Plik jest za mały.",
+    "numeric": "Wartość tego pola jest za mała.",
+    "string": "Wartość tego pola jest za krótka."
+  },
+  "hex_color": "To pole musi być prawidłowym kolorem w formacie szesnastkowym.",
+  "image": "To pole musi być obrazem.",
+  "in": "Wybrana wartość jest nieprawidłowa.",
+  "in_array": "Wybrana wartość jest nieprawidłowa.",
+  "integer": "To pole musi być liczbą całkowitą.",
+  "ip": "To pole musi być prawidłowym adresem IP.",
+  "ipv4": "To pole musi być prawidłowym adresem IPv4.",
+  "ipv6": "To pole musi być prawidłowym adresem IPv6.",
+  "json": "To pole musi być prawidłowym ciągiem JSON.",
+  "list": "To pole musi być listą.",
+  "lowercase": "To pole musi zawierać tylko małe litery.",
+  "lt": {
+    "array": "Liczba elementów w tym polu jest za duża.",
+    "file": "Plik jest za duży.",
+    "numeric": "Wartość tego pola jest za duża.",
+    "string": "Wartość tego pola jest za długa."
+  },
+  "lte": {
+    "array": "Liczba elementów w tym polu jest za duża.",
+    "file": "Plik jest za duży.",
+    "numeric": "Wartość tego pola jest za duża.",
+    "string": "Wartość tego pola jest za długa."
+  },
+  "mac_address": "To pole musi być prawidłowym adresem MAC.",
+  "max": {
+    "array": "Liczba elementów w tym polu jest za duża.",
+    "file": "Plik jest za duży.",
+    "numeric": "Wartość tego pola jest za duża.",
+    "string": "Wartość tego pola jest za długa."
+  },
+  "max_digits": "Liczba cyfr w tym polu jest za duża.",
+  "mimes": "Nieprawidłowy typ pliku.",
+  "mimetypes": "Nieprawidłowy typ pliku.",
+  "min": {
+    "array": "Liczba elementów w tym polu jest za mała.",
+    "file": "Plik jest za mały.",
+    "numeric": "Wartość tego pola jest za mała.",
+    "string": "Wartość tego pola jest za krótka."
+  },
+  "min_digits": "Liczba cyfr w tym polu jest za mała.",
+  "missing": "To pole nie może występować.",
+  "multiple_of": "Wartość tego pola jest nieprawidłowa.",
+  "not_in": "Wybrana wartość jest nieprawidłowa.",
+  "not_regex": "Format tego pola jest nieprawidłowy.",
+  "numeric": "To pole musi być liczbą.",
+  "present": "To pole musi być obecne.",
+  "prohibited": "To pole jest niedozwolone.",
+  "regex": "Format tego pola jest nieprawidłowy.",
+  "same": "Wartości tych pól muszą być takie same.",
+  "size": {
+    "array": "Liczba elementów w tym polu jest nieprawidłowa.",
+    "file": "Rozmiar pliku jest nieprawidłowy.",
+    "numeric": "Wartość tego pola jest nieprawidłowa.",
+    "string": "Długość tego pola jest nieprawidłowa."
+  },
+  "starts_with": "To pole musi zaczynać się jedną z dozwolonych wartości.",
+  "string": "To pole musi być ciągiem znaków.",
+  "timezone": "To pole musi być prawidłową strefą czasową.",
+  "uploaded": "Nie udało się wgrać pliku.",
+  "uppercase": "To pole musi zawierać tylko wielkie litery.",
+  "url": "To pole musi być prawidłowym adresem URL.",
+  "ulid": "To pole musi być prawidłowym ULID.",
+  "uuid": "To pole musi być prawidłowym UUID.",
+  "passwords_mismatch": "Podane hasła są różne."
+}

@@ -1,0 +1,145 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "synteco/salvon-ssr",
+    "type": "project",
+    "description": "Salvon SSR",
+    "keywords": ["laravel", "framework", "salvon"],
+    "license": "closed-source",
+    "require": {
+        "php": "^8.5",
+        "ext-curl": "*",
+        "ext-fileinfo": "*",
+        "ext-gd": "*",
+        "ext-imagick": "*",
+        "ext-intl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-simplexml": "*",
+        "ext-soap": "*",
+        "ext-xml": "*",
+        "ext-zip": "*",
+        "barryvdh/laravel-dompdf": "^3.1.2",
+        "kirschbaum-development/eloquent-power-joins": "^4.3.3",
+        "laravel/framework": "^13.26.1",
+        "laravel/reverb": "^1.11",
+        "laravel/sanctum": "^4.3.3",
+        "laravel/tinker": "^3.0.2",
+        "pay-now/paynow-php-sdk": "^3.0.0",
+        "php-http/guzzle7-adapter": "^1.1.0",
+        "phpoffice/phpspreadsheet": "^5.9.0",
+        "pragmarx/google2fa": "^9.1.0",
+        "rinvex/countries": "^9.1",
+        "smsapi/php-client": "^4.0.0",
+        "spatie/laravel-data": "^4.23.0",
+        "spatie/laravel-permission": "^8.3.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.24",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.9",
+        "phpunit/phpunit": "^13.3.1",
+        "friendsofphp/php-cs-fixer": "3.95.21",
+        "phpstan/phpstan": "^2.2.9",
+        "rector/rector": "^2.6.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Salvon\\": "salvon/src/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/",
+            "Salvon\\Geolocalization\\": "salvon/packages/geolocalization",
+            "Salvon\\Google\\": "salvon/packages/google",
+            "Salvon\\Regon\\": "salvon/packages/gus-regon",
+            "Salvon\\Imagicker\\": "salvon/packages/imagicker",
+            "Salvon\\MFA\\": "salvon/packages/mfa",
+            "Salvon\\BDO\\": "salvon/packages/mos-bdo",
+            "Salvon\\NBP\\": "salvon/packages/nbp",
+            "Salvon\\NordVPN\\": "salvon/packages/nord-vpn",
+            "Salvon\\Paynow\\": "salvon/packages/paynow",
+            "Salvon\\Przelewy24\\": "salvon/packages/przelewy24",
+            "Salvon\\UPS\\": "salvon/packages/ups",
+            "Salvon\\SMSApi\\": "salvon/packages/sms",
+            "Salvon\\Stooq\\": "salvon/packages/stooq",
+            "Salvon\\Bundle\\": "salvon/bundles/"
+        },
+        "files": [
+            "salvon/src/functions/functions.php",
+            "app/functions/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Salvon\\Tests\\": "salvon/tests/"
+        }
+    },
+    "scripts": {
+        "setup": [
+            "composer install",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"file_exists('./frontend/env.ts') || copy('./frontend/env.example.ts', './frontend/env.ts');\"",
+            "@php artisan key:generate",
+            "@php artisan migrate",
+            "composer build-frontend"
+        ],
+        "setup-dev": [
+            "composer install",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"file_exists('./frontend/env.ts') || copy('./frontend/env.example.ts', './frontend/env.ts');\"",
+            "@php artisan key:generate",
+            "@php artisan migrate:fresh --seed",
+            "composer build-frontend"
+        ],
+        "install-frontend": [
+          "cd frontend && npm install --ignore-scripts --min-release-age=7"
+        ],
+        "build-frontend": [
+          "composer install-frontend",
+          "cd frontend && npm run build"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "cd frontend && npm run dev"
+        ],
+        "test": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,36 @@
+{
+    "name": "synteco/laravel-salvon",
+    "type": "project",
+    "description": "Salvon - Laravel RAD framework",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "ext-curl": "*",
+        "ext-fileinfo": "*",
+        "ext-imagick": "*",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-simplexml": "*",
+        "ext-soap": "*",
+        "ext-xml": "*",
+        "ext-zip": "*",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "guzzlehttp/guzzle": "^7.9",
+        "kirschbaum-development/eloquent-power-joins": "^4.2",
+        "laravel/framework": "^12.19",
+        "phpoffice/phpspreadsheet": "^4.4",
+        "rinvex/countries": "^9.0",
+        "spatie/laravel-data": "^4.17",
+        "spatie/laravel-permission": "^6.20"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.24",
+        "friendsofphp/php-cs-fixer": "^3.75",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.8",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.2",
+        "rector/rector": "^2.1"
+    }
+}

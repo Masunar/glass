@@ -1,0 +1,18 @@
+{
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports"
+  ],
+  "importOrder": [
+    "^@router-types/(.*)$",
+    "^(?!@(app|salvon|router-types|)).*$",
+    "^@salvon/(.*)$",
+    "^@app/(.*)$"
+  ],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "semi": true,
+  "bracketSpacing": true,
+  "bracketSameLine": false
+}

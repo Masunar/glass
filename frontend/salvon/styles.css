@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+body{
+    font-family: Inter, sans-serif;
+}
+
+.salvon-animate-all:not(.disable-salvon-animate),
+.salvon-animate-all:not(.disable-salvon-animate) *:not(.disable-salvon-animate)
+{
+    transition-duration: 250ms;
+    transition-property: overflow, display, opacity, width, top,
+    right, bottom, left, margin, padding, transform, box-shadow;
+}
+
+.salvon-animate:not(.disable-salvon-animate){
+    transition-duration: 250ms;
+    transition-property: overflow, display, opacity, width, top,
+    right, bottom, left, margin, padding, transform, box-shadow;
+}
+
+.salvon-animate-height:not(.disable-salvon-animate){
+    transition-property: overflow, display, opacity, width, top,
+    right, bottom, left, margin, padding, transform, box-shadow, height;
+}
+
+.disable-salvon-animate{
+    transition-duration: 0ms !important;
+    transition: none !important;
+}
+
+.disable-salvon-animate-all, .disable-salvon-animate-all *{
+    transition-duration: 0ms !important;
+    transition: none !important;
+}
+
+.disable-salvon-animate-all-soft, .disable-salvon-animate-all-soft *{
+    transition-duration: 0ms;
+    transition: none;
+}

@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "data": {
+    "name": "United States",
+    "official_name": "United States of America",
+    "native_official_name": "United States of America",
+    "iso_3166_1_alpha2": "US",
+    "iso_3166_1_alpha3": "USA",
+    "calling_code": "1",
+    "currency": "USD",
+    "emoji": "\ud83c\uddfa\ud83c\uddf8",
+    "display_name": "United States \ud83c\uddfa\ud83c\uddf8"
+  }
+}

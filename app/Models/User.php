@@ -1,0 +1,116 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Mail\ResetPasswordEmail;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Permission;
+use Illuminate\Notifications\Notifiable;
+use Salvon\Model\User as Authenticatable;
+use Spatie\Permission\Traits\HasPermissions;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+/**
+ * @property int $id
+ * @property string $email
+ * @property string $phone
+ * @property string $first_name
+ * @property string $last_name
+ * @property bool $is_active
+ * @property Role[] $roles
+ * @property Permission[] $permissions
+ * @property UserMfa|null $mfa
+ */
+class User extends Authenticatable implements MustVerifyEmail
+{
+    use Notifiable;
+    use HasApiTokens;
+    use HasRoles;
+    use HasPermissions;
+    use SoftDeletes;
+
+    protected $table = 'users';
+
+    protected $fillable = [
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'is_active',
+        'password',
+        'last_login_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    public function activated(): bool
+    {
+        return $this->is_active;
+    }
+
+    public function isSuperUser(): bool
+    {
+        foreach ($this->roles as $role) {
+            if ($role['is_superuser'] ?? false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        ResetPasswordEmail::send([
+            'token' => $token,
+            'user' => $this->toArray(),
+            'url' => frontend_route('reset-password', ['token' => $token]),
+        ]);
+    }
+
+    public function mfa(): HasOne
+    {
+        return $this->hasOne(UserMfa::class, 'user_id', 'id');
+    }
+
+    public function hasMfa(): bool
+    {
+        return $this->mfa instanceof UserMfa;
+    }
+
+    public function mfaActive(): bool
+    {
+        return $this->hasMfa() && $this->mfa->is_active;
+    }
+
+    public function updateOrCreateMfa(array $data): UserMfa
+    {
+        $mfa = UserMfa::query()->updateOrCreate(
+            ['user_id' => $this->id],
+            $data,
+        );
+
+        $this->setRelation('mfa', $mfa);
+
+        return $mfa;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'activation_token_expires_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+        ];
+    }
+}
