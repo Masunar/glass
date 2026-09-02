@@ -3,7 +3,7 @@ import { Avatar, Chip, Typography } from '@mui/material';
 import { BiChevronRight } from 'react-icons/bi';
 
 import { Card } from '@salvon/components/card';
-import { Div, Flex } from '@salvon/components/div';
+import { Flex } from '@salvon/components/div';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
 type Props = {

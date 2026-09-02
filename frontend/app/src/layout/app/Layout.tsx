@@ -1,12 +1,11 @@
 import { CssBaseline } from '@mui/material';
-import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { authRoutes } from '@router/auth-router';
 import { redirectRoutes } from '@router/redirect-router';
 import { securityRoutes } from '@router/security-router';
 
-import UserModal from '../../components/user/modal/UserModal';
 import User from '../../components/user/User';
 import { UserModalProvider } from '../../components/user/UserModalContext';
+import UserModal from '../../components/user/modal/UserModal';
 import { appRoutes } from '../../router/app-router';
 import OfflineModal from './_components/OfflineModal';
 import {
@@ -28,11 +27,11 @@ import TopbarSizer from '@salvon/components/topbar/TopbarSizer';
 import ChangeLanguage from '@salvon/components/topbar/actions/ChangeLanguage';
 import Logout from '@salvon/components/topbar/actions/Logout';
 import MobileMenuToggle from '@salvon/components/topbar/actions/MobileMenuToggle';
-import ThemeToggle from '@salvon/components/topbar/actions/ThemeToggle';
+import { themeMode } from '@salvon/consts/theme-mode';
 import { useMenuControl } from '@salvon/hooks/useMenuControl';
 import { useMounted } from '@salvon/hooks/useMounted';
 import { useSearchParam } from '@salvon/hooks/useSearchParams';
-import { useIsDarkMode, usePalette } from '@salvon/hooks/useTheme';
+import { usePalette } from '@salvon/hooks/useTheme';
 import { Providers } from '@salvon/provider';
 import type { ApplicationRoute } from '@salvon/router';
 import '@salvon/styles.css';
@@ -43,7 +42,7 @@ import i18n from '@app/config/i18n';
 import { locales } from '@app/config/locales';
 import { defaultLocale } from '@app/config/locales';
 import menu from '@app/config/menu';
-import { darkTheme, lightTheme } from '@app/config/theme';
+import { lightTheme } from '@app/config/theme';
 import { useHasPermission, userHasPermission } from '@app/hook/use-permissions';
 import LogoBadge from '@app/layout/app/_components/LogoBadge';
 import GlobalSearch from '@app/layout/app/_components/global-search/GlobalSearch';
@@ -114,7 +113,13 @@ export default function Layout({ loaderData }: any) {
       defaultLocale={defaultLocale}
       theme={{
         lightTheme,
-        darkTheme,
+        // Tryb ciemny wylaczony: tokeny Industry maja wylacznie palete
+        // jasna, a wlasna rampa ciemna bylaby zgadywaniem. Przypisanie
+        // jasnego motywu tutaj sprawia, ze zapisany wczesniej wybor
+        // "ciemny" tez renderuje sie poprawnie. Wlaczenie z powrotem to
+        // podmiana tej jednej linii.
+        darkTheme: lightTheme,
+        defaultMode: themeMode.light,
       }}
     >
       <UserProvider user={user}>
@@ -123,15 +128,7 @@ export default function Layout({ loaderData }: any) {
           defaultPage={mfaRecovered ? 'mfa' : 'main'}
           mfaRecovered={mfaRecovered}
         >
-          <NavigationIndicator
-            height="3px"
-            // sx={{
-            //   [`& .${linearProgressClasses.bar}`]: {
-            //     borderRadius: 5,
-            //     backgroundColor: 'primary.main',
-            //   },
-            // }}
-          >
+          <NavigationIndicator height="3px">
             <Template />
           </NavigationIndicator>
         </UserModalProvider>
@@ -201,7 +198,6 @@ function Template() {
             <GlobalSearch />
           </Flex>
           <Flex align="center" gap={1}>
-            <ThemeToggle />
             <ChangeLanguage locales={locales} />
             <Logout logout={handleLogout} />
           </Flex>

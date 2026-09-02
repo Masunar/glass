@@ -3,7 +3,6 @@ import { Typography } from '@mui/material';
 import { PiShieldCheck } from 'react-icons/pi';
 
 import { Div, Flex } from '@salvon/components/div';
-import { useMenuControl } from '@salvon/hooks/useMenuControl';
 import { useIsDarkMode } from '@salvon/hooks/useTheme';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 

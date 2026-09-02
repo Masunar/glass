@@ -33,7 +33,7 @@ export default function ImageRowRenderer({
 
   const { click, doubleClick, ...restRowProps } = rowProps ?? {};
 
-  let rowRenderer = (
+  const rowRenderer = (
     <Flex column>
       <Flex
         sx={{

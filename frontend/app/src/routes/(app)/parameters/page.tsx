@@ -44,7 +44,6 @@ export default function Page() {
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dirtyKeys = Object.keys(form.formState.dirtyFields);

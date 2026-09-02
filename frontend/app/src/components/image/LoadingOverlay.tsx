@@ -11,7 +11,7 @@ export default function LoadingOverlay({ rowCount }: Props) {
   const palette = usePalette();
   return (
     <Flex gap={1} wrap>
-      {[...Array(rowCount)].map((_row, rowIterator) => {
+      {[...Array(rowCount)].map(() => {
         return (
           <Flex
             sx={{

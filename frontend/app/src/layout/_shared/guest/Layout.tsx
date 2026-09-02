@@ -12,7 +12,7 @@ import { Providers } from '@salvon/provider';
 import Brand from '@app/components/layout/Brand';
 import i18n from '@app/config/i18n';
 import { defaultLocale } from '@app/config/locales';
-import { darkTheme, lightTheme } from '@app/config/theme';
+import { lightTheme } from '@app/config/theme';
 
 export default function Layout() {
   return (
@@ -21,7 +21,7 @@ export default function Layout() {
       defaultLocale={defaultLocale}
       theme={{
         lightTheme,
-        darkTheme,
+        darkTheme: lightTheme,
         defaultMode: themeMode.light,
         forceMode: 'light',
       }}
