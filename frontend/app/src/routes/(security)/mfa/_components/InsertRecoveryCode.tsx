@@ -1,7 +1,7 @@
 import { TextField } from '@mui/material';
 
 import { useState } from 'react';
-import { PiLock, PiLockKey } from 'react-icons/pi';
+import { PiLock } from 'react-icons/pi';
 
 import { Button } from '@salvon/components/button';
 import { Flex } from '@salvon/components/div';

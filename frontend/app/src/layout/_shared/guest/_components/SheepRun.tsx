@@ -12,7 +12,6 @@ import { useEffect, useRef, useState } from 'react';
 const GROUND = 26; // px from the bottom of the field
 const SHEEP_X = 40;
 const SHEEP_W = 42;
-const SHEEP_H = 34;
 const GRAVITY = 2000;
 const JUMP = 640;
 const START_SPEED = 260;

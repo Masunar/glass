@@ -31,5 +31,5 @@ export function formatPrice(
   currency: any = 'PLN',
   decimals = 2,
 ) {
-  return `${formatNumber(value, decimals)}${!!currency ? ` ${currency.symbol}` : ''}`;
+  return `${formatNumber(value, decimals)}${currency ? ` ${currency.symbol}` : ''}`;
 }

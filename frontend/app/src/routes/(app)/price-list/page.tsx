@@ -1,25 +1,36 @@
+import Heading from '@app-components/Heading';
 import {
   Box,
   Chip,
+  FormControlLabel,
+  IconButton,
   List,
+  ListItem,
   ListItemButton,
+  Switch,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Tab,
   Tabs,
   Typography,
 } from '@mui/material';
-
-import Heading from '@app-components/Heading';
 import { appRoutes } from '@router/app-router';
 
+import GroupModal from './_components/GroupModal';
+import ProductModal from './_components/ProductModal';
+import {
+  computePrice,
+  marginFromCoefficient,
+  priceListSections,
+} from './_components/sections';
 import { useEffect, useMemo, useState } from 'react';
-import { PiFloppyDisk, PiTag } from 'react-icons/pi';
+import { PiFloppyDisk, PiPencilSimple, PiPlus, PiTag } from 'react-icons/pi';
 
 import { Submit } from '@salvon/components/button';
+import { Button } from '@salvon/components/button';
 import { Card } from '@salvon/components/card';
 import { Flex } from '@salvon/components/div';
 import { Form, FormControl } from '@salvon/components/form';
@@ -31,15 +42,13 @@ import { notifySuccess } from '@salvon/utils/notify';
 
 import {
   type PriceCellInput,
-  type PriceMatrix,
+  type PriceGroup,
   PriceListApi,
+  type PriceMatrix,
+  type PriceRow,
 } from '@app/api/PriceListApi';
-
-import {
-  computePrice,
-  marginFromCoefficient,
-  priceListSections,
-} from './_components/sections';
+import HasPermission from '@app/components/HasPermission';
+import { Permission, SubPermission } from '@app/config/permission';
 
 const cellKey = (productId: number, sectionId: number) =>
   `${productId}_${sectionId}`;
@@ -51,9 +60,26 @@ export default function Page() {
   const [section, setSection] = useState<string>('glass');
   const [groupId, setGroupId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const [productModal, setProductModal] = useState<{
+    open: boolean;
+    row: PriceRow | null;
+  }>({ open: false, row: null });
+  const [groupModal, setGroupModal] = useState<{
+    open: boolean;
+    group: PriceGroup | null;
+  }>({ open: false, group: null });
 
-  const load = async (nextSection: string, nextGroupId: number | null) => {
-    const { content } = await PriceListApi.matrix(nextSection, nextGroupId);
+  const load = async (
+    nextSection: string,
+    nextGroupId: number | null,
+    inactive: boolean = showInactive,
+  ) => {
+    const { content } = await PriceListApi.matrix(
+      nextSection,
+      nextGroupId,
+      inactive,
+    );
     const data: PriceMatrix | undefined = content?.data;
 
     if (!data) {
@@ -76,7 +102,6 @@ export default function Page() {
 
   useEffect(() => {
     void load(section, null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
   const values = form.watch();
@@ -157,27 +182,72 @@ export default function Page() {
         </Tabs>
 
         <Flex gap={2} sx={{ alignItems: 'flex-start' }}>
-          <Card sx={{ width: 240, flex: '0 0 auto' }}>
+          <Card sx={{ width: 260, flex: '0 0 auto' }}>
             <List dense disablePadding>
               {(matrix?.groups ?? []).map((group) => (
-                <ListItemButton
+                <ListItem
                   key={group.id}
-                  selected={group.id === groupId}
-                  onClick={() => {
-                    setGroupId(group.id);
-                    void load(section, group.id);
-                  }}
-                  sx={{ borderRadius: 1 }}
+                  disablePadding
+                  secondaryAction={
+                    <HasPermission
+                      permission={Permission.PRODUCTS}
+                      sub={SubPermission.UPDATE}
+                    >
+                      <IconButton
+                        size="small"
+                        aria-label={t('page.price_list.group.edit')}
+                        onClick={() => setGroupModal({ open: true, group })}
+                      >
+                        <PiPencilSimple />
+                      </IconButton>
+                    </HasPermission>
+                  }
                 >
-                  <Typography variant="body2">{group.name}</Typography>
-                </ListItemButton>
+                  <ListItemButton
+                    selected={group.id === groupId}
+                    onClick={() => {
+                      setGroupId(group.id);
+                      void load(section, group.id);
+                    }}
+                    sx={{ borderRadius: 1 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: group.is_active
+                          ? 'text.primary'
+                          : 'text.disabled',
+                      }}
+                    >
+                      {group.name}
+                    </Typography>
+                  </ListItemButton>
+                </ListItem>
               ))}
               {(matrix?.groups ?? []).length === 0 && (
-                <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', p: 1 }}
+                >
                   {t('page.price_list.no_groups')}
                 </Typography>
               )}
             </List>
+
+            <HasPermission
+              permission={Permission.PRODUCTS}
+              sub={SubPermission.CREATE}
+            >
+              <Button
+                fullWidth
+                variant="text"
+                icon={<PiPlus />}
+                sx={{ mt: 1 }}
+                onClick={() => setGroupModal({ open: true, group: null })}
+              >
+                {t('page.price_list.group.add')}
+              </Button>
+            </HasPermission>
           </Card>
 
           <Card sx={{ flex: 1, overflowX: 'auto' }}>
@@ -207,7 +277,30 @@ export default function Page() {
                 {(matrix?.rows ?? []).map((row) => (
                   <TableRow key={row.product_id} hover>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {row.name}
+                      <Flex gap={0.5} sx={{ alignItems: 'center' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: row.is_active
+                              ? 'text.primary'
+                              : 'text.disabled',
+                          }}
+                        >
+                          {row.name}
+                        </Typography>
+                        <HasPermission
+                          permission={Permission.PRODUCTS}
+                          sub={SubPermission.UPDATE}
+                        >
+                          <IconButton
+                            size="small"
+                            aria-label={t('page.price_list.product.edit')}
+                            onClick={() => setProductModal({ open: true, row })}
+                          >
+                            <PiPencilSimple />
+                          </IconButton>
+                        </HasPermission>
+                      </Flex>
                     </TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {row.purchase_net_price ?? (
@@ -224,7 +317,10 @@ export default function Page() {
                       const key = cellKey(row.product_id, column.id);
                       const cell = row.cells[String(column.id)];
                       const typed = String(values[key] ?? '');
-                      const preview = computePrice(row.purchase_net_price, typed);
+                      const preview = computePrice(
+                        row.purchase_net_price,
+                        typed,
+                      );
                       const margin = marginFromCoefficient(typed);
                       const isDirty = dirtyKeys.includes(key);
 
@@ -249,7 +345,9 @@ export default function Page() {
                               sx={{
                                 mt: 0.25,
                                 fontWeight: 600,
-                                color: isDirty ? 'primary.main' : 'text.primary',
+                                color: isDirty
+                                  ? 'primary.main'
+                                  : 'text.primary',
                               }}
                             >
                               {preview ?? '—'}
@@ -261,7 +359,9 @@ export default function Page() {
                             >
                               {margin === null
                                 ? ''
-                                : t('page.price_list.margin', { value: margin })}
+                                : t('page.price_list.margin', {
+                                    value: margin,
+                                  })}
                             </Typography>
                             {cell?.is_stale && !isDirty && (
                               <Typography
@@ -284,7 +384,10 @@ export default function Page() {
                 {rowsById.size === 0 && (
                   <TableRow>
                     <TableCell colSpan={2 + (matrix?.columns.length ?? 0)}>
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                      >
                         {t('page.price_list.no_rows')}
                       </Typography>
                     </TableCell>
@@ -292,9 +395,80 @@ export default function Page() {
                 )}
               </TableBody>
             </Table>
+
+            <Flex
+              gap={2}
+              sx={{
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mt: 1,
+              }}
+            >
+              <HasPermission
+                permission={Permission.PRODUCTS}
+                sub={SubPermission.CREATE}
+              >
+                <Button
+                  variant="text"
+                  icon={<PiPlus />}
+                  disabled={groupId === null}
+                  onClick={() => setProductModal({ open: true, row: null })}
+                >
+                  {t('page.price_list.product.add')}
+                </Button>
+              </HasPermission>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={showInactive}
+                    onChange={(event) => {
+                      setShowInactive(event.target.checked);
+                      void load(section, groupId, event.target.checked);
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t('page.price_list.show_inactive')}
+                  </Typography>
+                }
+              />
+            </Flex>
           </Card>
         </Flex>
       </Flex>
+
+      <ProductModal
+        section={section}
+        groupId={groupId}
+        row={productModal.row}
+        open={productModal.open}
+        setOpen={(open) =>
+          setProductModal((state) => ({
+            ...state,
+            open: typeof open === 'function' ? open(state.open) : open,
+          }))
+        }
+        onSaved={() => void load(section, groupId)}
+      />
+
+      <GroupModal
+        section={section}
+        group={groupModal.group}
+        open={groupModal.open}
+        setOpen={(open) =>
+          setGroupModal((state) => ({
+            ...state,
+            open: typeof open === 'function' ? open(state.open) : open,
+          }))
+        }
+        onSaved={(savedId) => {
+          setGroupId(savedId);
+          void load(section, savedId);
+        }}
+      />
     </Form>
   );
 }

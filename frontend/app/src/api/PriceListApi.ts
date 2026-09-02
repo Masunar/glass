@@ -15,10 +15,29 @@ export type PriceCell = {
 export type PriceRow = {
   product_id: number;
   name: string;
+  code: string | null;
+  manufacturer_code: string | null;
   thickness_mm: number | null;
+  variant: string | null;
+  is_tempered_by_default: boolean;
+  finish: string | null;
+  dimension: string | null;
+  process_id: number | null;
+  glass_thickness_mm: number | null;
   unit: string;
+  vat_rate: number;
+  is_made_to_order: boolean;
+  is_active: boolean;
   purchase_net_price: string | null;
   cells: Record<string, PriceCell>;
+};
+
+export type PriceGroup = {
+  id: number;
+  name: string;
+  manufacturer: string | null;
+  series: string | null;
+  is_active: boolean;
 };
 
 export type PriceColumn = {
@@ -29,7 +48,7 @@ export type PriceColumn = {
 
 export type PriceMatrix = {
   section: string;
-  groups: { id: number; name: string }[];
+  groups: PriceGroup[];
   group_id: number | null;
   columns: PriceColumn[];
   rows: PriceRow[];
@@ -48,8 +67,13 @@ export class PriceListApi extends ApiRequest {
   public static async matrix(
     section: string,
     groupId?: number | null,
+    includeInactive: boolean = false,
   ): Promise<ResponseProps<ResponseContent>> {
-    return await this.get('', { section, group_id: groupId ?? '' });
+    return await this.get('', {
+      section,
+      group_id: groupId ?? '',
+      include_inactive: includeInactive ? 1 : 0,
+    });
   }
 
   /** Zapis obejmuje wyłącznie zmienione komórki i jest niepodzielny. */

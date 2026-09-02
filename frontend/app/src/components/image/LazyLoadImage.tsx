@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { CiImageOff } from 'react-icons/ci';
 
 import { Flex } from '@salvon/components/div';
-import { usePalette, useTheme } from '@salvon/hooks/useTheme';
+import { usePalette } from '@salvon/hooks/useTheme';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
 import VariantableImage from '@app/components/image/VariantableImage';

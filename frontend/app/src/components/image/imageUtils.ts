@@ -7,7 +7,7 @@ export const getPhoto = (
     variants?.[key] ||
     (disableFallback
       ? ''
-      : !!variants
+      : variants
         ? (Object.values(variants)[0] as string)
         : '')
   );

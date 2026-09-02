@@ -79,6 +79,13 @@ jobs:
         working-directory: frontend
         run: npm run typecheck
 
+      # ESLint obejmuje wylacznie app/src. Salvon ma wlasne 35 bledow,
+      # ktorych nie chcemy stawiac na drodze kodu aplikacji - do domkniecia
+      # razem z 12 bledami typow po tamtej stronie.
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
       - name: Build produkcyjny
         working-directory: frontend
         run: npm run build

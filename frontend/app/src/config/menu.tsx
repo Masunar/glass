@@ -1,7 +1,6 @@
 import { appRoutes } from '../router/app-router';
 import { BiSolidDashboard } from 'react-icons/bi';
 import {
-  PiChartLine,
   PiSlidersHorizontal,
   PiTag,
   PiUserCircleGear,

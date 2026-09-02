@@ -1,7 +1,6 @@
 import { buildNavGroups, flattenMenu } from './menu-nav';
-import { useContext, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { IoSearchOutline } from 'react-icons/io5';
-import { PiMoon, PiSun } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 
 import { Div, Flex } from '@salvon/components/div';
@@ -9,8 +8,6 @@ import { BaseIconButton } from '@salvon/components/icon-button';
 import { OmniSearch } from '@salvon/components/omni-search';
 import type { OmniSearchGroupType } from '@salvon/components/omni-search';
 import type { MenuEntry } from '@salvon/components/sidebar-menu/types';
-import { themeMode } from '@salvon/consts/theme-mode';
-import ThemeModeContext from '@salvon/context/ThemeModeContext';
 import { usePalette } from '@salvon/hooks/useTheme';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 import { isMac } from '@salvon/utils/operating-system';
@@ -22,7 +19,6 @@ const shortcutLabel = isMac() ? '⌘ K' : 'Ctrl K';
 
 export default function GlobalSearch() {
   const [open, setOpen] = useState(false);
-  const { setTheme } = useContext(ThemeModeContext);
   const t = useTranslation();
   const navigate = useNavigate();
   const hasPermissionTo = useHasPermission();
@@ -68,31 +64,10 @@ export default function GlobalSearch() {
       }))
       .filter((g) => g.items.length);
 
-    const actions: OmniSearchGroupType = {
-      key: 'actions',
-      label: t('actions'),
-      items: [
-        {
-          key: 'light_mode',
-          search_name: t('light_mode'),
-          label: t('light_mode'),
-          icon: PiSun,
-          shortcut: 'ctrl → shift → l',
-          onSelect: () => setTheme(themeMode.light),
-        },
-        {
-          key: 'dark_mode',
-          search_name: t('dark_mode'),
-          label: t('dark_mode'),
-          icon: PiMoon,
-          shortcut: 'ctrl → shift → d',
-          onSelect: () => setTheme(themeMode.dark),
-        },
-      ],
-    };
-
-    return [...navGroups, actions];
-  }, [t, navigate, setTheme, hasPermissionTo]);
+    // Przelaczanie motywu zdjete razem z trybem ciemnym - zostawienie
+    // pozycji w wyszukiwarce dawaloby akcje bez skutku.
+    return navGroups;
+  }, [t, navigate, hasPermissionTo]);
 
   return (
     <>

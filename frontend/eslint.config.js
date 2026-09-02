@@ -20,10 +20,13 @@ export default tseslint.config(
     },
     rules: {
       // ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': false,
+      'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
-      'react-hooks/exhaustive-deps': 'off',
+      // Regula react-hooks jest tu wylaczona od zawsze, ale sama wtyczka
+      // nie jest zainstalowana (import wyzej zakomentowany), wiec ESLint
+      // przewracal sie na komentarzach eslint-disable odwolujacych sie do
+      // nieistniejacej reguly. Do domkniecia: dolozyc wtyczke i wlaczyc.
     },
   },
 );

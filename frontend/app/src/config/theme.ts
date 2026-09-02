@@ -7,29 +7,27 @@ import {
   RadioCheckedIcon,
   RadioIcon,
 } from './CheckboxIcons';
+import { industry } from './tokens';
 import { createElement } from 'react';
 
 import { themeMode } from '@salvon/consts/theme-mode';
 import type { Theme } from '@salvon/types';
 
 const lightColors = {
-  // accent blue
-  accent: '#254a94',
-  accentHover: '#2563eb',
-  accentSoft: '#f5f8ff',
-  secondary: '#516385',
-  // neutral surfaces (light → dark)
-  bg: '#eef1f6',
-  surface: '#ffffff',
-  surface2: '#ffffff',
-  surface3: '#f8fafc',
-  border: '#dbe1ea',
-  borderStrong: '#c3ccda',
-  borderSubtle: '#e7ebf1',
-  // text
-  text: '#334155',
-  textSecondary: '#475569',
-  textMuted: '#94a3b8',
+  accent: industry.accent.base,
+  accentHover: industry.accent[700],
+  accentSoft: industry.accent[100],
+  secondary: industry.accent[600],
+  bg: industry.bg,
+  surface: industry.surface,
+  surface2: industry.surface,
+  surface3: industry.neutral[100],
+  border: industry.neutral[300],
+  borderStrong: industry.neutral[400],
+  borderSubtle: industry.neutral[200],
+  text: industry.text,
+  textSecondary: industry.neutral[700],
+  textMuted: industry.neutral[500],
 };
 
 const darkColors = {
@@ -90,57 +88,57 @@ export const lightTheme: Theme = {
     },
     salvon: {
       background: {
-        default: '#eef1f6',
-        guest: '#eef1f6',
+        default: industry.bg,
+        guest: industry.bg,
       },
       form: {
         labelMode: 'above',
       },
       accent_icon: {
-        background: '#254a94',
+        background: industry.accent.base,
         color: '#fff',
       },
       locale_button: {
         textDecoration: 'none',
-        color: '#334155',
+        color: industry.text,
         '&.active, &:hover': {
-          background: '#eef2f7',
+          background: industry.neutral[100],
         },
       },
       sidebar: {
         background: '#ffffff',
-        borderRight: '1px solid #e7ebf1',
+        borderRight: `1px solid ${industry.neutral[200]}`,
       },
       card: {
-        borderRadius: '8px',
-        border: '1px solid #dbe1ea',
+        borderRadius: industry.radius,
+        border: `1px solid ${industry.neutral[300]}`,
         boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
       },
       topbar: {
-        borderBottom: '1px solid #e7ebf1',
+        borderBottom: `1px solid ${industry.neutral[200]}`,
       },
       menu: {
         header: {
-          color: '#94a3b8',
+          color: industry.neutral[500],
           fontWeight: 600,
           letterSpacing: '0.06em',
         },
         list_button: {
           background: 'transparent',
-          color: '#475569',
+          color: industry.neutral[700],
           fontWeight: 500,
           padding: '4px 5px !important',
           '&:hover': {
-            background: '#f8fafc !important',
+            background: `${industry.neutral[100]} !important`,
           },
           '&.active': {
-            background: '#eef2ff !important',
+            background: `${industry.accent[100]} !important`,
             color: lightColors.accent,
             fontWeight: 600,
           },
         },
         list_icon: {
-          color: '#64748b',
+          color: industry.neutral[600],
         },
         list_icon_badge: {
           display: 'flex',
@@ -149,15 +147,15 @@ export const lightTheme: Theme = {
           flexShrink: 0,
           width: 28,
           height: 28,
-          borderRadius: '7px',
-          background: '#f1f5f9',
-          border: '1px solid #e6ebf1',
-          color: '#254a94',
+          borderRadius: industry.radius,
+          background: industry.neutral[100],
+          border: `1px solid ${industry.neutral[200]}`,
+          color: industry.accent.base,
           fontSize: '0.85rem',
           '.active-route &': {
-            background: '#254a94',
-            border: `1px solid #254a94`,
-            color: '#ffffff',
+            background: industry.accent.base,
+            border: `1px solid ${industry.accent.base}`,
+            color: industry.surface,
           },
         },
       },
@@ -167,14 +165,14 @@ export const lightTheme: Theme = {
         },
       },
       omni_search: {
-        frame: '#e2e8f0',
-        border: '#eef0f3',
-        header: '#94a3b8',
-        chipBg: '#f4f6f9',
-        chipBorder: '#e6e9ef',
-        activeBg: '#eef4ff',
-        activeBorder: '#c7dbff',
-        footerBg: '#fafbfc',
+        frame: industry.neutral[200],
+        border: industry.neutral[200],
+        header: industry.neutral[500],
+        chipBg: industry.neutral[100],
+        chipBorder: industry.neutral[200],
+        activeBg: industry.accent[100],
+        activeBorder: industry.accent[300],
+        footerBg: industry.neutral[100],
       },
       table: {
         header: {
@@ -185,18 +183,18 @@ export const lightTheme: Theme = {
           background: '#fff',
         },
         linear_loader: {
-          background: '#eaeaea',
+          background: industry.neutral[200],
           '.MuiLinearProgress-bar': {
-            backgroundColor: '#cecece !important',
+            backgroundColor: `${industry.neutral[400]} !important`,
           },
         },
       },
       file_upload: {
         dropzone: {
-          bg: '#f6f8fc',
+          bg: industry.neutral[100],
           bgActive: lightColors.accentSoft,
           borderColor: {
-            default: '#c7d0e0',
+            default: industry.neutral[400],
             accept: lightColors.accent,
             reject: 'rgb(182,25,15)',
           },
@@ -206,7 +204,7 @@ export const lightTheme: Theme = {
           linkColor: lightColors.text,
         },
         fileCard: {
-          bg: '#f3f5f9',
+          bg: industry.bg,
           nameColor: lightColors.text,
           metaColor: lightColors.textMuted,
           tileBg: '#217346',
@@ -214,20 +212,20 @@ export const lightTheme: Theme = {
           removeColor: lightColors.textMuted,
         },
         progress: {
-          track: '#dbe2ec',
+          track: industry.neutral[200],
           bar: lightColors.accentHover,
           label: lightColors.text,
         },
       },
       control_card: {
-        borderColor: '#dbe1ea',
+        borderColor: industry.neutral[300],
         backgroundColor: '#ffffff',
         '&:hover': {
-          borderColor: '#c3ccda',
+          borderColor: industry.neutral[400],
         },
         '&.checked': {
           borderColor: lightColors.accent,
-          backgroundColor: '#f5f8ff',
+          backgroundColor: industry.accent[100],
         },
         '&.checked:hover': {
           borderColor: lightColors.accent,
@@ -239,7 +237,7 @@ export const lightTheme: Theme = {
           color: '#ffffff',
         },
         limitBar: {
-          track: '#e3e8f0',
+          track: industry.neutral[200],
           bar: 'rgb(62,147,73)',
           barExceeded: 'rgb(182,25,15)',
         },
@@ -248,7 +246,7 @@ export const lightTheme: Theme = {
         breakdownTotal: {
           color: lightColors.accent,
         },
-        divider: '#dbe1ea',
+        divider: industry.neutral[300],
       },
     },
   },
@@ -283,7 +281,7 @@ export const lightTheme: Theme = {
         paper: {
           backgroundColor: '#ffffff',
           border: `1px solid ${lightColors.border}`,
-          borderRadius: 8,
+          borderRadius: industry.radius,
           boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)',
         },
         listbox: {
@@ -292,7 +290,7 @@ export const lightTheme: Theme = {
         option: {
           fontSize: '0.875rem',
           color: lightColors.text,
-          borderRadius: 6,
+          borderRadius: industry.radius,
           padding: '6px 10px',
           minHeight: 'auto',
           '&:hover': {
@@ -330,11 +328,11 @@ export const lightTheme: Theme = {
         root: {
           fontSize: '0.875rem',
           fontWeight: 600,
-          color: '#334155',
+          color: industry.text,
           marginBottom: 6,
           lineHeight: 1.4,
           '&.Mui-focused': {
-            color: '#334155',
+            color: industry.text,
           },
           '& .MuiFormLabel-asterisk': {
             color: '#e11d48',
@@ -347,14 +345,16 @@ export const lightTheme: Theme = {
         label: {
           fontSize: '0.875rem',
           fontWeight: 600,
-          color: '#334155',
+          color: industry.text,
         },
       },
     },
     MuiCheckbox: {
       defaultProps: {
         disableRipple: true,
-        icon: createElement(CheckboxIcon, { borderColor: '#c3ccda' }),
+        icon: createElement(CheckboxIcon, {
+          borderColor: industry.neutral[400],
+        }),
         checkedIcon: createElement(CheckboxCheckedIcon, {
           fill: lightColors.accent,
         }),
@@ -365,7 +365,7 @@ export const lightTheme: Theme = {
       styleOverrides: {
         root: {
           padding: 6,
-          borderRadius: 6,
+          borderRadius: industry.radius,
           '&:hover': {
             backgroundColor: 'transparent',
           },
@@ -375,7 +375,7 @@ export const lightTheme: Theme = {
     MuiRadio: {
       defaultProps: {
         disableRipple: true,
-        icon: createElement(RadioIcon, { borderColor: '#c3ccda' }),
+        icon: createElement(RadioIcon, { borderColor: industry.neutral[400] }),
         checkedIcon: createElement(RadioCheckedIcon, {
           fill: lightColors.accent,
         }),
@@ -392,14 +392,14 @@ export const lightTheme: Theme = {
     MuiPickersOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: industry.radius,
           backgroundColor: '#ffffff',
           transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           '& .MuiPickersOutlinedInput-notchedOutline': {
-            borderColor: '#dbe1ea',
+            borderColor: industry.neutral[300],
           },
           '&:hover .MuiPickersOutlinedInput-notchedOutline': {
-            borderColor: '#c3ccda',
+            borderColor: industry.neutral[400],
           },
           '&.Mui-focused .MuiPickersOutlinedInput-notchedOutline': {
             borderColor: lightColors.accent,
@@ -422,14 +422,14 @@ export const lightTheme: Theme = {
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: industry.radius,
           backgroundColor: '#ffffff',
           transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#dbe1ea',
+            borderColor: industry.neutral[300],
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#c3ccda',
+            borderColor: industry.neutral[400],
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: lightColors.accent,
@@ -442,7 +442,7 @@ export const lightTheme: Theme = {
             boxShadow: '0 0 0 3px rgba(225,29,72,0.12)',
           },
           '&.Mui-disabled': {
-            backgroundColor: '#f8fafc',
+            backgroundColor: industry.neutral[100],
           },
         },
         input: {
@@ -478,7 +478,7 @@ export const lightTheme: Theme = {
         root: {
           textTransform: 'none',
           fontWeight: 600,
-          borderRadius: 8,
+          borderRadius: industry.radius,
           boxShadow: 'none',
           '&:hover': {
             boxShadow: 'none',
@@ -521,7 +521,7 @@ export const lightTheme: Theme = {
         root: {
           minHeight: 0,
           padding: 4,
-          borderRadius: 8,
+          borderRadius: industry.radius,
           backgroundColor: lightColors.bg,
           border: `1px solid ${lightColors.border}`,
         },
@@ -532,7 +532,7 @@ export const lightTheme: Theme = {
           gap: 4,
         },
         scrollButtons: {
-          borderRadius: 6,
+          borderRadius: industry.radius,
           transition: 'background-color .15s, color .15s',
           '&:hover': {
             backgroundColor: 'rgba(127,127,127,0.12)',
@@ -552,7 +552,7 @@ export const lightTheme: Theme = {
           minHeight: 0,
           minWidth: 0,
           padding: '6px 16px',
-          borderRadius: 6,
+          borderRadius: industry.radius,
           textTransform: 'none',
           fontWeight: 500,
           color: lightColors.textSecondary,
@@ -565,7 +565,7 @@ export const lightTheme: Theme = {
           '&.Mui-selected': {
             // color: lightColors.text,
             // backgroundColor: lightColors.surface,
-            // borderColor: '#dbe1ea',
+            // borderColor: industry.neutral[300],
             fontWeight: 600,
             color: '#fff',
             background: lightColors.accent,
@@ -574,8 +574,37 @@ export const lightTheme: Theme = {
       },
     },
   },
+  typography: {
+    fontFamily: industry.font.body,
+    // Barlow Condensed niesie liczby, numery zlecen i tytuly - to on daje
+    // gestosc. Naglowki tresci ida tym samym krojem, zeby ekran mial
+    // jeden rytm, a nie dwa.
+    h1: {
+      fontFamily: industry.font.heading,
+      fontWeight: 600,
+      letterSpacing: '-0.015em',
+    },
+    h2: {
+      fontFamily: industry.font.heading,
+      fontWeight: 600,
+      letterSpacing: '-0.015em',
+    },
+    h3: {
+      fontFamily: industry.font.heading,
+      fontWeight: 600,
+      letterSpacing: '-0.015em',
+    },
+    h4: {
+      fontFamily: industry.font.heading,
+      fontWeight: 600,
+      letterSpacing: '-0.015em',
+    },
+    h5: { fontFamily: industry.font.heading, fontWeight: 600 },
+    h6: { fontFamily: industry.font.heading, fontWeight: 600 },
+    button: { textTransform: 'none', fontWeight: 500 },
+  },
   shape: {
-    borderRadius: 5,
+    borderRadius: industry.radius,
   },
 };
 
