@@ -1,5 +1,6 @@
 import { Typography } from '@mui/material';
 import { appRoutes } from '@router/app-router';
+import { safeReturnTo } from '@app/utils/return-to';
 import { authRoutes } from '@router/auth-router';
 import { securityRoutes } from '@router/security-router';
 
@@ -55,12 +56,7 @@ export default function Page() {
       return;
     }
 
-    if (returnTo) {
-      window.location.href = returnTo;
-      return;
-    }
-    setLoading(false);
-    window.location.href = appRoutes.index.path;
+    window.location.href = safeReturnTo(returnTo, appRoutes.index.path);
   };
 
   const { watch } = form;

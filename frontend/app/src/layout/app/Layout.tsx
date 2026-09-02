@@ -48,13 +48,16 @@ import { useHasPermission, userHasPermission } from '@app/hook/use-permissions';
 import LogoBadge from '@app/layout/app/_components/LogoBadge';
 import GlobalSearch from '@app/layout/app/_components/global-search/GlobalSearch';
 import UserProvider from '@app/provider/UserProvider';
+import { stripDataSuffix } from '@app/utils/return-to';
 
 export const loader: LoaderFunction = async (params) => {
   const data = await userLoader(params);
   const user = data.user;
 
   const url = new URL(params.request.url);
-  const pathname = url.pathname.replace('/', '');
+  // Sciezka zadania o dane ma sufiks .data - bez obciecia return_to
+  // po zalogowaniu prowadzil na surowy strumien danych, nie na ekran.
+  const pathname = stripDataSuffix(url.pathname).replace('/', '');
   const queryParams: any = {};
 
   if (pathname.replace('admin', '').length > 0) {

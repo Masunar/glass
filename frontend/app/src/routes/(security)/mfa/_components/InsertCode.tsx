@@ -13,6 +13,7 @@ import { isMfaInvalid } from '@salvon/utils/api';
 import { notifyError, notifyWarning } from '@salvon/utils/notify';
 
 import { MfaApi } from '@app/api/MfaApi';
+import { safeReturnTo } from '@app/utils/return-to';
 
 type Props = {
   codeLength: number;
@@ -47,7 +48,7 @@ export default function InsertCode({
     }
 
     if (response.success) {
-      window.location.href = returnTo ?? '/';
+      window.location.href = safeReturnTo(returnTo);
       return;
     }
     setTimeout(() => {

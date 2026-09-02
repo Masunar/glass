@@ -11,6 +11,7 @@ import { isMfaInvalid } from '@salvon/utils/api';
 import { notifyError, notifyWarning } from '@salvon/utils/notify';
 
 import { MfaApi } from '@app/api/MfaApi';
+import { safeReturnTo } from '@app/utils/return-to';
 
 type Props = {
   onBack: () => void;
@@ -38,7 +39,7 @@ export default function InsertRecoveryCode({ onBack }: Props) {
     }
 
     if (response.success) {
-      const target = new URL(returnTo ?? '/', window.location.origin);
+      const target = new URL(safeReturnTo(returnTo), window.location.origin);
       target.searchParams.set('mfa_recovered', '1');
       window.location.href = target.pathname + target.search;
       return;
