@@ -156,10 +156,18 @@ final readonly class PriceListService
             ->where('product_group_id', $group->id)
             ->where('is_active', true)
             ->get()
-            ->sortBy([
-                static fn(Product $product): float => $product->glass?->thickness_mm ?? 0.0,
-                static fn(Product $product): string => $product->name,
-            ])
+            // Jeden klucz sortujacy, nie tablica domkniec: sortBy z tablica
+            // traktuje kazde domkniecie jak komparator dwuargumentowy,
+            // a nie jak wydobycie wartosci - i sortuje wynikiem 2.0, 3.0…
+            //
+            // Bez ?->, bo ?? i tak wycisza odczyt z nulla, a produkty
+            // spoza sekcji Szklo nie maja rozszerzenia i trafiaja na
+            // poczatek listy z grubascia zerowa.
+            ->sortBy(static fn(Product $product): string => sprintf(
+                '%09.2f|%s',
+                $product->glass->thickness_mm ?? 0.0,
+                $product->name,
+            ))
             ->values();
 
         $rows = [];
