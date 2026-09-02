@@ -13,6 +13,10 @@ services:
       args:
         IMAGE_VERSION: ${NGINX_IMAGE_VERSION}
     container_name: ${CONTAINER_PREFIX}_nginx
+    volumes:
+      - ${PWD}:/var/www/project/:ro
+    depends_on:
+      - app
     networks:
       - internal
     restart: no
