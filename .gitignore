@@ -62,3 +62,4 @@ desktop.ini
 /database/*.sqlite-journal
 *.sql.gz
 *.dump
+/.claude/settings.local.json

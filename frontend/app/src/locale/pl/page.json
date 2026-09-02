@@ -184,6 +184,7 @@
     "save_count": "Zapisz zmiany ({{count}})",
     "group": {
       "pricing": "Wzór wyceny formatki",
+      "method": "Kolejność mnożników",
       "limits": "Limity i czasy",
       "offer": "Oferta"
     },
@@ -202,7 +203,16 @@
       "offer_validity_text": "Tekst o ważności oferty",
       "offer_payment_terms": "Warunki płatności",
       "offer_delivery_time": "Termin realizacji",
-      "bank_account_iban": "Rachunek do przedpłat"
+      "bank_account_iban": "Rachunek do przedpłat",
+      "surcharge_mode": "Łączenie dopłat za kształt i gabaryt",
+      "min_price_check": "Sprawdzenie progu minimalnej ceny"
+    },
+    "method_lead": "Dokumentacja nie rozstrzyga, jak łączą się dopłaty ani kiedy sprawdzany jest próg minimalnej ceny. Na formatce 0,2 m² o nieregularnym kształcie różnica wynosi 105,30 zł wobec 70,20 zł, więc ustawienie zostaje tutaj do czasu potwierdzenia na danych ze starego systemu.",
+    "option": {
+      "cumulative": "Kumulują się (mnożą przez siebie)",
+      "highest_only": "Obowiązuje tylko najwyższa",
+      "before_surcharges": "Przed dopłatami",
+      "after_surcharges": "Po dopłatach"
     }
   }
 }

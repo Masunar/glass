@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Database\Seeders\Core;
 
 use Carbon\Carbon;
+use App\Enum\MinPriceCheck;
+use App\Enum\SurchargeMode;
 use Salvon\Database\Seeder;
 use App\Models\GlobalParameter;
 use App\Enum\GlobalParameterType;
@@ -24,6 +26,12 @@ use App\Enum\GlobalParameterType;
  *    10 dni, a tekst drukowany na ofercie 7. Klient dostawał jedną
  *    informację, system pilnował innej. Teraz tekst jest szablonem
  *    z podstawianą zmienną, więc nie da się ich rozjechać.
+ * 4. Doszły dwa parametry, których stary ekran nie miał: sposób
+ *    łączenia dopłat i moment sprawdzenia progu minimalnej ceny.
+ *    Dokumentacja ich nie rozstrzyga (S-03, S-04), a różnica sięga
+ *    kilkuset złotych na pozycji. Wartości domyślne odpowiadają
+ *    zachowaniu odczytanemu z opisu wzoru; gdy odtworzymy je z danych
+ *    starego systemu, poprawka będzie zmianą wiersza, nie kodu.
  */
 class GlobalParameterSeeder extends Seeder
 {
@@ -37,6 +45,8 @@ class GlobalParameterSeeder extends Seeder
             ['shape_surcharge_percent', GlobalParameterType::PERCENT, '35', 'Dopłata za nieregularny kształt'],
             ['min_pane_price', GlobalParameterType::NUMBER, '60', 'Próg, poniżej którego formatka dostaje dopłatę'],
             ['min_pane_surcharge_percent', GlobalParameterType::PERCENT, '50', 'Dopłata dla formatki tańszej niż próg'],
+            ['surcharge_mode', GlobalParameterType::CHOICE, SurchargeMode::CUMULATIVE->value, 'Sposób łączenia dopłat za kształt i gabaryt — kumulacja albo tylko najwyższa'],
+            ['min_price_check', GlobalParameterType::CHOICE, MinPriceCheck::AFTER_SURCHARGES->value, 'Moment sprawdzenia progu minimalnej ceny formatki — przed dopłatami czy po nich'],
             ['max_pane_width_mm', GlobalParameterType::NUMBER, '3210', 'Maksymalna szerokość formatki — wymiar standardowej tafli'],
             ['max_pane_height_mm', GlobalParameterType::NUMBER, '2250', 'Maksymalna wysokość formatki — wymiar standardowej tafli'],
             ['offer_validity_days', GlobalParameterType::NUMBER, '10', 'Ważność oferty w dniach'],

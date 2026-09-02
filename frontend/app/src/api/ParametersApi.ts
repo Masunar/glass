@@ -7,13 +7,16 @@ export type ParameterType =
   | 'percent'
   | 'text'
   | 'iban'
-  | 'template';
+  | 'template'
+  | 'choice';
 
 export type Parameter = {
   key: string;
   type: ParameterType;
   value: string | null;
   description: string | null;
+  /** Niepusta wyłącznie dla typu 'choice'. */
+  options: string[];
   valid_from: string;
 };
 

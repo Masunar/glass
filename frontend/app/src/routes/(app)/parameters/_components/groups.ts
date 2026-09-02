@@ -5,7 +5,11 @@
  * porządku — parametry wzoru wyceny leżały wymieszane z tekstami
  * drukowanymi na ofercie, mimo że zmienia je kto inny i w innym celu.
  */
-export const parameterGroups: { titleKey: string; keys: string[] }[] = [
+export const parameterGroups: {
+  titleKey: string;
+  leadKey?: string;
+  keys: string[];
+}[] = [
   {
     titleKey: 'page.parameters.group.pricing',
     keys: [
@@ -17,6 +21,11 @@ export const parameterGroups: { titleKey: string; keys: string[] }[] = [
       'min_pane_price',
       'min_pane_surcharge_percent',
     ],
+  },
+  {
+    titleKey: 'page.parameters.group.method',
+    leadKey: 'page.parameters.method_lead',
+    keys: ['surcharge_mode', 'min_price_check'],
   },
   {
     titleKey: 'page.parameters.group.limits',

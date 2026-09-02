@@ -18,4 +18,7 @@ enum GlobalParameterType: string
     case TEXT = 'text';
     case IBAN = 'iban';
     case TEMPLATE = 'template';
+
+    /** Wartość z zamkniętej listy — dopuszczalne warianty opisuje enum. */
+    case CHOICE = 'choice';
 }
