@@ -151,3 +151,18 @@ Nieśledzone w gitcie, tworzone ze wzorców: `.env` ← `.env.example`,
 - gałąź główna `main`, praca na gałęziach funkcjonalnych
 - przed commitem: `make backend-reformat`, `make backend-analyse`, `make test`
 - `make gc` / `make gcp` (szybki commit „draft") celowo blokują się na `main`
+
+### Operacje zdalne z Cowork
+
+Środowisko Cowork nie ma dostępu do poświadczeń GitHuba z keychaina macOS. Push/fetch idzie
+przez deploy key przypisany do tego repozytorium, opakowany w `.git/claude-git.sh`:
+
+```bash
+bash .git/claude-git.sh push origin main
+bash .git/claude-git.sh fetch origin
+```
+
+Pliki `.git/claude_deploy_key`, `.git/claude_known_hosts` i `.git/claude-git.sh` leżą poza
+drzewem roboczym (nie da się ich zacommitować) i nie są w klonie — dotyczą wyłącznie tej maszyny.
+Zwykły `git push` z terminala działa jak dotąd, na kluczu użytkownika. Odwołanie dostępu:
+https://github.com/Masunar/glass/settings/keys → Delete.
