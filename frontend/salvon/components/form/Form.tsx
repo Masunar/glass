@@ -1,14 +1,14 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
-  type FormSubmitHandler,
   FormProvider as RHFProvider,
   type SubmitErrorHandler,
+  type SubmitHandler,
   type UseFormProps,
   type UseFormReturn,
   useForm,
 } from 'react-hook-form';
 
-export type FormOnSubmit = FormSubmitHandler<any>;
+export type FormOnSubmit = SubmitHandler<any>;
 
 type BaseFormProps = {
   useFormProps?: UseFormProps<any>;

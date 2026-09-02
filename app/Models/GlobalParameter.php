@@ -6,6 +6,8 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Salvon\Model\Dateable;
+use App\Enum\MinPriceCheck;
+use App\Enum\SurchargeMode;
 use App\Enum\GlobalParameterType;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -25,6 +27,20 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class GlobalParameter extends Dateable
 {
+    /**
+     * Parametry typu CHOICE i enumy opisujące ich dopuszczalne wartości.
+     *
+     * Rejestr stoi tutaj, a nie w formularzu, bo zamknięta lista jest
+     * regułą bazy, nie ozdobą ekranu — wpisanie czegokolwiek innego
+     * cicho wyłączyłoby dopłatę zamiast zgłosić błąd.
+     *
+     * @var array<string, class-string<\BackedEnum>>
+     */
+    public const CHOICES = [
+        'surcharge_mode' => SurchargeMode::class,
+        'min_price_check' => MinPriceCheck::class,
+    ];
+
     protected $table = 'global_parameters';
 
     protected $fillable = ['key', 'type', 'value', 'description', 'valid_from', 'valid_to', 'changed_by'];
@@ -53,6 +69,22 @@ class GlobalParameter extends Dateable
             ->first();
 
         return $parameter?->value;
+    }
+
+    /**
+     * Dopuszczalne wartości parametru — pusta lista dla parametrów swobodnych.
+     *
+     * @return list<string>
+     */
+    public static function choicesFor(string $key): array
+    {
+        $enum = self::CHOICES[$key] ?? null;
+
+        if ($enum === null) {
+            return [];
+        }
+
+        return array_map(static fn(\BackedEnum $case): string => (string) $case->value, $enum::cases());
     }
 
     public static function number(string $key, ?Carbon $date = null): ?float

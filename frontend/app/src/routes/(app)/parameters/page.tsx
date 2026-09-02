@@ -106,6 +106,12 @@ export default function Page() {
                 {t(group.titleKey)}
               </Typography>
 
+              {group.leadKey && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {t(group.leadKey)}
+                </Typography>
+              )}
+
               {group.keys.map((key) => {
                 const parameter = byKey.get(key);
 
@@ -116,6 +122,7 @@ export default function Page() {
                 const isDirty = dirtyKeys.includes(key);
                 const numeric =
                   parameter.type === 'number' || parameter.type === 'percent';
+                const choice = parameter.type === 'choice';
 
                 return (
                   <Box
@@ -127,17 +134,30 @@ export default function Page() {
                       transition: 'border-color .15s',
                     }}
                   >
-                    <FormControl
-                      variant={numeric ? 'number' : 'text'}
-                      name={key}
-                      label={t(`page.parameters.field.${key}`)}
-                      helperText={parameter.description ?? undefined}
-                      InputProps={
-                        parameter.type === 'percent'
-                          ? { endAdornment: '%' }
-                          : undefined
-                      }
-                    />
+                    {choice ? (
+                      <FormControl
+                        variant="select"
+                        name={key}
+                        label={t(`page.parameters.field.${key}`)}
+                        helperText={parameter.description ?? undefined}
+                        options={parameter.options.map((option) => ({
+                          label: t(`page.parameters.option.${option}`),
+                          value: option,
+                        }))}
+                      />
+                    ) : (
+                      <FormControl
+                        variant={numeric ? 'number' : 'text'}
+                        name={key}
+                        label={t(`page.parameters.field.${key}`)}
+                        helperText={parameter.description ?? undefined}
+                        slotProps={
+                          parameter.type === 'percent'
+                            ? { input: { endAdornment: '%' } }
+                            : undefined
+                        }
+                      />
+                    )}
                   </Box>
                 );
               })}

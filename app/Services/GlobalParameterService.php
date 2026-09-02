@@ -8,10 +8,11 @@ use Carbon\Carbon;
 use App\Models\AuditEntry;
 use Illuminate\Support\Str;
 use App\Models\GlobalParameter;
+use Illuminate\Validation\Rule;
 use App\Enum\GlobalParameterType;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -35,6 +36,7 @@ final readonly class GlobalParameterService
                 'type' => $parameter->type->value,
                 'value' => $parameter->value,
                 'description' => $parameter->description,
+                'options' => GlobalParameter::choicesFor($parameter->key),
                 'valid_from' => $parameter->valid_from->toDateString(),
             ])
             ->values()
@@ -138,6 +140,7 @@ final readonly class GlobalParameterService
                 GlobalParameterType::NUMBER => ['nullable', 'numeric', 'min:0'],
                 GlobalParameterType::PERCENT => ['nullable', 'numeric', 'min:0', 'max:1000'],
                 GlobalParameterType::IBAN => ['nullable', 'string', 'regex:/^(PL)?[0-9\s]{26,34}$/'],
+                GlobalParameterType::CHOICE => ['required', Rule::in(GlobalParameter::choicesFor($key))],
                 default => ['nullable', 'string', 'max:1000'],
             };
 
