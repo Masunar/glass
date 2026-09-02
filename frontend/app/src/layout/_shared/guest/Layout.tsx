@@ -1,6 +1,6 @@
 import { Grid, NoSsr } from '@mui/material';
 
-import Pasture from './_components/Pasture';
+import GlassScene from './_components/glass/GlassScene';
 import type { ReactNode } from 'react';
 import { Outlet } from 'react-router';
 
@@ -9,6 +9,7 @@ import NavigationIndicator from '@salvon/components/progress/NavigationIndicator
 import { themeMode } from '@salvon/consts/theme-mode';
 import { Providers } from '@salvon/provider';
 
+import Brand from '@app/components/layout/Brand';
 import i18n from '@app/config/i18n';
 import { defaultLocale } from '@app/config/locales';
 import { darkTheme, lightTheme } from '@app/config/theme';
@@ -27,15 +28,7 @@ export default function Layout() {
         }}
       >
         <NavigationIndicator height="3px">
-          <GuestTemplate
-            planeBanner={
-              <img
-                style={{ padding: '6px 10px 3px 10px', width: 80 }}
-                src="https://www.synteco.pl/assets/images/logos/logo_synteco_black.svg"
-                alt="Synteco Salvon CRM"
-              />
-            }
-          >
+          <GuestTemplate brand={<Brand />}>
             <Flex center fw fh>
               <Flex
                 center
@@ -75,10 +68,10 @@ export default function Layout() {
 
 export function GuestTemplate({
   children,
-  planeBanner,
+  brand,
 }: {
   children: ReactNode;
-  planeBanner?: ReactNode;
+  brand?: ReactNode;
 }) {
   return (
     <Grid
@@ -95,7 +88,7 @@ export function GuestTemplate({
           lg: 6,
         }}
       >
-        <Pasture planeBanner={planeBanner} />
+        <GlassScene brand={brand} />
       </Grid>
       <Grid
         size={{

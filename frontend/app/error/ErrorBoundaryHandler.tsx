@@ -10,6 +10,7 @@ import { themeMode } from '@salvon/consts/theme-mode';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 import { Providers } from '@salvon/provider';
 
+import Brand from '@app/components/layout/Brand';
 import i18n from '@app/config/i18n';
 import { defaultLocale } from '@app/config/locales';
 import { darkTheme, lightTheme } from '@app/config/theme';
@@ -60,7 +61,7 @@ function ErrorContent({ error }: any) {
   }
 
   return (
-    <GuestTemplate planeBanner={code}>
+    <GuestTemplate brand={<Brand />}>
       <Flex column center fh fw sx={{ padding: '24px' }}>
         <Flex sx={{ gap: 5 }}>
           <Sheep />
