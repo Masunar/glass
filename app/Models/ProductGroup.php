@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property string|null $manufacturer
  * @property string|null $series
+ * @property int $position
+ * @property string|null $comment
+ * @property bool $is_active
  */
 class ProductGroup extends Dateable
 {
