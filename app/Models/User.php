@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Mail\ResetPasswordEmail;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\NewAccessToken;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Permission;
@@ -79,6 +80,16 @@ class User extends Authenticatable implements MustVerifyEmail
             'user' => $this->toArray(),
             'url' => frontend_route('reset-password', ['token' => $token]),
         ]);
+    }
+
+    /**
+     * Token dla klientow korzystajacych z uwierzytelniania tokenem
+     * (POST /api/auth/login?mode=token), w odroznieniu od domyslnego
+     * trybu ciasteczkowego uzywanego przez aplikacje webowa.
+     */
+    public function generateAuthenticationToken(string $name = 'authentication'): NewAccessToken
+    {
+        return $this->createToken($name);
     }
 
     public function location(): BelongsTo

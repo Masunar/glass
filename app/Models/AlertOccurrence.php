@@ -56,6 +56,8 @@ class AlertOccurrence extends Model
     /** @param Builder<self> $query */
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->whereNull('resolved_at');
+        $query->whereNull('resolved_at');
+
+        return $query;
     }
 }

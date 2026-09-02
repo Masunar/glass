@@ -1,19 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Test dymny API.
+ *
+ * Zastapil szkieletowy test sprawdzajacy, czy GET "/" zwraca 200 - ten
+ * nie mial tu sensu i zawsze konczyl sie porazka, bo aplikacja nie ma
+ * trasy webowej pod korzeniem (frontend jest osobna aplikacja SSR).
+ * Stale czerwony test uczy ignorowania czerwonego, wiec zamiast niego
+ * sprawdzamy, ze routing API i warstwa uwierzytelniania faktycznie dzialaja.
+ */
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_niezalogowany_nie_dostaje_danych_uzytkownika(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->getJson('/api/auth/user')->assertStatus(401);
     }
 }
