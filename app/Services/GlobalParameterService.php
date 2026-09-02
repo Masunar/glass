@@ -11,6 +11,8 @@ use App\Models\GlobalParameter;
 use App\Enum\GlobalParameterType;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Odczyt i zmiana parametrów wzoru wyceny oraz tekstów ofertowych.
@@ -46,6 +48,7 @@ final readonly class GlobalParameterService
     public function update(array $input): array
     {
         $today = Carbon::today();
+        /** @var Collection<string, GlobalParameter> $current */
         $current = $this->effective($today)->keyBy('key');
 
         $errors = $this->validate($input, $current);
@@ -115,10 +118,10 @@ final readonly class GlobalParameterService
 
     /**
      * @param array<string, string|null> $input
-     * @param \Illuminate\Support\Collection<string, GlobalParameter> $current
+     * @param Collection<string, GlobalParameter> $current
      * @return array<string, list<string>>
      */
-    private function validate(array $input, $current): array
+    private function validate(array $input, Collection $current): array
     {
         $errors = [];
 
@@ -161,9 +164,9 @@ final readonly class GlobalParameterService
      * z wartoscia, ktorej pilnuje system - w starym systemie waznosc
      * oferty wynosila 10 dni w polu i 7 dni w tekscie.
      *
-     * @param \Illuminate\Support\Collection<string, GlobalParameter> $current
+     * @param Collection<string, GlobalParameter> $current
      */
-    private function validatePlaceholders(GlobalParameter $parameter, ?string $value, $current): ?string
+    private function validatePlaceholders(GlobalParameter $parameter, ?string $value, Collection $current): ?string
     {
         if ($parameter->type !== GlobalParameterType::TEMPLATE || $value === null) {
             return null;
@@ -180,15 +183,18 @@ final readonly class GlobalParameterService
         return null;
     }
 
-    /** @return \Illuminate\Support\Collection<int, GlobalParameter> */
-    private function effective(Carbon $date)
+    /** @return Collection<int, GlobalParameter> */
+    private function effective(Carbon $date): Collection
     {
-        return GlobalParameter::query()
+        /** @var Collection<int, GlobalParameter> $parameters */
+        $parameters = GlobalParameter::query()
             ->whereDate('valid_from', '<=', $date)
-            ->where(static function ($query) use ($date): void {
+            ->where(static function (Builder $query) use ($date): void {
                 $query->whereNull('valid_to')->orWhereDate('valid_to', '>=', $date);
             })
             ->orderBy('id')
             ->get();
+
+        return $parameters;
     }
 }

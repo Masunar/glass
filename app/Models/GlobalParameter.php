@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
  * @property string $key
  * @property GlobalParameterType $type
  * @property string|null $value
+ * @property string|null $description
  * @property Carbon $valid_from
  * @property Carbon|null $valid_to
  */
