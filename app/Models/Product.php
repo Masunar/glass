@@ -90,9 +90,9 @@ class Product extends Dateable
         return PurchasePrice::query()
             ->where('product_id', $this->id)
             ->whereDate('valid_from', '<=', $date)
-            ->where(static fn(Builder $query): Builder => $query
-                ->whereNull('valid_to')
-                ->orWhereDate('valid_to', '>=', $date))
+            ->where(static function (Builder $query) use ($date): void {
+                $query->whereNull('valid_to')->orWhereDate('valid_to', '>=', $date);
+            })
             ->orderByDesc('valid_from')
             ->first();
     }
