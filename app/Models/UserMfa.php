@@ -17,7 +17,7 @@ use Salvon\Model\Dateable;
  * @property string|null $pending_value
  * @property string|null $recovery_key
  * @property bool $is_active
- * @property Carbon $code_last_issued_at;
+ * @property Carbon|null $code_last_issued_at
  */
 class UserMfa extends Dateable
 {
