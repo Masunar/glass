@@ -14,6 +14,7 @@ use Salvon\Model\User as Authenticatable;
 use Spatie\Permission\Traits\HasPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $first_name
  * @property string $last_name
  * @property bool $is_active
+ * @property int|null $location_id
+ * @property Location|null $location
  * @property Role[] $roles
  * @property Permission[] $permissions
  * @property UserMfa|null $mfa
@@ -42,6 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_name',
         'email',
         'phone',
+        'location_id',
         'is_active',
         'password',
         'last_login_at',
@@ -75,6 +79,11 @@ class User extends Authenticatable implements MustVerifyEmail
             'user' => $this->toArray(),
             'url' => frontend_route('reset-password', ['token' => $token]),
         ]);
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id', 'id');
     }
 
     public function mfa(): HasOne

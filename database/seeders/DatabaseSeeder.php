@@ -9,6 +9,8 @@ use Salvon\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     protected array $seeders = [
+        Core\LocationSeeder::class,
+        Core\StatusSeeder::class,
         Core\SettingSeeder::class,
         Core\EmailTemplateSeeder::class,
     ];
