@@ -9,8 +9,9 @@ use App\Enum\Section;
 use App\Enum\AddressKind;
 use Salvon\Model\Dateable;
 use App\Enum\ContractorType;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Kartoteka klientów — firmy i osoby prywatne w jednej tabeli.
@@ -24,14 +25,24 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $name
  * @property string|null $short_name
  * @property string|null $tax_id
+ * @property string|null $registry_id
+ * @property string|null $first_name
+ * @property string|null $last_name
  * @property string|null $phone
  * @property string|null $email
+ * @property string|null $website
+ * @property string|null $note
  * @property int $payment_days
  * @property string $credit_limit
  * @property bool $is_supplier
  * @property bool $is_active
  * @property Carbon|null $registered_on
- * @property-read HasMany<ContractorPriceSection, self> $priceSections
+ * @property int|null $created_by
+ * @property-read Collection<int, ContractorAddress> $addresses
+ * @property-read Collection<int, ContractorContact> $contacts
+ * @property-read Collection<int, ContractorPriceSection> $priceSections
+ * @property-read Collection<int, ContractorPrice> $prices
+ * @property-read ContractorContact|null $primaryContact
  */
 class Contractor extends Dateable
 {

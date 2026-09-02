@@ -6,6 +6,7 @@ use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\PriceListController;
+use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\GlobalParameterController;
 
@@ -29,4 +30,13 @@ Route::prefix('/catalog')->name('catalog_')->group(static function (): void {
     Route::put('/products/{product}', [ProductCatalogController::class, 'updateProduct'])->name('product_update');
     Route::post('/groups', [ProductCatalogController::class, 'createGroup'])->name('group_create');
     Route::put('/groups/{group}', [ProductCatalogController::class, 'updateGroup'])->name('group_update');
+});
+
+Route::prefix('/contractors')->name('contractors_')->group(static function (): void {
+    Route::get('/', [ContractorController::class, 'list'])->name('list');
+    Route::post('/', [ContractorController::class, 'create'])->name('create');
+    Route::get('/{contractor}', [ContractorController::class, 'card'])->name('card');
+    Route::put('/{contractor}', [ContractorController::class, 'update'])->name('update');
+    Route::put('/{contractor}/price-sections', [ContractorController::class, 'priceSections'])
+        ->name('price_sections');
 });
