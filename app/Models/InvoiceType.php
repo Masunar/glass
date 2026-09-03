@@ -10,6 +10,8 @@ use Salvon\Model\Dateable;
  * @property string $name
  * @property int $vat_rate
  * @property bool $is_default
+ * @property int $position
+ * @property bool $is_active
  */
 class InvoiceType extends Dateable
 {

@@ -6,6 +6,7 @@ use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\PriceListController;
+use App\Http\Controllers\DictionaryController;
 use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\GlobalParameterController;
@@ -39,4 +40,12 @@ Route::prefix('/contractors')->name('contractors_')->group(static function (): v
     Route::put('/{contractor}', [ContractorController::class, 'update'])->name('update');
     Route::put('/{contractor}/price-sections', [ContractorController::class, 'priceSections'])
         ->name('price_sections');
+});
+
+Route::prefix('/dictionaries')->name('dictionaries_')->group(static function (): void {
+    Route::get('/', [DictionaryController::class, 'schema'])->name('schema');
+    Route::get('/{slug}', [DictionaryController::class, 'rows'])->name('rows');
+    Route::post('/{slug}', [DictionaryController::class, 'create'])->name('create');
+    Route::put('/{slug}/{id}', [DictionaryController::class, 'update'])->name('update');
+    Route::delete('/{slug}/{id}', [DictionaryController::class, 'deactivate'])->name('deactivate');
 });

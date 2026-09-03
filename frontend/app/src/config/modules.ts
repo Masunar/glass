@@ -74,6 +74,14 @@ export const appModules: AppModule[] = [
         },
       },
       {
+        labelKey: 'page.menu.dictionaries',
+        path: appRoutes.dictionaries.path,
+        permission: {
+          permission: Permission.DICTIONARIES,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      {
         labelKey: 'page.menu.parameters',
         path: appRoutes.parameters.path,
         permission: {

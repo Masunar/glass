@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $name
  * @property int|null $location_id
  * @property int|null $daily_capacity
+ * @property int $position
+ * @property bool $is_active
  */
 class Workstation extends Dateable
 {
