@@ -35,7 +35,10 @@
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ge-drawer.is-open { transform: translateX(0); }
-.ge-drawer--narrow { width: 340px; }
+/* Panel wąski — formularze o jednej kolumnie. 340 px z projektu było
+   za ciasne: etykiety i noty łamały się na trzy wiersze, a stopka
+   ściskała przyciski. */
+.ge-drawer--narrow { width: clamp(480px, 34vw, 560px); }
 
 @media (prefers-reduced-motion: reduce) {
   .ge-drawer,
@@ -97,8 +100,21 @@
   border-top: 1px solid var(--ge-neutral-900);
   background: var(--ge-neutral-100);
 }
-.ge-drawer__foot-note { font-size: 12.5px; color: var(--ge-neutral-700); }
-.ge-drawer__foot-end { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.ge-drawer__foot-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ge-neutral-700);
+}
+/* Przyciski nie zwezaja sie pod nota - to one koncza prace w panelu. */
+.ge-drawer__foot-end {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 
 /* Firma / osoba prywatna — dwa słowa, nie rozwijana lista.
    Wybór zmienia kształt całego formularza, więc musi być widoczny. */

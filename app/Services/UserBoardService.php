@@ -162,6 +162,12 @@ final readonly class UserBoardService
         /** @var list<string> $roleNames */
         $roleNames = $user->roles->pluck('name')->all();
 
+        // Identyfikatory rol, a nie tylko nazwy: formularz edycji musi
+        // wiedziec, co zaznaczyc. Bez tego zapis czyscilby role, ktore
+        // uzytkownik ma teraz.
+        /** @var list<int> $roleIds */
+        $roleIds = $user->roles->pluck('id')->map(static fn(mixed $id): int => (int) $id)->all();
+
         return [
             'id' => (int) $user->id,
             'name' => trim($user->first_name . ' ' . ($user->last_name ?? '')),
@@ -170,6 +176,7 @@ final readonly class UserBoardService
             'phone' => $user->phone,
             'location' => $user->location?->name,
             'roles' => $roleNames,
+            'role_ids' => $roleIds,
             // Rola nadrzędna omija sprawdzanie uprawnień, więc widok
             // musi to pokazać wprost, a nie chować za nazwą roli.
             'is_superuser' => $user->roles->contains(
