@@ -30,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property Role[] $roles
  * @property Permission[] $permissions
  * @property UserMfa|null $mfa
+ * @property \Carbon\Carbon|null $last_login_at
+ * @property \Carbon\Carbon|null $created_at
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -128,6 +130,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            // Bez rzutowania ostatnie logowanie jest zwyklym stringiem,
+            // a ekran uzytkownikow liczy na nim wiek konta.
+            'last_login_at' => 'datetime',
             'activation_token_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',

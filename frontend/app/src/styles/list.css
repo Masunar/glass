@@ -227,3 +227,22 @@
   border-bottom: 1px solid var(--ge-divider);
 }
 .ge-fieldset:first-child { margin-top: 0; }
+
+/* ---------- komórka użytkownika ---------- */
+
+.ge-user { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.ge-user .ge-avatar { width: 30px; height: 30px; font-size: 11.5px; }
+/* Konto założone, do którego nikt jeszcze nie wszedł — kontur zamiast
+   wypełnienia mówi, że tego użytkownika w systemie jeszcze nie ma. */
+.ge-avatar--invited {
+  background: none;
+  border: 1px dashed var(--ge-neutral-400);
+  color: var(--ge-neutral-600);
+}
+
+/* Wiersz wyłączony: dane zostają, ale nie krzyczą. */
+.ge-row--off,
+.ge-row--off .ge-name { color: var(--ge-neutral-700); }
+
+.ge-cell--wrap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-muted { color: var(--ge-neutral-500); }
