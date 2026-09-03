@@ -8,8 +8,6 @@ use App\Enum\Unit;
 use Carbon\Carbon;
 use App\Enum\Section;
 use App\Models\Product;
-use App\Models\AuditEntry;
-use Illuminate\Support\Str;
 use App\Models\ProductGlass;
 use App\Models\ProductGroup;
 use App\Models\PurchasePrice;
@@ -18,6 +16,7 @@ use App\Models\ProductService;
 use App\Enum\PurchasePriceSource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
+use App\Support\Normalize;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -37,6 +36,11 @@ use Illuminate\Support\Facades\Validator;
  */
 final readonly class ProductCatalogService
 {
+    public function __construct(
+        private AuditTrail $audit = new AuditTrail(),
+    ) {
+    }
+
     /**
      * @param array<string, mixed> $input
      * @return array{errors: array<string, list<string>>, id: int|null}
@@ -86,9 +90,9 @@ final readonly class ProductCatalogService
         $group->fill([
             'section' => $section,
             'name' => $name,
-            'manufacturer' => $this->nullable($input['manufacturer'] ?? null),
-            'series' => $this->nullable($input['series'] ?? null),
-            'comment' => $this->nullable($input['comment'] ?? null),
+            'manufacturer' => Normalize::text($input['manufacturer'] ?? null),
+            'series' => Normalize::text($input['series'] ?? null),
+            'comment' => Normalize::text($input['comment'] ?? null),
             'is_active' => (bool) ($input['is_active'] ?? true),
         ]);
 
@@ -103,7 +107,7 @@ final readonly class ProductCatalogService
 
         $group->save();
 
-        $this->audit(ProductGroup::class, (int) $group->id, $before, $group->only(
+        $this->audit->record(ProductGroup::class, (int) $group->id, $before, $group->only(
             ['name', 'manufacturer', 'series', 'is_active'],
         ));
 
@@ -140,8 +144,8 @@ final readonly class ProductCatalogService
             // mógłby wylądować w cenniku innej sekcji niż jego grupa.
             'section' => $section->value,
             'name' => trim((string) $input['name']),
-            'code' => $this->nullable($input['code'] ?? null),
-            'manufacturer_code' => $this->nullable($input['manufacturer_code'] ?? null),
+            'code' => Normalize::text($input['code'] ?? null),
+            'manufacturer_code' => Normalize::text($input['manufacturer_code'] ?? null),
             'unit' => (string) ($input['unit'] ?? $this->defaultUnit($section)->value),
             'vat_rate' => (int) ($input['vat_rate'] ?? 23),
             'is_made_to_order' => (bool) ($input['is_made_to_order'] ?? false),
@@ -153,7 +157,7 @@ final readonly class ProductCatalogService
         $this->saveExtension($product, $section, $input);
         $this->savePurchasePrice($product, $input, $today);
 
-        $this->audit(Product::class, (int) $product->id, $before, $product->only(
+        $this->audit->record(Product::class, (int) $product->id, $before, $product->only(
             ['name', 'code', 'unit', 'vat_rate', 'is_active'],
         ));
 
@@ -174,7 +178,7 @@ final readonly class ProductCatalogService
                 [
                     'product_id' => $product->id,
                     'thickness_mm' => (float) $input['thickness_mm'],
-                    'variant' => $this->nullable($input['variant'] ?? null),
+                    'variant' => Normalize::text($input['variant'] ?? null),
                     'is_tempered_by_default' => (bool) ($input['is_tempered_by_default'] ?? false),
                 ],
             ),
@@ -182,17 +186,17 @@ final readonly class ProductCatalogService
                 ['product_id' => $product->id],
                 [
                     'product_id' => $product->id,
-                    'finish' => $this->nullable($input['finish'] ?? null),
-                    'dimension' => $this->nullable($input['dimension'] ?? null),
+                    'finish' => Normalize::text($input['finish'] ?? null),
+                    'dimension' => Normalize::text($input['dimension'] ?? null),
                 ],
             ),
             Section::SERVICES => ProductService::query()->updateOrCreate(
                 ['product_id' => $product->id],
                 [
                     'product_id' => $product->id,
-                    'process_id' => $this->nullable($input['process_id'] ?? null),
-                    'glass_thickness_mm' => $this->nullable($input['glass_thickness_mm'] ?? null),
-                    'variant' => $this->nullable($input['variant'] ?? null),
+                    'process_id' => Normalize::text($input['process_id'] ?? null),
+                    'glass_thickness_mm' => Normalize::text($input['glass_thickness_mm'] ?? null),
+                    'variant' => Normalize::text($input['variant'] ?? null),
                 ],
             ),
             default => null,
@@ -212,7 +216,7 @@ final readonly class ProductCatalogService
             return;
         }
 
-        $value = $this->nullable($input['purchase_net_price']);
+        $value = Normalize::text($input['purchase_net_price']);
         $current = $product->purchasePriceAt($today);
 
         if ($value === null) {
@@ -303,39 +307,6 @@ final readonly class ProductCatalogService
         return [];
     }
 
-    /**
-     * @param array<string, mixed>|null $before
-     * @param array<string, mixed> $after
-     */
-    private function audit(string $type, int $id, ?array $before, array $after): void
-    {
-        $changes = [];
-
-        foreach ($after as $field => $value) {
-            $previous = $before[$field] ?? null;
-
-            if ($before !== null && $previous === $value) {
-                continue;
-            }
-
-            $changes[] = ['field' => $field, 'before' => $previous, 'after' => $value];
-        }
-
-        if ($changes === []) {
-            return;
-        }
-
-        AuditEntry::query()->create([
-            'edit_session_id' => (string) Str::uuid(),
-            'auditable_type' => $type,
-            'auditable_id' => $id,
-            'user_id' => Auth::id(),
-            'event' => $before === null ? 'created' : 'updated',
-            'changes' => $changes,
-            'ip_address' => request()->ip(),
-        ]);
-    }
-
     private function defaultUnit(Section $section): Unit
     {
         return match ($section) {
@@ -348,14 +319,5 @@ final readonly class ProductCatalogService
     private function sectionValues(): string
     {
         return implode(',', array_column(Section::cases(), 'value'));
-    }
-
-    private function nullable(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (string) $value;
     }
 }
