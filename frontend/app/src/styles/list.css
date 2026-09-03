@@ -247,37 +247,102 @@
 .ge-cell--wrap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ge-muted { color: var(--ge-neutral-500); }
 
-/* ---------- formularz ekranu ---------- */
+/* ---------- ekran parametrów ---------- */
 
-/* Ekran ustawień to nie kartoteka: pola stoją w siatce, a nie jedno pod
-   drugim na pełną szerokość. Progi i dopłaty to krótkie liczby —
-   trzymanie ich w jednej kolumnie wymuszało przewijanie ekranu, żeby
-   zobaczyć siedem pól. */
-.ge-form { padding: 18px 24px 32px; max-width: 1100px; }
-.ge-form__grid {
-  --ge-cols: 2;
+/* Parametry to nie formularz, tylko tabela decyzji. Sama liczba do
+   wpisania nie mówi nic; człowiek pyta „czego to dotknie" i „o ile
+   ruszy ceny", więc obie odpowiedzi stoją w wierszu obok wartości. */
+.ge-params { --cols: minmax(240px, 1.6fr) 170px 200px 200px 160px; }
+
+.ge-params__head,
+.ge-params__row {
   display: grid;
-  grid-template-columns: repeat(var(--ge-cols), minmax(0, 1fr));
-  gap: 4px 28px;
+  grid-template-columns: var(--cols);
+  gap: 20px;
+  align-items: center;
+  padding-inline: 24px;
 }
 
-.ge-form__field {
-  padding: 8px 0 8px 12px;
+.ge-params__head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+
+.ge-params__band {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 8px 24px;
+  border-block: 1px solid var(--ge-divider);
+}
+.ge-params__band-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.ge-params__band-meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+
+/* Odcień pasma niesie znaczenie: dopłaty są pieniędzmi, więc ochrą. */
+.ge-params__band--module { background: var(--ge-mod-tint); }
+.ge-params__band--module .ge-params__band-title { color: color-mix(in oklab, var(--ge-mod) 72%, black); }
+.ge-params__band--money { background: var(--m-ksie-tint); }
+.ge-params__band--money .ge-params__band-title { color: color-mix(in oklab, var(--m-ksie) 80%, black); }
+.ge-params__band--plain { background: var(--ge-neutral-100); }
+
+.ge-params__row {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-divider);
   border-left: 3px solid transparent;
-  transition: border-color 0.15s ease;
 }
-/* Niezapisane pole dostaje krawędź, nie ramkę — ta sama zasada, co przy
-   wierszu listy wymagającym decyzji. */
-.ge-form__field.is-dirty { border-left-color: var(--ge-mod); }
+.ge-params__row:hover { background: color-mix(in srgb, var(--ge-mod) 5%, transparent); }
+/* Niezapisany wiersz dostaje krawędź, nie ramkę — ta sama zasada, co
+   przy wierszu listy wymagającym decyzji. */
+.ge-params__row.is-dirty { border-left-color: var(--m-ksie); }
 
-/* Kropka przy zakładce, na której czeka niezapisana zmiana. Zapis
-   obejmuje wszystkie zakładki naraz, więc przełączenie nie może chować
-   zmiany z oczu. */
-.ge-filters__dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 7px;
-  vertical-align: middle;
-  background: var(--ge-mod);
+.ge-params__value { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; }
+.ge-params__value .MuiFormControl-root { margin: 0; }
+.ge-params__value input { text-align: right; font-family: var(--ge-font-heading); font-size: 19px; }
+.ge-params__unit { font-size: 12px; color: var(--ge-neutral-600); }
+.ge-params__error { font-size: 12px; color: var(--m-alert); }
+
+.ge-params__up { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+.ge-params__down { color: color-mix(in oklab, var(--m-mag) 80%, black); font-weight: 500; }
+.ge-params__unsaved { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; font-size: 13px; }
+
+/* Pasek niezapisanych zmian. Zapis obejmuje wszystkie zakładki naraz,
+   więc pasek musi być widoczny niezależnie od tego, którą się ogląda. */
+.ge-params__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--m-ksie);
+  background: var(--m-ksie-tint);
+  font-size: 13px;
+}
+.ge-params__foot strong { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+.ge-params__foot-end { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+/* Zakładka „Zmienione" — pojawia się dopiero, gdy jest co pokazać. */
+.ge-filters button.is-warn { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
+.ge-filters button.is-warn.is-active { border-bottom-color: var(--m-ksie); }
+
+/* ---------- historia wersji ---------- */
+
+.ge-hist { padding-bottom: 14px; border-bottom: 1px solid var(--ge-divider); }
+.ge-hist__head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 6px; }
+.ge-hist__version { font-family: var(--ge-font-heading); font-size: 16px; }
+.ge-hist__change {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
 }

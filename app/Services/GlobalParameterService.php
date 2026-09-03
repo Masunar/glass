@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Carbon\Carbon;
+use App\Models\User;
+use App\Models\AuditEntry;
 use App\Models\GlobalParameter;
 use Illuminate\Validation\Rule;
 use App\Enum\GlobalParameterType;
@@ -28,22 +30,95 @@ final readonly class GlobalParameterService
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function board(?Carbon $date = null): array
+    {
+        return [
+            'parameters' => $this->list($date),
+            // Numer wersji to liczba zapisow, nie wersji pojedynczego
+            // wiersza: ekran zapisuje caly zestaw naraz, wiec to zapis
+            // jest jednostka, o ktorej mowi czlowiek.
+            'version' => $this->version(),
+        ];
+    }
+
     /** @return list<array<string, mixed>> */
     public function list(?Carbon $date = null): array
     {
         $date ??= Carbon::today();
 
+        /** @var array<int, string> $authors */
+        $authors = User::query()->pluck('first_name', 'id')->all();
+
         return $this->effective($date)
-            ->map(static fn(GlobalParameter $parameter): array => [
-                'key' => $parameter->key,
-                'type' => $parameter->type->value,
-                'value' => $parameter->value,
-                'description' => $parameter->description,
-                'options' => GlobalParameter::choicesFor($parameter->key),
-                'valid_from' => $parameter->valid_from->toDateString(),
-            ])
+            ->map(static function (GlobalParameter $parameter) use ($authors): array {
+                $author = $parameter->changed_by === null
+                    ? null
+                    : ($authors[$parameter->changed_by] ?? null);
+
+                return [
+                    'key' => $parameter->key,
+                    'type' => $parameter->type->value,
+                    'value' => $parameter->value,
+                    'description' => $parameter->description,
+                    'options' => GlobalParameter::choicesFor($parameter->key),
+                    // Data obowiazywania wersji jest data ostatniej
+                    // zmiany tego parametru - wersjonowanie zapisu daje
+                    // to za darmo, bez osobnej kolumny.
+                    'changed_at' => $parameter->valid_from->toDateString(),
+                    'changed_by' => $author === null ? null : mb_substr($author, 0, 2),
+                ];
+            })
             ->values()
             ->all();
+    }
+
+    /**
+     * Liczba zapisow zestawu parametrow. Kazdy zapis to jeden wpis
+     * w dzienniku, wiec numer wersji jest z niego wprost.
+     */
+    public function version(): int
+    {
+        return AuditEntry::query()
+            ->where('auditable_type', GlobalParameter::class)
+            ->count();
+    }
+
+    /**
+     * Historia zapisów zestawu — każdy wpis to jedno kliknięcie
+     * „Zapisz", z listą pól, które się wtedy zmieniły.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function history(int $limit = 30): array
+    {
+        /** @var array<int, string> $authors */
+        $authors = User::query()->pluck('first_name', 'id')->all();
+
+        $entries = AuditEntry::query()
+            ->where('auditable_type', GlobalParameter::class)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        $total = $this->version();
+        $history = [];
+
+        foreach ($entries as $index => $entry) {
+            /** @var list<array{field: string, before: mixed, after: mixed}> $changes */
+            $changes = (array) $entry->changes;
+
+            $history[] = [
+                'version' => $total - $index,
+                'at' => $entry->created_at->toDateTimeString(),
+                'by' => $entry->user_id === null ? null : ($authors[$entry->user_id] ?? null),
+                'changes' => $changes,
+            ];
+        }
+
+        return $history;
     }
 
     /**
