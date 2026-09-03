@@ -41,6 +41,7 @@ import GlobalSearch from '@app/layout/app/_components/global-search/GlobalSearch
 import ModulePanel from '@app/layout/app/_components/shell/ModulePanel';
 import Rail from '@app/layout/app/_components/shell/Rail';
 import UserProvider from '@app/provider/UserProvider';
+import '@app/styles/drawer.css';
 import '@app/styles/list.css';
 import '@app/styles/shell.css';
 import { stripDataSuffix } from '@app/utils/return-to';

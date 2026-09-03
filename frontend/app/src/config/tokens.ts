@@ -90,6 +90,22 @@ export const modules = {
 export type ModuleKey = keyof typeof modules;
 
 /** Ciemna listwa modułów — jedyne ciemne miejsce w jasnym motywie. */
+/**
+ * Panel boczny jako warstwa nad treścią.
+ *
+ * Nagłówek dzieli kolor z listwą modułów: to ta sama warstwa systemu,
+ * więc nie ma powodu, żeby wyglądała inaczej.
+ */
+export const drawer = {
+  headBg: 'oklch(0.24 0.03 250)',
+  headFg: 'oklch(0.95 0.01 250)',
+  headKicker: 'oklch(0.78 0.10 250)',
+  switchBg: 'oklch(0.72 0.13 250)',
+  switchFg: 'oklch(0.22 0.04 250)',
+  scrim: 'oklch(0.24 0.03 250 / 0.28)',
+  shadow: '-14px 0 36px oklch(0.24 0.03 250 / 0.22)',
+} as const;
+
 export const rail = {
   bg: 'oklch(0.24 0.03 250)',
   fg: 'oklch(0.95 0.01 250)',
