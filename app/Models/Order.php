@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Collection<int, OrderDiscount> $discounts
  * @property-read Contractor|null $contractor
  * @property-read Status|null $status
+ * @property-read Location|null $pickupLocation
+ * @property-read User|null $creator
  */
 class Order extends Dateable
 {
@@ -90,23 +92,49 @@ class Order extends Dateable
         return '#' . $this->number;
     }
 
+    /** @return BelongsTo<Contractor, $this> */
     public function contractor(): BelongsTo
     {
         return $this->belongsTo(Contractor::class, 'contractor_id', 'id');
     }
 
+    /** @return BelongsTo<Status, $this> */
     public function status(): BelongsTo
     {
         return $this->belongsTo(Status::class, 'status_id', 'id');
     }
 
+    /** @return HasMany<OrderList, $this> */
     public function lists(): HasMany
     {
         return $this->hasMany(OrderList::class, 'order_id', 'id');
     }
 
+    /** @return HasMany<OrderDiscount, $this> */
     public function discounts(): HasMany
     {
         return $this->hasMany(OrderDiscount::class, 'order_id', 'id');
     }
+    /**
+     * Punkt odbioru ma sens wyłącznie przy odbiorze własnym — przy
+     * montażu i dowozie jedziemy do klienta.
+     *
+     * @return BelongsTo<Location, $this>
+     */
+    public function pickupLocation(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'pickup_location_id', 'id');
+    }
+
+    /**
+     * Handlowiec prowadzący zlecenie. Lista pokazuje jego inicjały przy
+     * kolumnie „co dalej" — decyzja ma mieć właściciela.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+
 }

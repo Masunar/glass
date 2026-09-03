@@ -45,7 +45,7 @@
     "products.availability_statuses": "Statusy dostępności",
     "products.delivery_texts": "Teksty dostaw",
     "products.related_groups": "Produkty powiązane",
-    "orders": "Zamówienia",
+    "orders": "Zlecenia",
     "content_management": "Zarządzanie treścią",
     "content_management.homepage": "Strona główna",
     "content_management.menu": "Menu",
@@ -547,6 +547,53 @@
     },
     "action": {
       "new_contractor": "Nowy kontrahent"
+    }
+  },
+  "orders": {
+    "title": "Zlecenia",
+    "search": "Szukaj: numer, kontrahent",
+    "add": "Nowe zlecenie",
+    "filters": "Statusy",
+    "sorted_by": "Sortowanie: pilność",
+    "empty": "Nic nie pasuje do tego zapytania.",
+    "today": "dziś",
+    "no_deadline": "bez terminu",
+    "shifted": "termin przesunięty",
+    "nothing_to_do": "nic do zrobienia",
+    "on_hold": "wstrzymane — {{reason}}",
+    "overdue_by_one": "{{count}} dzień po terminie",
+    "overdue_by_few": "{{count}} dni po terminie",
+    "overdue_by_many": "{{count}} dni po terminie",
+    "overdue_by_other": "{{count}} dni po terminie",
+    "in_days_one": "za {{count}} dzień",
+    "in_days_few": "za {{count}} dni",
+    "in_days_many": "za {{count}} dni",
+    "in_days_other": "za {{count}} dni",
+    "column": {
+      "number": "Nr / data",
+      "contractor": "Kontrahent i uwaga",
+      "stage": "Etap",
+      "deadline": "Termin",
+      "handover": "Wydanie",
+      "amount": "Kwota",
+      "next": "Co dalej"
+    },
+    "band": {
+      "today": "Dziś",
+      "overdue": "Zaległe",
+      "overdue_meta": "wymagają decyzji dziś",
+      "later": "Kolejne dni"
+    },
+    "handover": {
+      "pickup": "Odbiór",
+      "installation": "Montaż",
+      "delivery": "Dowóz"
+    },
+    "strip": {
+      "today_note": "termin na dzisiaj",
+      "overdue_note": "termin minął",
+      "shown": "Na liście",
+      "shown_note": "po bieżącym filtrze"
     }
   }
 }

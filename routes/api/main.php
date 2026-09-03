@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\DictionaryController;
@@ -54,4 +55,8 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
     Route::post('/{slug}', [DictionaryController::class, 'create'])->name('create');
     Route::put('/{slug}/{id}', [DictionaryController::class, 'update'])->name('update');
     Route::delete('/{slug}/{id}', [DictionaryController::class, 'deactivate'])->name('deactivate');
+});
+
+Route::prefix('/orders')->name('orders_')->group(static function (): void {
+    Route::get('/', [OrderController::class, 'board'])->name('board');
 });

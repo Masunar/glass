@@ -117,7 +117,7 @@ class StatusSeeder extends Seeder
                 ['rule' => 'pickup_point_set', 'message' => 'Nie wskazano punktu odbioru.'],
             ]],
             ['GOTOWE', 'MONTAZ', 'Skieruj do montażu', [
-                ['rule' => 'handover_method_is', 'value' => 'assembly', 'message' => 'Zlecenie nie jest oznaczone jako montaż.'],
+                ['rule' => 'handover_method_is', 'value' => 'installation', 'message' => 'Zlecenie nie jest oznaczone jako montaż.'],
             ]],
             ['DOSTAWA', 'NIEROZLICZONE', 'Potwierdź wydanie', []],
             ['ODBIOR', 'NIEROZLICZONE', 'Potwierdź wydanie', []],

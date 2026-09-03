@@ -61,14 +61,14 @@ final readonly class SearchService
      * Numer zlecenia to pierwsze, czego szuka biuro — i jedyne, co klient
      * podaje przez telefon. Dlatego ta grupa stoi na górze.
      *
-     * Jako jedyna nie sprawdza uprawnienia, bo uprawnienia do zleceń
-     * jeszcze nie ma — moduł nie ma ekranów. Kiedy powstanie, ta metoda
-     * musi dostać taki sam filtr jak pozostałe.
-     *
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function orders(string $needle): array
+    private function orders(string $needle): ?array
     {
+        if (!$this->allowed(Permission::ORDERS)) {
+            return null;
+        }
+
         $digits = preg_replace('/\D+/', '', $needle) ?? '';
 
         $orders = Order::query()
