@@ -17,7 +17,13 @@
 .ge-drawer {
   position: fixed;
   inset: 0 0 0 auto;
-  width: 620px;
+  /* Projekt zakłada 620 px, ale przy dwóch kolumnach zostawiało to
+     ~290 px na kolumnę i etykiety adresu łamały się na dwa wiersze.
+     Panel rośnie z ekranem i zatrzymuje się na 1040 px — szerzej dwie
+     kolumny formularza zaczynają się od siebie oddalać, a oko musi
+     wędrować między nimi. Lista pod spodem i tak zostaje widoczna,
+     bo minimalna szerokość powłoki to 1280 px. */
+  width: clamp(720px, 52vw, 1040px);
   max-width: 100vw;
   z-index: 1200;
   display: flex;
@@ -76,10 +82,10 @@
 .ge-drawer__col {
   flex: 1;
   min-width: 0;
-  padding: 16px 20px;
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 18px;
 }
 .ge-drawer__col + .ge-drawer__col { border-left: 1px solid var(--ge-divider); }
 
@@ -138,9 +144,14 @@
 .ge-uf__label {
   display: block;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ge-neutral-600);
+  /* Etykieta łamiąca się na dwa wiersze rozjeżdża linię podkreśleń
+     w całym rzędzie — w wąskiej kolumnie ucinamy ją zamiast zawijać. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ge-uf__req { color: var(--m-alert); }
 .ge-uf__input {
