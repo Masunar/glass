@@ -23,6 +23,8 @@ Route::crudController(UserController::class, callback: function () {
 Route::prefix('/parameters')->name('parameters_')->group(static function (): void {
     Route::get('/', [GlobalParameterController::class, 'list'])->name('list');
     Route::put('/', [GlobalParameterController::class, 'update'])->name('update');
+    Route::post('/preview', [GlobalParameterController::class, 'preview'])->name('preview');
+    Route::get('/history', [GlobalParameterController::class, 'history'])->name('history');
 });
 
 Route::prefix('/price-list')->name('price_list_')->group(static function (): void {
