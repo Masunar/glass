@@ -287,5 +287,72 @@
     "rap": "Raporty",
     "alert": "Zaległe",
     "adm": "Administracja"
+  },
+  "contractors": {
+    "title": "Kontrahenci",
+    "search": "Szukaj: nazwa, NIP, telefon…",
+    "add": "Nowy kontrahent",
+    "filters": "Filtry kartoteki",
+    "empty": "Nic nie pasuje do tego zapytania.",
+    "shown": "pokazane: {{count}}",
+    "days": "{{count}} dni na zapłatę",
+    "prepaid": "przedpłata",
+    "limit": "limit {{value}}",
+    "no_limit": "bez limitu kredytu",
+    "column": {
+      "name": "Kontrahent",
+      "contact": "Kontakt",
+      "terms": "Warunki",
+      "status": "Status",
+      "actions": ""
+    },
+    "filter": {
+      "active": "Aktywni {{count}}",
+      "all": "Wszyscy"
+    },
+    "type": {
+      "company": "firma",
+      "person": "osoba prywatna"
+    },
+    "state": {
+      "active": "aktywny",
+      "inactive": "wyłączony"
+    },
+    "form": {
+      "add": "Nowy kontrahent",
+      "edit": "Edycja kontrahenta",
+      "type": "Typ",
+      "name": "Nazwa",
+      "short_name": "Skrót",
+      "short_name_hint": "Nazwa na listach — pełne nazwy spółek są nieczytelne.",
+      "tax_id": "NIP",
+      "tax_id_hint": "Wymagany dla firmy; sprawdzana suma kontrolna.",
+      "tax_id_person": "Osoba prywatna nie musi go mieć.",
+      "registry_id": "REGON",
+      "first_name": "Imię",
+      "last_name": "Nazwisko",
+      "street": "Ulica",
+      "building": "Nr domu",
+      "unit": "Nr lokalu",
+      "postal_code": "Kod pocztowy",
+      "city": "Miasto",
+      "phone": "Telefon",
+      "email": "E-mail",
+      "website": "Strona",
+      "contact_hint": "Zostaw puste, jeśli nie znasz — lepiej puste niż wpisane na siłę.",
+      "payment_days": "Dni na zapłatę",
+      "credit_limit": "Limit kredytu",
+      "credit_limit_hint": "Zero znaczy: każde zlecenie za przedpłatą.",
+      "note": "Notatka",
+      "is_supplier": "Także dostawca",
+      "is_active": "Aktywny"
+    },
+    "price_sections": {
+      "title": "Sekcje cenowe kontrahenta",
+      "short": "Cennik",
+      "lead": "Drugi z czterech poziomów ustalania ceny. Puste pole nie jest błędem — oznacza, że obowiązuje sekcja domyślna.",
+      "default": "— sekcja domyślna —",
+      "fallback": "teraz obowiązuje: {{name}}"
+    }
   }
 }

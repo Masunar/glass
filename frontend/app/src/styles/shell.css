@@ -172,8 +172,9 @@
 /* Ekrany docelowe sa pelnej szerokosci - naglowek i lista maja wlasny
    padding poziomy. Ekrany zbudowane na komponentach MUI potrzebuja
    kontenera, wiec dostaja go jawnie. */
-.ge-page { padding: 20px 24px; }
-.ge-page--flush { padding: 0; }
+.ge-page { min-height: 100%; }
+/* Ekran zbudowany na komponentach MUI deklaruje kontener sam. */
+.ge-boxed { padding: 20px 24px; }
 
 /* ---------- nagłówek ekranu ---------- */
 
@@ -197,3 +198,23 @@
   line-height: 1.1;
 }
 .ge-head__actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* Podkreslenie zamiast ramki - w tym systemie nie ma kafelkow. */
+.ge-search {
+  height: 36px;
+  width: 260px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-400);
+  background: transparent;
+  font-family: var(--ge-font-body);
+  font-size: 14px;
+  color: var(--ge-text);
+}
+.ge-search::placeholder { color: var(--ge-neutral-500); }
+.ge-search:hover { border-bottom-color: var(--ge-neutral-600); }
+.ge-search:focus-visible {
+  outline: none;
+  border-bottom: 2px solid var(--ge-mod);
+  padding-bottom: 0;
+}

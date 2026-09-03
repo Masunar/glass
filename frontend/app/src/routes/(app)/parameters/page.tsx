@@ -1,6 +1,5 @@
-import { Box, Typography } from '@mui/material';
-
 import Heading from '@app-components/Heading';
+import { Box, Typography } from '@mui/material';
 import { appRoutes } from '@router/app-router';
 
 import { parameterGroups } from './_components/groups';
@@ -74,96 +73,98 @@ export default function Page() {
   };
 
   return (
-    <Form onSubmit={handleSubmit} form={form}>
-      <Flex column gap={2}>
-        <Heading
-          returnTo={{ path: appRoutes.index }}
-          icon={<PiSlidersHorizontal />}
-          title={t('page.parameters.title')}
-        >
-          <Submit
-            loading={saving}
-            disabled={dirtyKeys.length === 0}
-            color="primary"
-            variant="contained"
-            icon={<PiFloppyDisk />}
+    <div className="ge-boxed">
+      <Form onSubmit={handleSubmit} form={form}>
+        <Flex column gap={2}>
+          <Heading
+            returnTo={{ path: appRoutes.index }}
+            icon={<PiSlidersHorizontal />}
+            title={t('page.parameters.title')}
           >
-            {dirtyKeys.length > 0
-              ? t('page.parameters.save_count', { count: dirtyKeys.length })
-              : t('save')}
-          </Submit>
-        </Heading>
+            <Submit
+              loading={saving}
+              disabled={dirtyKeys.length === 0}
+              color="primary"
+              variant="contained"
+              icon={<PiFloppyDisk />}
+            >
+              {dirtyKeys.length > 0
+                ? t('page.parameters.save_count', { count: dirtyKeys.length })
+                : t('save')}
+            </Submit>
+          </Heading>
 
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: -1 }}>
-          {t('page.parameters.lead')}
-        </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: -1 }}>
+            {t('page.parameters.lead')}
+          </Typography>
 
-        {parameterGroups.map((group) => (
-          <Card key={group.titleKey}>
-            <Flex column gap={2}>
-              <Typography sx={{ fontWeight: 600 }}>
-                {t(group.titleKey)}
-              </Typography>
-
-              {group.leadKey && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {t(group.leadKey)}
+          {parameterGroups.map((group) => (
+            <Card key={group.titleKey}>
+              <Flex column gap={2}>
+                <Typography sx={{ fontWeight: 600 }}>
+                  {t(group.titleKey)}
                 </Typography>
-              )}
 
-              {group.keys.map((key) => {
-                const parameter = byKey.get(key);
+                {group.leadKey && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {t(group.leadKey)}
+                  </Typography>
+                )}
 
-                if (!parameter) {
-                  return null;
-                }
+                {group.keys.map((key) => {
+                  const parameter = byKey.get(key);
 
-                const isDirty = dirtyKeys.includes(key);
-                const numeric =
-                  parameter.type === 'number' || parameter.type === 'percent';
-                const choice = parameter.type === 'choice';
+                  if (!parameter) {
+                    return null;
+                  }
 
-                return (
-                  <Box
-                    key={key}
-                    sx={{
-                      borderLeft: '3px solid',
-                      borderColor: isDirty ? 'primary.main' : 'transparent',
-                      pl: 1.5,
-                      transition: 'border-color .15s',
-                    }}
-                  >
-                    {choice ? (
-                      <FormControl
-                        variant="select"
-                        name={key}
-                        label={t(`page.parameters.field.${key}`)}
-                        helperText={parameter.description ?? undefined}
-                        options={parameter.options.map((option) => ({
-                          label: t(`page.parameters.option.${option}`),
-                          value: option,
-                        }))}
-                      />
-                    ) : (
-                      <FormControl
-                        variant={numeric ? 'number' : 'text'}
-                        name={key}
-                        label={t(`page.parameters.field.${key}`)}
-                        helperText={parameter.description ?? undefined}
-                        slotProps={
-                          parameter.type === 'percent'
-                            ? { input: { endAdornment: '%' } }
-                            : undefined
-                        }
-                      />
-                    )}
-                  </Box>
-                );
-              })}
-            </Flex>
-          </Card>
-        ))}
-      </Flex>
-    </Form>
+                  const isDirty = dirtyKeys.includes(key);
+                  const numeric =
+                    parameter.type === 'number' || parameter.type === 'percent';
+                  const choice = parameter.type === 'choice';
+
+                  return (
+                    <Box
+                      key={key}
+                      sx={{
+                        borderLeft: '3px solid',
+                        borderColor: isDirty ? 'primary.main' : 'transparent',
+                        pl: 1.5,
+                        transition: 'border-color .15s',
+                      }}
+                    >
+                      {choice ? (
+                        <FormControl
+                          variant="select"
+                          name={key}
+                          label={t(`page.parameters.field.${key}`)}
+                          helperText={parameter.description ?? undefined}
+                          options={parameter.options.map((option) => ({
+                            label: t(`page.parameters.option.${option}`),
+                            value: option,
+                          }))}
+                        />
+                      ) : (
+                        <FormControl
+                          variant={numeric ? 'number' : 'text'}
+                          name={key}
+                          label={t(`page.parameters.field.${key}`)}
+                          helperText={parameter.description ?? undefined}
+                          slotProps={
+                            parameter.type === 'percent'
+                              ? { input: { endAdornment: '%' } }
+                              : undefined
+                          }
+                        />
+                      )}
+                    </Box>
+                  );
+                })}
+              </Flex>
+            </Card>
+          ))}
+        </Flex>
+      </Form>
+    </div>
   );
 }

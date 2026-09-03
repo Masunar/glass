@@ -4,6 +4,7 @@ export enum Permission {
   PARAMETERS = 'parameters',
   PRICE_LIST = 'price_list',
   PRODUCTS = 'products',
+  CONTRACTORS = 'contractors',
 }
 
 export enum SubPermission {
