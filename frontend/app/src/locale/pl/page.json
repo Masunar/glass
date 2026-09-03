@@ -285,7 +285,8 @@
       "highest_only": "Obowiązuje tylko najwyższa",
       "before_surcharges": "Przed dopłatami",
       "after_surcharges": "Po dopłatach"
-    }
+    },
+    "tabs": "Grupy parametrów"
   },
   "price_list": {
     "title": "Cennik",

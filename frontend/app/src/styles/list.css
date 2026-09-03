@@ -246,3 +246,38 @@
 
 .ge-cell--wrap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ge-muted { color: var(--ge-neutral-500); }
+
+/* ---------- formularz ekranu ---------- */
+
+/* Ekran ustawień to nie kartoteka: pola stoją w siatce, a nie jedno pod
+   drugim na pełną szerokość. Progi i dopłaty to krótkie liczby —
+   trzymanie ich w jednej kolumnie wymuszało przewijanie ekranu, żeby
+   zobaczyć siedem pól. */
+.ge-form { padding: 18px 24px 32px; max-width: 1100px; }
+.ge-form__grid {
+  --ge-cols: 2;
+  display: grid;
+  grid-template-columns: repeat(var(--ge-cols), minmax(0, 1fr));
+  gap: 4px 28px;
+}
+
+.ge-form__field {
+  padding: 8px 0 8px 12px;
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s ease;
+}
+/* Niezapisane pole dostaje krawędź, nie ramkę — ta sama zasada, co przy
+   wierszu listy wymagającym decyzji. */
+.ge-form__field.is-dirty { border-left-color: var(--ge-mod); }
+
+/* Kropka przy zakładce, na której czeka niezapisana zmiana. Zapis
+   obejmuje wszystkie zakładki naraz, więc przełączenie nie może chować
+   zmiany z oczu. */
+.ge-filters__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 7px;
+  vertical-align: middle;
+  background: var(--ge-mod);
+}
