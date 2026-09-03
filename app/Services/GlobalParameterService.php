@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Carbon\Carbon;
-use App\Models\AuditEntry;
-use Illuminate\Support\Str;
 use App\Models\GlobalParameter;
 use Illuminate\Validation\Rule;
 use App\Enum\GlobalParameterType;
@@ -25,6 +23,11 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final readonly class GlobalParameterService
 {
+    public function __construct(
+        private AuditTrail $audit = new AuditTrail(),
+    ) {
+    }
+
     /** @return list<array<string, mixed>> */
     public function list(?Carbon $date = null): array
     {
@@ -59,9 +62,6 @@ final readonly class GlobalParameterService
             return $errors;
         }
 
-        // Jedna sesja edycji dla calego zapisu - zmiany z jednego
-        // klikniecia maja byc w dzienniku jednym wpisem, a nie dwunastoma.
-        $editSession = (string) Str::uuid();
         $changes = [];
 
         foreach ($input as $key => $value) {
@@ -81,17 +81,9 @@ final readonly class GlobalParameterService
             $this->writeNewVersion($parameter, $value, $today);
         }
 
-        if ($changes !== []) {
-            AuditEntry::query()->create([
-                'edit_session_id' => $editSession,
-                'auditable_type' => GlobalParameter::class,
-                'auditable_id' => 0,
-                'user_id' => Auth::id(),
-                'event' => 'updated',
-                'changes' => $changes,
-                'ip_address' => request()->ip(),
-            ]);
-        }
+        // Jeden zapis to jeden wpis: zmiany z jednego klikniecia maja
+        // byc w dzienniku jedna pozycja, a nie dwunastoma.
+        $this->audit->write(GlobalParameter::class, 0, $changes);
 
         return [];
     }

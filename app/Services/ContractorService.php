@@ -7,9 +7,7 @@ namespace App\Services;
 use Carbon\Carbon;
 use App\Enum\Section;
 use App\Enum\AddressKind;
-use App\Models\AuditEntry;
 use App\Models\Contractor;
-use Illuminate\Support\Str;
 use App\Enum\ContractorType;
 use App\Models\PriceSection;
 use App\Models\ContractorAddress;
@@ -18,6 +16,7 @@ use App\Models\ContractorPriceSection;
 use Illuminate\Database\Eloquent\Builder;
 use Salvon\Regon\Validator\Nip;
 use Salvon\Regon\Validator\Regon;
+use App\Support\Normalize;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -30,6 +29,11 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final readonly class ContractorService
 {
+    public function __construct(
+        private AuditTrail $audit = new AuditTrail(),
+    ) {
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -122,19 +126,19 @@ final readonly class ContractorService
         $contractor->fill([
             'type' => (string) $input['type'],
             'name' => trim((string) $input['name']),
-            'short_name' => $this->nullable($input['short_name'] ?? null),
-            'tax_id' => $this->digits($input['tax_id'] ?? null),
-            'registry_id' => $this->digits($input['registry_id'] ?? null),
-            'first_name' => $this->nullable($input['first_name'] ?? null),
-            'last_name' => $this->nullable($input['last_name'] ?? null),
-            'phone' => $this->nullable($input['phone'] ?? null),
-            'email' => $this->nullable($input['email'] ?? null),
-            'website' => $this->nullable($input['website'] ?? null),
+            'short_name' => Normalize::text($input['short_name'] ?? null),
+            'tax_id' => Normalize::digits($input['tax_id'] ?? null),
+            'registry_id' => Normalize::digits($input['registry_id'] ?? null),
+            'first_name' => Normalize::text($input['first_name'] ?? null),
+            'last_name' => Normalize::text($input['last_name'] ?? null),
+            'phone' => Normalize::text($input['phone'] ?? null),
+            'email' => Normalize::text($input['email'] ?? null),
+            'website' => Normalize::text($input['website'] ?? null),
             'payment_days' => (int) ($input['payment_days'] ?? 0),
             'credit_limit' => number_format((float) ($input['credit_limit'] ?? 0), 2, '.', ''),
             'is_supplier' => (bool) ($input['is_supplier'] ?? false),
             'is_active' => (bool) ($input['is_active'] ?? true),
-            'note' => $this->nullable($input['note'] ?? null),
+            'note' => Normalize::text($input['note'] ?? null),
         ]);
 
         if ($contractorId === null) {
@@ -146,7 +150,8 @@ final readonly class ContractorService
 
         $this->saveAddress($contractor, AddressKind::REGISTERED, $input['address'] ?? null);
 
-        $this->audit(
+        $this->audit->record(
+            Contractor::class,
             (int) $contractor->id,
             $before,
             $contractor->only(['name', 'tax_id', 'payment_days', 'credit_limit', 'is_active']),
@@ -291,15 +296,15 @@ final readonly class ContractorService
             [
                 'contractor_id' => $contractor->id,
                 'kind' => $kind->value,
-                'country' => $this->nullable($input['country'] ?? null) ?? 'PL',
-                'voivodeship' => $this->nullable($input['voivodeship'] ?? null),
-                'county' => $this->nullable($input['county'] ?? null),
-                'post_office' => $this->nullable($input['post_office'] ?? null),
-                'city' => $this->nullable($input['city'] ?? null),
-                'postal_code' => $this->nullable($input['postal_code'] ?? null),
-                'street' => $this->nullable($input['street'] ?? null),
-                'building_number' => $this->nullable($input['building_number'] ?? null),
-                'unit_number' => $this->nullable($input['unit_number'] ?? null),
+                'country' => Normalize::text($input['country'] ?? null) ?? 'PL',
+                'voivodeship' => Normalize::text($input['voivodeship'] ?? null),
+                'county' => Normalize::text($input['county'] ?? null),
+                'post_office' => Normalize::text($input['post_office'] ?? null),
+                'city' => Normalize::text($input['city'] ?? null),
+                'postal_code' => Normalize::text($input['postal_code'] ?? null),
+                'street' => Normalize::text($input['street'] ?? null),
+                'building_number' => Normalize::text($input['building_number'] ?? null),
+                'unit_number' => Normalize::text($input['unit_number'] ?? null),
             ],
         );
     }
@@ -318,8 +323,8 @@ final readonly class ContractorService
 
         // Numery normalizujemy przed walidacja, zeby "852-234-70-66"
         // przechodzil tak samo jak "8522347066".
-        $input['tax_id'] = $this->digits($input['tax_id'] ?? null);
-        $input['registry_id'] = $this->digits($input['registry_id'] ?? null);
+        $input['tax_id'] = Normalize::digits($input['tax_id'] ?? null);
+        $input['registry_id'] = Normalize::digits($input['registry_id'] ?? null);
 
         // Zadne pole kontaktowe nie jest wymagane, ale jesli zostalo
         // wypelnione, musi miec sens. Stara baza pelna jest telefonow "0"
@@ -360,7 +365,7 @@ final readonly class ContractorService
         // Telefon liczymy w cyfrach, nie w znakach. Wymaganie dziewieciu
         // cyfr pod rzad odrzucalo "914 843 703" - czyli dokladnie ten
         // zapis, ktorym numery sa podawane i wyswietlane wszedzie indziej.
-        $phoneDigits = $this->digits($input['phone'] ?? null);
+        $phoneDigits = Normalize::digits($input['phone'] ?? null);
 
         if ($phoneDigits !== null && mb_strlen($phoneDigits) < 9) {
             return ['phone' => ['Numer telefonu musi mieć co najmniej dziewięć cyfr.']];
@@ -390,39 +395,6 @@ final readonly class ContractorService
     }
 
     /**
-     * @param array<string, mixed>|null $before
-     * @param array<string, mixed> $after
-     */
-    private function audit(int $id, ?array $before, array $after): void
-    {
-        $changes = [];
-
-        foreach ($after as $field => $value) {
-            $previous = $before[$field] ?? null;
-
-            if ($before !== null && $previous === $value) {
-                continue;
-            }
-
-            $changes[] = ['field' => $field, 'before' => $previous, 'after' => $value];
-        }
-
-        if ($changes === []) {
-            return;
-        }
-
-        AuditEntry::query()->create([
-            'edit_session_id' => (string) Str::uuid(),
-            'auditable_type' => Contractor::class,
-            'auditable_id' => $id,
-            'user_id' => Auth::id(),
-            'event' => $before === null ? 'created' : 'updated',
-            'changes' => $changes,
-            'ip_address' => request()->ip(),
-        ]);
-    }
-
-    /**
      * Suma kontrolna NIP-u pochodzi z Salvona — ten sam algorytm siedzi
      * już w pakiecie GUS/REGON, którego używa podpowiadanie danych firmy.
      * Zostaje tu jedyna rzecz, której Salvon nie pilnuje: numery-wypełniacze
@@ -435,28 +407,5 @@ final readonly class ContractorService
         }
 
         return Nip::isValid($taxId);
-    }
-
-    private function nullable(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return trim((string) $value);
-    }
-
-    /** NIP i REGON trzymamy jako same cyfry — myślniki są ozdobą wpisu. */
-    private function digits(mixed $value): ?string
-    {
-        $text = $this->nullable($value);
-
-        if ($text === null) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $text) ?? '';
-
-        return $digits === '' ? null : $digits;
     }
 }

@@ -6,12 +6,11 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Location;
-use App\Models\AuditEntry;
-use Illuminate\Support\Str;
 use App\Models\Workstation;
+use Illuminate\Support\Str;
+use App\Support\Normalize;
 use App\Dictionaries\Field;
 use App\Dictionaries\FieldType;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Validator;
@@ -40,6 +39,7 @@ final readonly class DictionaryService
 {
     public function __construct(
         private DictionaryRegistry $registry,
+        private AuditTrail $audit = new AuditTrail(),
     ) {
     }
 
@@ -158,7 +158,7 @@ final readonly class DictionaryService
 
         $this->enforceSingleDefault($definition, $record);
 
-        $this->audit($definition->model, (int) $record->getKey(), $before, $record->only($tracked));
+        $this->audit->record($definition->model, (int) $record->getKey(), $before, $record->only($tracked));
 
         return ['errors' => [], 'id' => (int) $record->getKey()];
     }
@@ -183,7 +183,7 @@ final readonly class DictionaryService
         $record->setAttribute('is_active', false);
         $record->save();
 
-        $this->audit(
+        $this->audit->record(
             $definition->model,
             $id,
             ['is_active' => true],
@@ -251,9 +251,9 @@ final readonly class DictionaryService
             $row[$field->key] = match ($field->type) {
                 FieldType::BOOLEAN => (bool) $value,
                 FieldType::INTEGER => $value === null ? null : (int) $value,
-                FieldType::SELECT => $value instanceof \BackedEnum ? (string) $value->value : $this->text($value),
+                FieldType::SELECT => $value instanceof \BackedEnum ? (string) $value->value : Normalize::text($value),
                 FieldType::REFERENCE => $value === null ? null : (int) $value,
-                default => $this->text($value),
+                default => Normalize::text($value),
             };
 
             if ($field->type === FieldType::REFERENCE) {
@@ -279,7 +279,7 @@ final readonly class DictionaryService
         $columns = $related->getAttribute('name') === null ? ['first_name', 'last_name'] : ['name'];
         $options = $this->options([$related], $columns);
 
-        return $this->text($options[0]['label']);
+        return Normalize::text($options[0]['label']);
     }
 
     /**
@@ -309,11 +309,11 @@ final readonly class DictionaryService
 
             $attributes[$field->key] = match ($field->type) {
                 FieldType::BOOLEAN => (bool) $value,
-                FieldType::INTEGER, FieldType::REFERENCE => $this->nullable($value) === null ? null : (int) $value,
-                FieldType::DECIMAL => $this->nullable($value) === null
+                FieldType::INTEGER, FieldType::REFERENCE => Normalize::text($value) === null ? null : (int) $value,
+                FieldType::DECIMAL => Normalize::text($value) === null
                     ? null
                     : number_format((float) $value, 2, '.', ''),
-                default => $this->nullable($value),
+                default => Normalize::text($value),
             };
         }
 
@@ -407,7 +407,7 @@ final readonly class DictionaryService
             $parts = [];
 
             foreach ($labelColumns as $column) {
-                $part = $this->text($record->getAttribute($column));
+                $part = Normalize::text($record->getAttribute($column));
 
                 if ($part !== null) {
                     $parts[] = $part;
@@ -443,56 +443,5 @@ final readonly class DictionaryService
         }
 
         return $names;
-    }
-
-    /**
-     * @param array<string, mixed>|null $before
-     * @param array<string, mixed> $after
-     */
-    private function audit(string $type, int $id, ?array $before, array $after): void
-    {
-        $changes = [];
-
-        foreach ($after as $field => $value) {
-            $previous = $before[$field] ?? null;
-
-            if ($before !== null && $previous === $value) {
-                continue;
-            }
-
-            $changes[] = ['field' => $field, 'before' => $previous, 'after' => $value];
-        }
-
-        if ($changes === []) {
-            return;
-        }
-
-        AuditEntry::query()->create([
-            'edit_session_id' => (string) Str::uuid(),
-            'auditable_type' => $type,
-            'auditable_id' => $id,
-            'user_id' => Auth::id(),
-            'event' => $before === null ? 'created' : 'updated',
-            'changes' => $changes,
-            'ip_address' => request()->ip(),
-        ]);
-    }
-
-    private function text(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (string) $value;
-    }
-
-    private function nullable(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return trim((string) $value);
     }
 }
