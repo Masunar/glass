@@ -194,3 +194,19 @@
   color: var(--ge-neutral-700);
 }
 .ge-footbar__end { margin-left: auto; }
+
+/* Zdanie wprowadzające nad listą — czym jest ten słownik i po co. */
+.ge-lead {
+  margin: 0;
+  padding: 12px 24px 0;
+  max-width: 68ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ge-neutral-700);
+}
+
+.ge-empty {
+  padding: 28px 24px;
+  color: var(--ge-neutral-600);
+  font-size: 14px;
+}

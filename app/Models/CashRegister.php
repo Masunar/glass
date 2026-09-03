@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $user_id
  * @property PaymentChannel $channel
  * @property string $default_currency
+ * @property int $position
+ * @property bool $is_active
  */
 class CashRegister extends Dateable
 {

@@ -5,6 +5,7 @@ export enum Permission {
   PRICE_LIST = 'price_list',
   PRODUCTS = 'products',
   CONTRACTORS = 'contractors',
+  DICTIONARIES = 'dictionaries',
 }
 
 export enum SubPermission {

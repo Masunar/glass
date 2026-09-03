@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property Section $section
  * @property bool $is_default
+ * @property int $position
+ * @property bool $is_active
  */
 class PriceSection extends Dateable
 {

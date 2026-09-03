@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $short_name
  * @property int $payload_kg
  * @property int $crew_slots
+ * @property int $position
+ * @property bool $is_active
  */
 class Vehicle extends Dateable
 {

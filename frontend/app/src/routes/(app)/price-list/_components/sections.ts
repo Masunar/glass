@@ -8,7 +8,6 @@
 export const priceListSections = [
   { value: 'glass', labelKey: 'page.price_list.section.glass' },
   { value: 'fittings', labelKey: 'page.price_list.section.fittings' },
-  { value: 'frames', labelKey: 'page.price_list.section.frames' },
   { value: 'services', labelKey: 'page.price_list.section.services' },
   { value: 'other', labelKey: 'page.price_list.section.other' },
 ] as const;

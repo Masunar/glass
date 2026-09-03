@@ -62,7 +62,8 @@
     "price_list": "Cennik",
     "contractors": "Kontrahenci",
     "designers": "Projektanci",
-    "offers": "Oferty"
+    "offers": "Oferty",
+    "dictionaries": "Słowniki"
   },
   "user_account": {
     "mfa": {
@@ -237,7 +238,6 @@
     "section": {
       "glass": "Szkło",
       "fittings": "Okucia",
-      "frames": "Ramy",
       "services": "Usługi",
       "other": "Inne"
     },
@@ -353,6 +353,18 @@
       "lead": "Drugi z czterech poziomów ustalania ceny. Puste pole nie jest błędem — oznacza, że obowiązuje sekcja domyślna.",
       "default": "— sekcja domyślna —",
       "fallback": "teraz obowiązuje: {{name}}"
+    }
+  },
+  "dictionaries": {
+    "title": "Słowniki",
+    "tabs": "Wybór słownika",
+    "add": "Dodaj pozycję",
+    "deactivate": "Wyłącz",
+    "deactivated": "Pozycja wyłączona. Zniknie z nowych zleceń, ale historia dalej się rozwiązuje.",
+    "show_inactive": "Pokaż wyłączone",
+    "empty": "Ten słownik jest pusty.",
+    "column": {
+      "actions": "Działania"
     }
   }
 }

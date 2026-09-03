@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_default
  * @property bool $is_active
  * @property int|null $legacy_id
+ * @property int $position
  */
 class Location extends Dateable
 {

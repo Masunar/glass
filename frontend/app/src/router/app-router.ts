@@ -27,6 +27,16 @@ export const appRoutes = {
       { permission: Permission.CONTRACTORS, subPermission: SubPermission.LIST },
     ],
   },
+  dictionaries: {
+    path: '/dictionaries',
+    file: 'dictionaries',
+    permissions: [
+      {
+        permission: Permission.DICTIONARIES,
+        subPermission: SubPermission.LIST,
+      },
+    ],
+  },
   priceList: {
     path: '/price-list',
     file: 'price-list',

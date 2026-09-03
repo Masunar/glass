@@ -9,13 +9,12 @@ namespace App\Enum;
  *
  * Po sekcjach przypisuje się cenniki kontrahentom, nadaje rabaty na
  * zleceniu i grupuje produkty w magazynie. Wartości odpowiadają
- * słownikowi domenowemu: Szkło / Okucia / Ramy / Usługi / Inne.
+ * słownikowi domenowemu: Szkło / Okucia / Usługi / Inne.
  */
 enum Section: string
 {
     case GLASS = 'glass';
     case FITTINGS = 'fittings';
-    case FRAMES = 'frames';
     case SERVICES = 'services';
     case OTHER = 'other';
 }

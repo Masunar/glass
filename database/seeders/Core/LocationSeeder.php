@@ -20,6 +20,8 @@ class LocationSeeder extends Seeder
             [
                 'name' => 'Stobno',
                 'short_name' => 'STO',
+                'phone' => '603 666 014',
+                'email' => 'biuro@glassexpert.pl',
                 'is_production' => true,
                 'is_pickup_point' => true,
                 'is_default' => true,
@@ -28,6 +30,8 @@ class LocationSeeder extends Seeder
             [
                 'name' => 'Chopina',
                 'short_name' => 'CHO',
+                'phone' => '91 45 42 475',
+                'email' => 'biuro@szklojaz.pl',
                 'is_production' => false,
                 'is_pickup_point' => true,
                 'is_default' => false,
