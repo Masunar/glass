@@ -20,7 +20,6 @@ class SearchController extends ApiController
     public function __construct(
         private readonly SearchService $service,
     ) {
-        parent::__construct();
     }
 
     public function search(Request $request): JsonResponse
