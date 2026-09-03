@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `from_status_id` równe null oznacza przejście początkowe, czyli
  * nadanie pierwszego statusu.
  *
- * @property string $domain
+ * @property StatusDomain $domain
  * @property int|null $from_status_id
  * @property int $to_status_id
  * @property array|null $conditions
@@ -49,11 +49,13 @@ class StatusTransition extends Dateable
         ];
     }
 
+    /** @return BelongsTo<Status, $this> */
     public function fromStatus(): BelongsTo
     {
         return $this->belongsTo(Status::class, 'from_status_id', 'id');
     }
 
+    /** @return BelongsTo<Status, $this> */
     public function toStatus(): BelongsTo
     {
         return $this->belongsTo(Status::class, 'to_status_id', 'id');
