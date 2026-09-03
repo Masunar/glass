@@ -165,8 +165,11 @@ final readonly class UserBoardService
         // Identyfikatory rol, a nie tylko nazwy: formularz edycji musi
         // wiedziec, co zaznaczyc. Bez tego zapis czyscilby role, ktore
         // uzytkownik ma teraz.
-        /** @var list<int> $roleIds */
-        $roleIds = $user->roles->pluck('id')->map(static fn(mixed $id): int => (int) $id)->all();
+        $roleIds = [];
+
+        foreach ($user->roles as $role) {
+            $roleIds[] = (int) $role->getKey();
+        }
 
         return [
             'id' => (int) $user->id,
