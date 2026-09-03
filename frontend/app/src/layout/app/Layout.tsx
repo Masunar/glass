@@ -7,6 +7,7 @@ import { UserModalProvider } from '../../components/user/UserModalContext';
 import UserModal from '../../components/user/modal/UserModal';
 import { appRoutes } from '../../router/app-router';
 import OfflineModal from './_components/OfflineModal';
+import { useEffect, useState } from 'react';
 import {
   type LoaderFunction,
   Outlet,
@@ -30,6 +31,7 @@ import '@salvon/styles.css';
 import generatePath from '@salvon/utils/generate-path';
 
 import { userLoader } from '@app/auth/user-loader';
+import Spotlight, { SpotlightOpener } from '@app/components/search/Spotlight';
 import i18n from '@app/config/i18n';
 import { locales } from '@app/config/locales';
 import { defaultLocale } from '@app/config/locales';
@@ -37,13 +39,13 @@ import { moduleForPath } from '@app/config/modules';
 import { lightTheme } from '@app/config/theme';
 import { userHasPermission } from '@app/hook/use-permissions';
 import { useUser } from '@app/hook/use-user';
-import GlobalSearch from '@app/layout/app/_components/global-search/GlobalSearch';
 import ModulePanel from '@app/layout/app/_components/shell/ModulePanel';
 import Rail from '@app/layout/app/_components/shell/Rail';
 import UserProvider from '@app/provider/UserProvider';
 import '@app/styles/drawer.css';
 import '@app/styles/list.css';
 import '@app/styles/shell.css';
+import '@app/styles/spotlight.css';
 import { stripDataSuffix } from '@app/utils/return-to';
 
 export const loader: LoaderFunction = async (params) => {
@@ -144,6 +146,22 @@ function Template() {
   const { pathname } = useLocation();
   const user = useUser();
   const module = moduleForPath(pathname);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Skrot na poziomie powloki, a nie ekranu: wyszukiwarka ma byc
+  // dostepna wszedzie, tak samo jak listwa modulow.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setSearchOpen((current) => !current);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const handleLogout = () => navigate(redirectRoutes.logout.path);
 
@@ -164,6 +182,7 @@ function Template() {
       <CssBaseline enableColorScheme />
       <OfflineModal />
       <UserModal />
+      <Spotlight open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <Rail
         active={module}
@@ -181,7 +200,7 @@ function Template() {
         }
       >
         <Div sx={{ px: '20px', py: '10px' }}>
-          <GlobalSearch />
+          <SpotlightOpener onOpen={() => setSearchOpen(true)} />
         </Div>
       </ModulePanel>
 
