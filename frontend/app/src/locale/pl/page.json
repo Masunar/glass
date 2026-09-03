@@ -454,5 +454,20 @@
       "actions": "Działania"
     },
     "no_schema": "Serwer nie oddał żadnego słownika. Sprawdź uprawnienie „dictionaries.list” i log aplikacji."
+  },
+  "search": {
+    "title": "Wyszukiwarka",
+    "placeholder": "Szukaj w aplikacji…",
+    "screens": "Ekrany",
+    "navigate": "wybór",
+    "open": "otwórz",
+    "close": "zamknij",
+    "searching": "Szukam…",
+    "hint": "Wpisz co najmniej {{count}} znaki.",
+    "empty": "Nic nie pasuje do „{{query}}”.",
+    "results_one": "{{count}} wynik",
+    "results_few": "{{count}} wyniki",
+    "results_many": "{{count}} wyników",
+    "results_other": "{{count}} wyników"
   }
 }

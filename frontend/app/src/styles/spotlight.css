@@ -1,0 +1,166 @@
+/* Wyszukiwarka ogólna.
+   Jedno pole na całą aplikację: w starym systemie każdy ekran miał
+   własne, więc szukając numeru trzeba było najpierw wiedzieć, gdzie
+   ten numer mieszka. */
+
+.ge-spot__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1290;
+  background: var(--ge-scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease;
+}
+.ge-spot__scrim.is-open { opacity: 1; pointer-events: auto; }
+
+.ge-spot {
+  position: fixed;
+  z-index: 1300;
+  top: 14vh;
+  left: 50%;
+  width: min(680px, calc(100vw - 48px));
+  transform: translate(-50%, -8px);
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 68vh;
+  background: var(--ge-surface);
+  border: 1px solid var(--ge-neutral-900);
+  box-shadow: var(--ge-drawer-shadow);
+  transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ge-spot.is-open { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ge-spot,
+  .ge-spot__scrim { transition: none; }
+}
+
+.ge-spot__field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+.ge-spot__icon { color: var(--ge-neutral-500); display: grid; place-items: center; }
+.ge-spot__input {
+  flex: 1;
+  min-width: 0;
+  height: 58px;
+  border: 0;
+  background: none;
+  font-family: var(--ge-font-body);
+  font-size: 19px;
+  color: var(--ge-text);
+}
+.ge-spot__input:focus { outline: none; }
+.ge-spot__input::placeholder { color: var(--ge-neutral-500); }
+
+.ge-spot__body { overflow-y: auto; flex: 1; min-height: 0; }
+
+.ge-spot__group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 18px 6px;
+  border-left: 4px solid var(--ge-grp);
+  font-family: var(--ge-font-heading);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--ge-grp) 72%, black);
+  background: color-mix(in srgb, var(--ge-grp) 7%, transparent);
+}
+.ge-spot__count {
+  margin-left: auto;
+  font-family: var(--ge-font-body);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ge-neutral-600);
+}
+
+.ge-spot__hit {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 18px 9px 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-divider);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ge-spot__hit:hover { background: color-mix(in srgb, var(--ge-grp) 8%, transparent); }
+/* Podswietlenie idzie za klawiatura, nie za mysza - inaczej Enter
+   otwieralby co innego, niz wskazuje oko. */
+.ge-spot__hit.is-active {
+  background: color-mix(in srgb, var(--ge-grp) 14%, transparent);
+  box-shadow: inset 4px 0 0 var(--ge-grp);
+}
+.ge-spot__title { font-size: 15px; font-weight: 500; }
+.ge-spot__sub {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ge-neutral-600);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ge-spot__empty { padding: 26px 18px; font-size: 14px; color: var(--ge-neutral-600); }
+
+.ge-spot__foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--ge-neutral-900);
+  background: var(--ge-neutral-100);
+  font-size: 12px;
+  color: var(--ge-neutral-700);
+}
+.ge-spot__key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin-right: 5px;
+  border: 1px solid var(--ge-neutral-400);
+  background: var(--ge-surface);
+  font-size: 11px;
+}
+.ge-spot__foot-end { margin-left: auto; }
+
+/* Pole otwierajace w panelu modulu. */
+.ge-spot__opener {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-400);
+  background: transparent;
+  font-family: var(--ge-font-body);
+  font-size: 13.5px;
+  color: var(--ge-neutral-600);
+  cursor: text;
+  text-align: left;
+}
+.ge-spot__opener:hover { border-bottom-color: var(--ge-neutral-600); }
+.ge-spot__opener:focus-visible { outline: 2px solid var(--ge-mod); outline-offset: 2px; }
+.ge-spot__shortcut {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: 1px solid var(--ge-neutral-400);
+  font-size: 11px;
+  white-space: nowrap;
+}
