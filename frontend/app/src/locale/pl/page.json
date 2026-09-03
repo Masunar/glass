@@ -180,7 +180,58 @@
     "go_back": "Wróć"
   },
   "users": {
-    "title": "Użytkownicy"
+    "title": "Użytkownicy",
+    "meta": "{{total}} kont w firmie · {{roles}} role",
+    "invite": "Zaproś użytkownika",
+    "edit": "Edytuj konto",
+    "filters": "Filtry kont",
+    "sorted_by_login": "Sortowanie: ostatnie logowanie",
+    "never": "nigdy",
+    "today": "dziś",
+    "yesterday": "wczoraj",
+    "you": "to Ty",
+    "send": "Wyślij",
+    "password_note": "Nowe konto dostaje losowe hasło — użytkownik ustawia własne z linku w zaproszeniu.",
+    "is_active_hint": "Wyłączone konto nie loguje się, ale jego zlecenia i historia zostają w systemie.",
+    "section": {
+      "person": "Osoba",
+      "access": "Dostęp"
+    },
+    "column": {
+      "user": "Użytkownik",
+      "last_login": "Ostatnie logowanie",
+      "access": "Dostęp",
+      "actions": "Działania"
+    },
+    "filter": {
+      "all": "Wszyscy",
+      "active": "Aktywni",
+      "invited": "Zaproszeni",
+      "disabled": "Wyłączeni"
+    },
+    "band": {
+      "invited": "Zaproszenia",
+      "invited_meta": "konto istnieje, ale nikt się na nie jeszcze nie zalogował",
+      "disabled": "Wyłączeni",
+      "disabled_meta": "dane i historia zleceń zostają w systemie",
+      "active": "Aktywni",
+      "active_meta": ""
+    },
+    "access": {
+      "full": "pełny",
+      "limited": "wg roli",
+      "none": "brak"
+    },
+    "strip": {
+      "active": "Aktywni",
+      "logged_today": "{{count}} logowań dziś",
+      "invited": "Zaproszenia",
+      "oldest_invite": "najstarsze czeka {{count}} dni",
+      "no_invites": "wszyscy się zalogowali",
+      "roles": "Role",
+      "attention": "Wymaga uwagi",
+      "stale": "bez logowania od {{days}} dni"
+    }
   },
   "parameters": {
     "title": "Parametry wyceny",

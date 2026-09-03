@@ -14,6 +14,8 @@ use App\Http\Controllers\GlobalParameterController;
 Route::post('/regon/find-by-nip', [RegonController::class, 'findByNip'])->name('regon.find-by-nip');
 Route::crudController(UserController::class, callback: function () {
     Route::get('roles', [UserController::class, 'roles'])->name('roles');
+    Route::get('board', [UserController::class, 'board'])->name('board');
+    Route::post('{entity}/invite', [UserController::class, 'invite'])->name('invite');
 });
 
 Route::prefix('/parameters')->name('parameters_')->group(static function (): void {
