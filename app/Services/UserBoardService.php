@@ -157,6 +157,8 @@ final readonly class UserBoardService
             && $lastLogin !== null
             && $lastLogin->diffInDays($today) >= self::STALE_DAYS;
 
+        $createdAt = $this->rawDate($user, 'created_at');
+
         /** @var list<string> $roleNames */
         $roleNames = $user->roles->pluck('name')->all();
 
@@ -179,10 +181,26 @@ final readonly class UserBoardService
             'logged_in_today' => $lastLogin !== null && $lastLogin->isSameDay($today),
             'is_stale' => $isStale,
             'waiting_days' => $lastLogin === null
-                ? (int) $user->created_at?->diffInDays($today)
+                ? (int) $createdAt?->diffInDays($today)
                 : null,
-            'created_at' => $user->created_at?->toIso8601String(),
+            'created_at' => $createdAt?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Salvon zamienia `created_at` na sformatowany string w akcesorze,
+     * wiec do liczenia dni trzeba siegnac po surowa wartosc z bazy.
+     * `last_login_at` ma jawne rzutowanie i wraca jako Carbon.
+     */
+    private function rawDate(User $user, string $column): ?Carbon
+    {
+        $raw = $user->getRawOriginal($column);
+
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return Carbon::parse((string) $raw);
     }
 
     private function initials(User $user): string

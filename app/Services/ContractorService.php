@@ -329,7 +329,7 @@ final readonly class ContractorService
             'short_name' => ['nullable', 'string', 'max:60'],
             'tax_id' => ['nullable', 'string', 'regex:/^[0-9]{10}$/'],
             'registry_id' => ['nullable', 'string', 'regex:/^[0-9]{9}([0-9]{5})?$/'],
-            'phone' => ['nullable', 'string', 'min:9', 'max:40', 'regex:/[0-9]{9}/'],
+            'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email:rfc', 'max:120'],
             'website' => ['nullable', 'string', 'max:120'],
             'payment_days' => ['nullable', 'integer', 'min:0', 'max:365'],
@@ -355,6 +355,15 @@ final readonly class ContractorService
             // Suma kontrolna lapie literowke, ktora inaczej zalozylaby
             // drugi rekord tej samej firmy pod blednym numerem.
             return ['tax_id' => ['NIP ma niepoprawną sumę kontrolną.']];
+        }
+
+        // Telefon liczymy w cyfrach, nie w znakach. Wymaganie dziewieciu
+        // cyfr pod rzad odrzucalo "914 843 703" - czyli dokladnie ten
+        // zapis, ktorym numery sa podawane i wyswietlane wszedzie indziej.
+        $phoneDigits = $this->digits($input['phone'] ?? null);
+
+        if ($phoneDigits !== null && mb_strlen($phoneDigits) < 9) {
+            return ['phone' => ['Numer telefonu musi mieć co najmniej dziewięć cyfr.']];
         }
 
         $registryId = $input['registry_id'];
