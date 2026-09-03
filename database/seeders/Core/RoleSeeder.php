@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders\Core;
 
 use Salvon\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Osiem ról systemowych z dokumentacji modułu Użytkownicy.
@@ -41,9 +41,7 @@ class RoleSeeder extends Seeder
                 ['name' => $name, 'guard_name' => 'web'],
             );
 
-            // Kolumna dodana migracja do tabeli Spatie, a nie polem ich
-            // modelu — stad odczyt przez getAttribute.
-            if ($isSuperuser && $role->getAttribute('is_superuser') !== true) {
+            if ($isSuperuser && !$role->is_superuser) {
                 $role->forceFill(['is_superuser' => true])->save();
             }
         }

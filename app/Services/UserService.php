@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Salvon\Repository\RepositoryResult;
 use Salvon\Service\Str;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 final readonly class UserService
 {

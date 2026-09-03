@@ -7,7 +7,7 @@ namespace Database\Seeders\Dev;
 use App\Models\User;
 use Salvon\Database\Seeder;
 use Database\Seeders\Core\RoleSeeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
