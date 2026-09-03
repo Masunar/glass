@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use App\Mail\ResetPasswordEmail;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\NewAccessToken;
@@ -16,6 +17,7 @@ use Spatie\Permission\Traits\HasPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -27,11 +29,22 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property bool $is_active
  * @property int|null $location_id
  * @property Location|null $location
- * @property Role[] $roles
- * @property Permission[] $permissions
  * @property UserMfa|null $mfa
- * @property \Carbon\Carbon|null $last_login_at
- * @property \Carbon\Carbon|null $created_at
+ * @property Carbon|null $last_login_at
+ *
+ * Relacje zwracaja kolekcje Eloquenta, nie tablice. Adnotacja "Role[]"
+ * byla nieprawda i przechodzila tylko dopoty, dopoki nikt nie wolal na
+ * niej metody kolekcji.
+ *
+ * @property-read Collection<int, Role> $roles
+ * @property-read Collection<int, Permission> $permissions
+ *
+ * Salvon zamienia znaczniki czasu na sformatowany string w akcesorze
+ * (CastBuiltInDates), wiec to nie sa daty. Do liczenia na nich trzeba
+ * siegnac po surowa wartosc przez getRawOriginal().
+ *
+ * @property-read string|null $created_at
+ * @property-read string|null $updated_at
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
