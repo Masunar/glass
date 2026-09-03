@@ -181,7 +181,6 @@
   },
   "users": {
     "title": "Użytkownicy",
-    "meta": "{{total}} kont w firmie · {{roles}} role",
     "invite": "Zaproś użytkownika",
     "edit": "Edytuj konto",
     "filters": "Filtry kont",
@@ -224,14 +223,31 @@
     },
     "strip": {
       "active": "Aktywni",
-      "logged_today": "{{count}} logowań dziś",
       "invited": "Zaproszenia",
-      "oldest_invite": "najstarsze czeka {{count}} dni",
       "no_invites": "wszyscy się zalogowali",
       "roles": "Role",
       "attention": "Wymaga uwagi",
-      "stale": "bez logowania od {{days}} dni"
-    }
+      "logged_today_one": "{{count}} logowanie dziś",
+      "logged_today_few": "{{count}} logowania dziś",
+      "logged_today_many": "{{count}} logowań dziś",
+      "logged_today_other": "{{count}} logowań dziś",
+      "oldest_invite_one": "najstarsze czeka {{count}} dzień",
+      "oldest_invite_few": "najstarsze czeka {{count}} dni",
+      "oldest_invite_many": "najstarsze czeka {{count}} dni",
+      "oldest_invite_other": "najstarsze czeka {{count}} dni",
+      "stale_one": "bez logowania od {{count}} dnia",
+      "stale_few": "bez logowania od {{count}} dni",
+      "stale_many": "bez logowania od {{count}} dni",
+      "stale_other": "bez logowania od {{count}} dni"
+    },
+    "meta_accounts_one": "{{count}} konto w firmie",
+    "meta_accounts_few": "{{count}} konta w firmie",
+    "meta_accounts_many": "{{count}} kont w firmie",
+    "meta_accounts_other": "{{count}} kont w firmie",
+    "meta_roles_one": "{{count}} rola",
+    "meta_roles_few": "{{count}} role",
+    "meta_roles_many": "{{count}} ról",
+    "meta_roles_other": "{{count}} ról"
   },
   "parameters": {
     "title": "Parametry wyceny",
@@ -346,7 +362,6 @@
     "filters": "Filtry kartoteki",
     "empty": "Nic nie pasuje do tego zapytania.",
     "shown": "pokazane: {{count}}",
-    "days": "{{count}} dni na zapłatę",
     "prepaid": "przedpłata",
     "limit": "limit {{value}}",
     "no_limit": "bez limitu kredytu",
@@ -421,7 +436,11 @@
       "lead": "Drugi z czterech poziomów ustalania ceny. Puste pole nie jest błędem — oznacza, że obowiązuje sekcja domyślna.",
       "default": "— sekcja domyślna —",
       "fallback": "teraz obowiązuje: {{name}}"
-    }
+    },
+    "days_one": "{{count}} dzień na zapłatę",
+    "days_few": "{{count}} dni na zapłatę",
+    "days_many": "{{count}} dni na zapłatę",
+    "days_other": "{{count}} dni na zapłatę"
   },
   "dictionaries": {
     "title": "Słowniki",
