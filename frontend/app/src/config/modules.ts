@@ -37,6 +37,14 @@ export const appModules: AppModule[] = [
     labelKey: 'page.module.zlec',
     links: [
       {
+        labelKey: 'page.menu.orders',
+        path: appRoutes.orders.path,
+        permission: {
+          permission: Permission.ORDERS,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      {
         labelKey: 'page.menu.contractors',
         path: appRoutes.contractors.path,
         permission: {

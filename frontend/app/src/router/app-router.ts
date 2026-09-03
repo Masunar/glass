@@ -20,6 +20,13 @@ export const appRoutes = {
       { permission: Permission.PARAMETERS, subPermission: SubPermission.LIST },
     ],
   },
+  orders: {
+    path: '/orders',
+    file: 'orders',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
   contractors: {
     path: '/contractors',
     file: 'contractors',
