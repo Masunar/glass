@@ -345,7 +345,17 @@
       "credit_limit_hint": "Zero znaczy: każde zlecenie za przedpłatą.",
       "note": "Notatka",
       "is_supplier": "Także dostawca",
-      "is_active": "Aktywny"
+      "is_active": "Aktywny",
+      "section": {
+        "identity": "Identyfikacja",
+        "address": "Adres rejestrowy",
+        "contact": "Kontakt",
+        "terms": "Warunki handlowe"
+      },
+      "registry_fetch": "Pobierz z GUS",
+      "registry_needs_tax_id": "Najpierw wpisz dziesięciocyfrowy NIP.",
+      "registry_not_found": "GUS nie zna firmy o tym numerze.",
+      "registry_filled": "Uzupełniono z rejestru GUS. Pola wypełnione wcześniej zostały bez zmian."
     },
     "price_sections": {
       "title": "Sekcje cenowe kontrahenta",
@@ -365,6 +375,7 @@
     "empty": "Ten słownik jest pusty.",
     "column": {
       "actions": "Działania"
-    }
+    },
+    "no_schema": "Serwer nie oddał żadnego słownika. Sprawdź uprawnienie „dictionaries.list” i log aplikacji."
   }
 }

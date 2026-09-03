@@ -202,28 +202,29 @@ final readonly class DictionaryService
         return match ($source) {
             'locations' => $this->optionsFrom(Location::class, 'position'),
             'workstations' => $this->optionsFrom(Workstation::class, 'position'),
-            'users' => $this->optionsFrom(User::class, 'name', onlyActive: false),
+            // Użytkownik nie ma kolumny `name` — etykieta składa się
+            // z imienia i nazwiska, a sortowanie idzie po kolumnie,
+            // która w tabeli faktycznie istnieje.
+            'users' => $this->optionsFrom(User::class, 'first_name', ['first_name', 'last_name']),
             default => [],
         };
     }
 
     /**
      * @param class-string<Model> $model
+     * @param list<string> $labelColumns
      * @return list<array{value: string, label: string}>
      */
-    private function optionsFrom(string $model, string $orderColumn, bool $onlyActive = true): array
+    private function optionsFrom(string $model, string $orderColumn, array $labelColumns = ['name']): array
     {
         /** @var Builder<Model> $query */
         $query = $model::query();
-
-        if ($onlyActive) {
-            $query->where('is_active', true);
-        }
+        $query->where('is_active', true);
 
         /** @var iterable<Model> $records */
         $records = $query->orderBy($orderColumn)->get();
 
-        return $this->options($records);
+        return $this->options($records, $labelColumns);
     }
 
     private function definition(string $slug): DictionaryDefinition
@@ -269,7 +270,16 @@ final readonly class DictionaryService
         $relation = Str::camel(Str::beforeLast($field->key, '_id'));
         $related = $record->relationLoaded($relation) ? $record->getRelation($relation) : null;
 
-        return $related instanceof Model ? $this->text($related->getAttribute('name')) : null;
+        if (!$related instanceof Model) {
+            return null;
+        }
+
+        // Ta sama zasada co przy listach wyboru: nie każdy model, na
+        // który wskazuje słownik, ma kolumnę `name`.
+        $columns = $related->getAttribute('name') === null ? ['first_name', 'last_name'] : ['name'];
+        $options = $this->options([$related], $columns);
+
+        return $this->text($options[0]['label']);
     }
 
     /**
@@ -386,16 +396,27 @@ final readonly class DictionaryService
 
     /**
      * @param iterable<Model> $records
+     * @param list<string> $labelColumns
      * @return list<array{value: string, label: string}>
      */
-    private function options(iterable $records): array
+    private function options(iterable $records, array $labelColumns = ['name']): array
     {
         $options = [];
 
         foreach ($records as $record) {
+            $parts = [];
+
+            foreach ($labelColumns as $column) {
+                $part = $this->text($record->getAttribute($column));
+
+                if ($part !== null) {
+                    $parts[] = $part;
+                }
+            }
+
             $options[] = [
                 'value' => (string) $record->getKey(),
-                'label' => (string) $record->getAttribute('name'),
+                'label' => implode(' ', $parts),
             ];
         }
 
