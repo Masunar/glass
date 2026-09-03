@@ -50,7 +50,9 @@ export default function UserDrawer({ user, open, onClose, onSaved }: Props) {
       last_name: rest.join(' '),
       email: user?.email ?? '',
       phone: user?.phone ?? '',
-      roles: [],
+      // Bez wczytania obecnych rol zapis edycji czyscilby uprawnienia
+      // uzytkownika, ktore byly nadane wczesniej.
+      roles: user?.role_ids ?? [],
       is_active: user?.is_active ?? true,
     });
   }, [open, user?.id]);

@@ -10,6 +10,8 @@ export type UserRow = {
   phone: string | null;
   location: string | null;
   roles: string[];
+  /** Identyfikatory ról — formularz edycji musi wiedzieć, co zaznaczyć. */
+  role_ids: number[];
   /** Rola nadrzędna omija sprawdzanie uprawnień — widok mówi to wprost. */
   is_superuser: boolean;
   is_active: boolean;

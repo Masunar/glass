@@ -180,6 +180,13 @@ class UserBoardTest extends TestCase
 
         $this->assertTrue($rows[0]['is_superuser']);
         $this->assertContains(RoleSeeder::ADMINISTRATOR, $rows[0]['roles']);
+
+        // Formularz edycji zaznacza role po identyfikatorze; bez niego
+        // zapis wyczyscilby uprawnienia nadane wczesniej.
+        $this->assertSame(
+            [(int) Role::query()->where('name', RoleSeeder::ADMINISTRATOR)->value('id')],
+            $rows[0]['role_ids'],
+        );
     }
 
     #[Test]
