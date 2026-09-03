@@ -85,6 +85,9 @@ final readonly class DictionaryService
             $query->with($definition->eagerLoad);
         }
 
+        // Bez Larastan sygnatura `get()` widziana jest jako kolekcja
+        // stdClass — adnotacja przywraca faktyczny typ.
+        /** @var iterable<Model> $records */
         $records = $query
             ->orderBy($definition->orderColumn)
             ->orderBy('name')
@@ -106,10 +109,21 @@ final readonly class DictionaryService
     public function save(string $slug, array $input, ?int $id = null): array
     {
         $definition = $this->definition($slug);
+        $model = $definition->model;
+
+        /** @var Model $record */
+        $record = $id === null ? new $model() : $model::query()->findOrFail($id);
 
         $rules = [];
 
         foreach ($definition->fields as $field) {
+            // Edycja jest cząstkowa: pole nieprzysłane zostaje bez zmian,
+            // więc nie może być wymagane. Inaczej zmiana samej nazwy
+            // wymagałaby odesłania całego wiersza z powrotem.
+            if ($record->exists && !array_key_exists($field->key, $input)) {
+                continue;
+            }
+
             $rules[$field->key] = $field->rules();
         }
 
@@ -122,15 +136,11 @@ final readonly class DictionaryService
             return ['errors' => $messages, 'id' => null];
         }
 
-        $nameError = $this->checkName($definition, $input, $id);
+        $nameError = $this->checkName($definition, $input, $record);
 
         if ($nameError !== []) {
             return ['errors' => $nameError, 'id' => null];
         }
-
-        $model = $definition->model;
-        /** @var Model $record */
-        $record = $id === null ? new $model() : $model::query()->findOrFail($id);
 
         $tracked = $this->trackedColumns($definition);
         $before = $id === null ? null : $record->only($tracked);
@@ -190,11 +200,30 @@ final readonly class DictionaryService
     public function optionsFor(string $source): array
     {
         return match ($source) {
-            'locations' => $this->options(Location::query()->where('is_active', true)->orderBy('position')->get()),
-            'workstations' => $this->options(Workstation::query()->where('is_active', true)->orderBy('position')->get()),
-            'users' => $this->options(User::query()->orderBy('name')->get()),
+            'locations' => $this->optionsFrom(Location::class, 'position'),
+            'workstations' => $this->optionsFrom(Workstation::class, 'position'),
+            'users' => $this->optionsFrom(User::class, 'name', onlyActive: false),
             default => [],
         };
+    }
+
+    /**
+     * @param class-string<Model> $model
+     * @return list<array{value: string, label: string}>
+     */
+    private function optionsFrom(string $model, string $orderColumn, bool $onlyActive = true): array
+    {
+        /** @var Builder<Model> $query */
+        $query = $model::query();
+
+        if ($onlyActive) {
+            $query->where('is_active', true);
+        }
+
+        /** @var iterable<Model> $records */
+        $records = $query->orderBy($orderColumn)->get();
+
+        return $this->options($records);
     }
 
     private function definition(string $slug): DictionaryDefinition
@@ -310,9 +339,13 @@ final readonly class DictionaryService
      * @param array<string, mixed> $input
      * @return array<string, list<string>>
      */
-    private function checkName(DictionaryDefinition $definition, array $input, ?int $id): array
+    private function checkName(DictionaryDefinition $definition, array $input, Model $record): array
     {
-        $name = trim((string) ($input['name'] ?? ''));
+        if (!array_key_exists('name', $input)) {
+            return [];
+        }
+
+        $name = trim((string) $input['name']);
 
         $model = $definition->model;
 
@@ -320,12 +353,14 @@ final readonly class DictionaryService
         $taken = $model::query();
         $taken->where('name', $name);
 
-        if ($id !== null) {
-            $taken->whereKeyNot($id);
+        if ($record->exists) {
+            $taken->whereKeyNot($record->getKey());
         }
 
+        // Kolumna zawężająca może nie przyjść w cząstkowej edycji —
+        // wtedy obowiązuje ta, którą wiersz ma teraz.
         foreach ($definition->uniqueWithin as $column) {
-            $taken->where($column, $input[$column] ?? null);
+            $taken->where($column, $input[$column] ?? $record->getAttribute($column));
         }
 
         if ($taken->exists()) {

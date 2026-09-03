@@ -20,6 +20,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * Słowniki proste: reguły wspólne dla wszystkich zakładek.
+ *
+ * Testy nie zakładają pustych tabel. `migrate:fresh --seed` odpala się
+ * raz na cały przebieg i poza transakcją, więc słowniki referencyjne
+ * (flota, typy faktur, sekcje cenowe) mogą już być wypełnione — nazwy
+ * używane niżej są spoza seedera, a asercje dotyczą wierszy założonych
+ * w samym teście.
  */
 class DictionaryServiceTest extends TestCase
 {
@@ -90,10 +96,10 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function nazwa_jest_unikalna(): void
     {
-        $first = $this->service->save('vehicles', ['name' => 'Mercedes', 'payload_kg' => 850]);
+        $first = $this->service->save('vehicles', ['name' => 'Star 266', 'payload_kg' => 850]);
         $this->assertSame([], $first['errors']);
 
-        $second = $this->service->save('vehicles', ['name' => 'Mercedes', 'payload_kg' => 900]);
+        $second = $this->service->save('vehicles', ['name' => 'Star 266', 'payload_kg' => 900]);
 
         $this->assertArrayHasKey('name', $second['errors']);
     }
@@ -175,8 +181,11 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function nowy_wiersz_dostaje_pozycje_na_koncu_listy(): void
     {
-        $first = $this->service->save('vehicles', ['name' => 'Fiat', 'payload_kg' => 1200]);
-        $second = $this->service->save('vehicles', ['name' => 'Ford', 'payload_kg' => 700]);
+        $first = $this->service->save('vehicles', ['name' => 'Star 266', 'payload_kg' => 1200]);
+        $second = $this->service->save('vehicles', ['name' => 'Żuk A11', 'payload_kg' => 700]);
+
+        $this->assertSame([], $first['errors']);
+        $this->assertSame([], $second['errors']);
 
         $this->assertGreaterThan(
             Vehicle::query()->findOrFail($first['id'])->position,
@@ -187,18 +196,21 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function slownik_nie_usuwa_tylko_dezaktywuje(): void
     {
-        $created = $this->service->save('vehicles', ['name' => 'Hyundai', 'payload_kg' => 1100]);
+        $created = $this->service->save('vehicles', ['name' => 'Nysa 522', 'payload_kg' => 1100]);
+        $this->assertSame([], $created['errors']);
+
+        $before = Vehicle::query()->count();
 
         $this->service->deactivate('vehicles', (int) $created['id']);
 
-        $this->assertSame(1, Vehicle::query()->count());
+        $this->assertSame($before, Vehicle::query()->count());
         $this->assertFalse(Vehicle::query()->findOrFail($created['id'])->is_active);
 
         $active = array_column($this->service->rows('vehicles'), 'name');
-        $this->assertNotContains('Hyundai', $active);
+        $this->assertNotContains('Nysa 522', $active);
 
         $all = array_column($this->service->rows('vehicles', includeInactive: true), 'name');
-        $this->assertContains('Hyundai', $all);
+        $this->assertContains('Nysa 522', $all);
     }
 
     #[Test]
@@ -208,35 +220,73 @@ class DictionaryServiceTest extends TestCase
         $location = Location::query()->orderBy('position')->firstOrFail();
         $locationId = (int) $location->getKey();
 
-        $this->service->save('vehicles', [
-            'name' => 'Mercedes',
+        $created = $this->service->save('vehicles', [
+            'name' => 'Star 266',
             'payload_kg' => 850,
             'location_id' => $locationId,
         ]);
+        $this->assertSame([], $created['errors']);
 
-        $row = $this->service->rows('vehicles')[0];
+        $row = $this->rowById('vehicles', (int) $created['id']);
 
         $this->assertSame($locationId, $row['location_id']);
         $this->assertSame($location->name, $row['location_id_label']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rowById(string $slug, int $id): array
+    {
+        foreach ($this->service->rows($slug, includeInactive: true) as $row) {
+            if ($row['id'] === $id) {
+                return $row;
+            }
+        }
+
+        $this->fail(sprintf('Brak wiersza %d w słowniku %s.', $id, $slug));
     }
 
     #[Test]
     public function edycja_zapisuje_tylko_przeslane_pola(): void
     {
         $created = $this->service->save('vehicles', [
-            'name' => 'Mercedes',
+            'name' => 'Star 266',
             'payload_kg' => 850,
             'crew_slots' => 2,
         ]);
+        $this->assertSame([], $created['errors']);
 
-        $updated = $this->service->save('vehicles', ['name' => 'Mercedes Sprinter'], (int) $created['id']);
+        $updated = $this->service->save('vehicles', ['name' => 'Star 266 skrzyniowy'], (int) $created['id']);
         $this->assertSame([], $updated['errors']);
 
         $vehicle = Vehicle::query()->findOrFail($created['id']);
 
-        $this->assertSame('Mercedes Sprinter', $vehicle->name);
+        $this->assertSame('Star 266 skrzyniowy', $vehicle->name);
         $this->assertSame(850, $vehicle->payload_kg);
         $this->assertSame(2, $vehicle->crew_slots);
+    }
+
+    #[Test]
+    public function edycja_czastkowa_nie_gubi_zakresu_unikalnosci(): void
+    {
+        (new PriceSectionSeeder())->run();
+
+        /** @var PriceSection $section */
+        $section = PriceSection::query()
+            ->where('section', Section::GLASS->value)
+            ->where('name', 'Detaliczny podstawowy')
+            ->firstOrFail();
+
+        // Sama zmiana flagi, bez odsyłania sekcji asortymentu — wiersz
+        // nie może zderzyć się sam ze sobą.
+        $result = $this->service->save(
+            'price-sections',
+            ['name' => 'Detaliczny podstawowy', 'is_active' => true],
+            (int) $section->getKey(),
+        );
+
+        $this->assertSame([], $result['errors']);
     }
 
     #[Test]
