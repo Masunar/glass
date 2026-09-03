@@ -24,19 +24,21 @@ export default function Page() {
   };
 
   return (
-    <Flex column gap={2}>
-      <Heading
-        returnTo={{
-          path: appRoutes.index,
-        }}
-        icon={<PiUserCircleGear />}
-        title={t('page.users.title')}
-      >
-        <Add reload={reload} />
-      </Heading>
-      <Card>
-        <ApiTable ref={ref} columns={columns} apiClass={UsersApi} />
-      </Card>
-    </Flex>
+    <div className="ge-boxed">
+      <Flex column gap={2}>
+        <Heading
+          returnTo={{
+            path: appRoutes.index,
+          }}
+          icon={<PiUserCircleGear />}
+          title={t('page.users.title')}
+        >
+          <Add reload={reload} />
+        </Heading>
+        <Card>
+          <ApiTable ref={ref} columns={columns} apiClass={UsersApi} />
+        </Card>
+      </Flex>
+    </div>
   );
 }

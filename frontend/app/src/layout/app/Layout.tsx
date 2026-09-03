@@ -55,7 +55,7 @@ export const loader: LoaderFunction = async (params) => {
   const pathname = stripDataSuffix(url.pathname).replace('/', '');
   const queryParams: any = {};
 
-  if (pathname.replace('admin', '').length > 0) {
+  if (pathname.length > 0) {
     queryParams.return_to = `/${pathname}`;
   }
 
@@ -83,7 +83,12 @@ export const loader: LoaderFunction = async (params) => {
     matched?.permissions?.length &&
     !userHasPermission(user, matched.permissions)
   ) {
-    return redirect(appRoutes.index.path ?? '/admin');
+    // Przekierowanie na siebie samego to petla, a nie zabezpieczenie.
+    if (url.pathname === appRoutes.index.path) {
+      return { user };
+    }
+
+    return redirect(appRoutes.index.path);
   }
 
   return { user };
