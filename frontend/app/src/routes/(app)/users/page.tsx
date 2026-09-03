@@ -120,10 +120,10 @@ export default function Page() {
           <h1 className="ge-head__title">{t('page.users.title')}</h1>
           {summary && (
             <div className="ge-panel__meta">
-              {t('page.users.meta', {
-                total: summary.total,
-                roles: summary.roles,
-              })}
+              {[
+                t('page.users.meta_accounts', { count: summary.total }),
+                t('page.users.meta_roles', { count: summary.roles }),
+              ].join(' · ')}
             </div>
           )}
         </div>
@@ -178,7 +178,7 @@ export default function Page() {
             label={t('page.users.strip.attention')}
             value={summary.stale}
             noteWarn={summary.stale > 0}
-            note={t('page.users.strip.stale', { days: summary.stale_days })}
+            note={t('page.users.strip.stale', { count: summary.stale_days })}
           />
         </Strips>
       )}
