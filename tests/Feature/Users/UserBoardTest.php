@@ -57,9 +57,12 @@ class UserBoardTest extends TestCase
     }
 
     /**
+     * Nie „groups” — PHPUnit ma finalną metodę o tej nazwie i klasa
+     * z własną nie daje się nawet wczytać.
+     *
      * @return array<string, array<string, mixed>>
      */
-    private function groups(Carbon $today): array
+    private function boardGroups(Carbon $today): array
     {
         $groups = [];
 
@@ -81,7 +84,7 @@ class UserBoardTest extends TestCase
         $this->user('pracuje@test.pl', $today->copy()->subHours(2));
         $this->user('nigdy@test.pl', null);
 
-        $groups = $this->groups($today);
+        $groups = $this->boardGroups($today);
 
         $this->assertCount(1, $groups['active']['rows']);
         $this->assertCount(1, $groups['invited']['rows']);
@@ -98,7 +101,7 @@ class UserBoardTest extends TestCase
         $this->user('wylaczony@test.pl', null, active: false);
 
         $board = $this->service->board($today);
-        $groups = $this->groups($today);
+        $groups = $this->boardGroups($today);
 
         $this->assertCount(0, $groups['invited']['rows']);
         $this->assertCount(1, $groups['disabled']['rows']);
@@ -137,7 +140,7 @@ class UserBoardTest extends TestCase
 
         $stale = null;
 
-        foreach ($this->groups($today)['active']['rows'] as $row) {
+        foreach ($this->boardGroups($today)['active']['rows'] as $row) {
             if ($row['email'] === 'stary@test.pl') {
                 $stale = $row;
             }
@@ -159,7 +162,7 @@ class UserBoardTest extends TestCase
         /** @var array<string, mixed> $summary */
         $summary = $board['summary'];
 
-        $this->assertSame(5, $this->groups($today)['invited']['rows'][0]['waiting_days']);
+        $this->assertSame(5, $this->boardGroups($today)['invited']['rows'][0]['waiting_days']);
         $this->assertSame(5, $summary['oldest_invite_days']);
     }
 
@@ -173,7 +176,7 @@ class UserBoardTest extends TestCase
             Role::query()->where('name', RoleSeeder::ADMINISTRATOR)->firstOrFail(),
         );
 
-        $rows = $this->groups($today)['active']['rows'];
+        $rows = $this->boardGroups($today)['active']['rows'];
 
         $this->assertTrue($rows[0]['is_superuser']);
         $this->assertContains(RoleSeeder::ADMINISTRATOR, $rows[0]['roles']);
@@ -194,7 +197,7 @@ class UserBoardTest extends TestCase
             'location_id' => $location->getKey(),
         ])->save();
 
-        $rows = $this->groups($today)['active']['rows'];
+        $rows = $this->boardGroups($today)['active']['rows'];
 
         $this->assertSame('AB', $rows[0]['initials']);
         $this->assertSame($location->name, $rows[0]['location']);
