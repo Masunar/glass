@@ -6,8 +6,10 @@ namespace Tests\Feature\Dictionary;
 
 use Tests\TestCase;
 use App\Enum\Section;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\Location;
+use App\Models\Workstation;
 use App\Models\InvoiceType;
 use App\Models\PriceSection;
 use App\Services\DictionaryService;
@@ -82,6 +84,61 @@ class DictionaryServiceTest extends TestCase
         }
 
         $this->fail(sprintf('Brak pola %s w słowniku %s.', $key, $slug));
+    }
+
+    #[Test]
+    public function kazde_zrodlo_listy_wyboru_daje_etykiety(): void
+    {
+        /** @var User $user */
+        $user = User::query()->create([
+            'first_name' => 'Marek',
+            'last_name' => 'Borowski',
+            'email' => 'marek@example.test',
+            'password' => 'x',
+            'is_active' => true,
+        ]);
+
+        // Nie każdy model, na który wskazuje słownik, ma kolumnę `name`
+        // — użytkownik ma imię i nazwisko. Ten test przechodzi po
+        // wszystkich źródłach z rejestru, żeby żadne nie odpadło po cichu
+        // przy dołożeniu nowego pola wskazującego.
+        // Stanowiska nie mają seedera — słowniki referencyjne są tu
+        // zakładane wprost, żeby test nie zależał od tego, co akurat
+        // wypełnił `migrate:fresh --seed`.
+        Workstation::query()->firstOrCreate(['name' => 'Stół do cięcia'], [
+            'name' => 'Stół do cięcia',
+            'is_active' => true,
+            'position' => 10,
+        ]);
+
+        $sources = [];
+
+        foreach ((new DictionaryRegistry())->all() as $definition) {
+            foreach ($definition->fields as $field) {
+                if ($field->source !== null) {
+                    $sources[$field->source] = true;
+                }
+            }
+        }
+
+        $this->assertNotEmpty($sources);
+
+        foreach (array_keys($sources) as $source) {
+            $options = $this->service->optionsFor($source);
+
+            $this->assertNotEmpty($options, sprintf('Źródło %s nie zwróciło nic.', $source));
+
+            foreach ($options as $option) {
+                $this->assertNotSame('', $option['label'], sprintf('Pusta etykieta w źródle %s.', $source));
+            }
+        }
+
+        $this->assertContains(
+            'Marek Borowski',
+            array_column($this->service->optionsFor('users'), 'label'),
+        );
+
+        $this->assertNotNull($user->getKey());
     }
 
     #[Test]

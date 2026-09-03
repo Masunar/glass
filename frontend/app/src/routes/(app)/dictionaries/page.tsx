@@ -84,6 +84,12 @@ export default function Page() {
     open: boolean;
     row: DictionaryRow | null;
   }>({ open: false, row: null });
+  /**
+   * Nieudane wywołanie API pokazujemy wprost. Pusty ekran bez słowa
+   * wyjaśnienia jest nie do odróżnienia od pustego słownika, a to dwie
+   * zupełnie różne sytuacje.
+   */
+  const [failure, setFailure] = useState<string | null>(null);
 
   const dictionary = useMemo(
     () => dictionaries.find((item) => item.slug === slug) ?? null,
@@ -110,17 +116,34 @@ export default function Page() {
     nextSlug: string,
     inactive: boolean = includeInactive,
   ) => {
-    const { content } = await DictionariesApi.rows(nextSlug, inactive);
+    const { content, response } = await DictionariesApi.rows(
+      nextSlug,
+      inactive,
+    );
 
+    if (!response.success) {
+      setFailure(content?.message ?? t('api.ise'));
+      setRows([]);
+      return;
+    }
+
+    setFailure(null);
     setRows(content?.data?.rows ?? []);
   };
 
   useEffect(() => {
     void (async () => {
-      const { content } = await DictionariesApi.schema();
+      const { content, response } = await DictionariesApi.schema();
+
+      if (!response.success) {
+        setFailure(content?.message ?? t('api.ise'));
+        return;
+      }
+
       const loaded: Dictionary[] = content?.data?.dictionaries ?? [];
 
       setDictionaries(loaded);
+      setFailure(loaded.length === 0 ? t('page.dictionaries.no_schema') : null);
 
       if (loaded.length > 0) {
         setSlug(loaded[0].slug);
@@ -197,6 +220,8 @@ export default function Page() {
           </button>
         </span>
       </nav>
+
+      {failure !== null && <p className="ge-lead ge-lead--warn">{failure}</p>}
 
       {dictionary?.note && <p className="ge-lead">{dictionary.note}</p>}
 

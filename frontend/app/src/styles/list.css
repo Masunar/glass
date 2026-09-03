@@ -210,3 +210,20 @@
   color: var(--ge-neutral-600);
   font-size: 14px;
 }
+
+.ge-lead--warn { color: var(--m-alert); }
+
+/* Nagłówek sekcji formularza: włos i wersalik, bez ramek.
+   Modal długi jak kartoteka kontrahenta bez podziału czyta się jak
+   ściana pól — a pola różnią się tym, skąd pochodzą: rejestr, kontakt,
+   warunki handlowe. */
+.ge-fieldset {
+  margin-top: 6px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-fieldset:first-child { margin-top: 0; }

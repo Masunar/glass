@@ -16,6 +16,8 @@ use App\Models\ContractorAddress;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ContractorPriceSection;
 use Illuminate\Database\Eloquent\Builder;
+use Salvon\Regon\Validator\Nip;
+use Salvon\Regon\Validator\Regon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -355,6 +357,13 @@ final readonly class ContractorService
             return ['tax_id' => ['NIP ma niepoprawną sumę kontrolną.']];
         }
 
+        $registryId = $input['registry_id'];
+
+        if ($registryId !== null && !Regon::isValid($registryId)) {
+            // REGON ma własną sumę kontrolną — 9 cyfr i osobną dla 14.
+            return ['registry_id' => ['REGON ma niepoprawną sumę kontrolną.']];
+        }
+
         if ($taxId !== null) {
             $taken = Contractor::query()
                 ->where('tax_id', $taxId)
@@ -405,32 +414,18 @@ final readonly class ContractorService
     }
 
     /**
-     * Suma kontrolna NIP-u: dziewięć pierwszych cyfr przemnożonych przez
-     * wagi, reszta z dzielenia przez 11 musi dać cyfrę dziesiątą.
-     * Reszta równa 10 oznacza numer nieistniejący.
+     * Suma kontrolna NIP-u pochodzi z Salvona — ten sam algorytm siedzi
+     * już w pakiecie GUS/REGON, którego używa podpowiadanie danych firmy.
+     * Zostaje tu jedyna rzecz, której Salvon nie pilnuje: numery-wypełniacze
+     * w rodzaju 1111111111, którymi stara baza jest usiana.
      */
     private function isValidTaxId(string $taxId): bool
     {
-        if (!preg_match('/^[0-9]{10}$/', $taxId)) {
+        if (preg_match('/^(\d)\1{9}$/', $taxId) === 1) {
             return false;
         }
 
-        // 0000000000 przechodzi sume kontrolna, ale numerem nie jest.
-        // Stara baza jest pelna takich wypelniaczy.
-        if (preg_match('/^(\d)\1{9}$/', $taxId)) {
-            return false;
-        }
-
-        $weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
-        $sum = 0;
-
-        foreach ($weights as $index => $weight) {
-            $sum += $weight * (int) $taxId[$index];
-        }
-
-        $checksum = $sum % 11;
-
-        return $checksum !== 10 && $checksum === (int) $taxId[9];
+        return Nip::isValid($taxId);
     }
 
     private function nullable(mixed $value): ?string
