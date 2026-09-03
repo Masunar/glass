@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Order;
-use App\Enum\Section;
 use App\Models\Product;
 use App\Models\Location;
 use App\Enum\Permission;
@@ -62,9 +61,13 @@ final readonly class SearchService
      * Numer zlecenia to pierwsze, czego szuka biuro — i jedyne, co klient
      * podaje przez telefon. Dlatego ta grupa stoi na górze.
      *
-     * @return array<string, mixed>|null
+     * Jako jedyna nie sprawdza uprawnienia, bo uprawnienia do zleceń
+     * jeszcze nie ma — moduł nie ma ekranów. Kiedy powstanie, ta metoda
+     * musi dostać taki sam filtr jak pozostałe.
+     *
+     * @return array<string, mixed>
      */
-    private function orders(string $needle): ?array
+    private function orders(string $needle): array
     {
         $digits = preg_replace('/\D+/', '', $needle) ?? '';
 
@@ -170,10 +173,6 @@ final readonly class SearchService
         $hits = [];
 
         foreach ($products as $product) {
-            $section = $product->section instanceof Section
-                ? $product->section->value
-                : (string) $product->section;
-
             $hits[] = [
                 'id' => (int) $product->getKey(),
                 'title' => $product->name,
@@ -181,7 +180,7 @@ final readonly class SearchService
                     $product->getAttribute('group')?->name,
                     $product->code,
                 ]))),
-                'path' => '/price-list?section=' . $section,
+                'path' => '/price-list?section=' . $product->section->value,
             ];
         }
 

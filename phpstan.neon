@@ -1,3 +1,11 @@
+# Larastan uczy PHPStana Eloquenta: zna kolumny z migracji, typy relacji
+# i sygnatury buildera. Bez niego kazdy model potrzebowal adnotacji
+# @property wylacznie po to, zeby analiza przestala krzyczec — a taka
+# adnotacja potrafi klamac i nikt tego nie zauwazy, dopoki nie wywola sie
+# na niej metody, ktorej tam nie ma.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
 parameters:
     paths:
         - app/
