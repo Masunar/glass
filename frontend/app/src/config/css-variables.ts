@@ -1,4 +1,4 @@
-import { drawer, industry, modules, rail } from './tokens';
+import { drawer, industry, modules, rail, spotlight } from './tokens';
 
 /**
  * Zmienne CSS wyprowadzone z rejestru tokenów.
@@ -30,6 +30,13 @@ export function buildCssVariables(): string {
     `--ge-drawer-switch-fg: ${drawer.switchFg};`,
     `--ge-drawer-shadow: ${drawer.shadow};`,
     `--ge-scrim: ${drawer.scrim};`,
+    `--ge-spot-bg: ${spotlight.bg};`,
+    `--ge-spot-fg: ${spotlight.fg};`,
+    `--ge-spot-dim: ${spotlight.dim};`,
+    `--ge-spot-line: ${spotlight.line};`,
+    `--ge-spot-hover: ${spotlight.hover};`,
+    `--ge-spot-accent: ${spotlight.accent};`,
+    `--ge-spot-shadow: ${spotlight.shadow};`,
   ];
 
   for (const [step, value] of Object.entries(industry.accent)) {

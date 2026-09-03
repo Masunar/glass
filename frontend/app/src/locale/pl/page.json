@@ -456,18 +456,31 @@
     "no_schema": "Serwer nie oddał żadnego słownika. Sprawdź uprawnienie „dictionaries.list” i log aplikacji."
   },
   "search": {
-    "title": "Wyszukiwarka",
-    "placeholder": "Szukaj w aplikacji…",
-    "screens": "Ekrany",
+    "title": "Szukajka",
+    "placeholder": "Szukaj zlecenia, kontrahenta, produktu…",
     "navigate": "wybór",
     "open": "otwórz",
+    "filter": "filtruj moduł",
     "close": "zamknij",
     "searching": "Szukam…",
-    "hint": "Wpisz co najmniej {{count}} znaki.",
-    "empty": "Nic nie pasuje do „{{query}}”.",
-    "results_one": "{{count}} wynik",
-    "results_few": "{{count}} wyniki",
-    "results_many": "{{count}} wyników",
-    "results_other": "{{count}} wyników"
+    "nothing_yet": "Zacznij pisać albo wybierz coś z listy.",
+    "none": "Brak wyników dla „{{query}}”. Szukamy w numerach zleceń, nazwach i skrótach kontrahentów, NIP-ach, telefonach, nazwach i kodach produktów.",
+    "group": {
+      "recent": "Ostatnio otwarte",
+      "actions": "Szybkie akcje",
+      "screens": "Ekrany"
+    },
+    "scope": {
+      "label": "Zakres",
+      "all": "Wszystko",
+      "orders": "Zlecenia",
+      "contractors": "Kontrahenci",
+      "products": "Cennik",
+      "screens": "Ekrany",
+      "users": "Administracja"
+    },
+    "action": {
+      "new_contractor": "Nowy kontrahent"
+    }
   }
 }
