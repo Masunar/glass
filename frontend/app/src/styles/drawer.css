@@ -1,0 +1,219 @@
+/* Panel boczny jako warstwa nad treścią.
+   Lista pod spodem nie przesuwa się ani nie zwęża — to była wyraźna
+   decyzja projektowa: kontekst, z którego panel wyszedł, ma zostać
+   w tym samym miejscu, żeby po zamknięciu oko wróciło tam, gdzie było. */
+
+.ge-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1190;
+  background: var(--ge-scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.ge-scrim.is-open { opacity: 1; pointer-events: auto; }
+
+.ge-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: 620px;
+  max-width: 100vw;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  background: var(--ge-bg);
+  border-left: 1px solid var(--ge-neutral-900);
+  box-shadow: var(--ge-drawer-shadow);
+  transform: translateX(calc(100% + 20px));
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ge-drawer.is-open { transform: translateX(0); }
+.ge-drawer--narrow { width: 340px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ge-drawer,
+  .ge-scrim { transition: none; }
+}
+
+.ge-drawer__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 22px;
+  background: var(--ge-drawer-head-bg);
+  color: var(--ge-drawer-head-fg);
+}
+.ge-drawer__kicker {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ge-drawer-head-kicker);
+}
+.ge-drawer__title {
+  margin: 0;
+  font-family: var(--ge-font-heading);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.1;
+  color: #fff;
+}
+.ge-drawer__close {
+  margin-left: 10px;
+  font-size: 17px;
+  line-height: 1;
+  opacity: 0.75;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+}
+.ge-drawer__close:hover { opacity: 1; }
+.ge-drawer__close:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.ge-drawer__body { flex: 1; min-height: 0; display: flex; overflow: auto; }
+.ge-drawer__col {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.ge-drawer__col + .ge-drawer__col { border-left: 1px solid var(--ge-divider); }
+
+.ge-drawer__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--ge-neutral-900);
+  background: var(--ge-neutral-100);
+}
+.ge-drawer__foot-note { font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-drawer__foot-end { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+
+/* Firma / osoba prywatna — dwa słowa, nie rozwijana lista.
+   Wybór zmienia kształt całego formularza, więc musi być widoczny. */
+.ge-switch { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.ge-switch button {
+  padding: 5px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.ge-switch button.is-active {
+  background: var(--ge-drawer-switch-bg);
+  color: var(--ge-drawer-switch-fg);
+  font-weight: 500;
+  opacity: 1;
+}
+.ge-switch button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* ---------- sekcje formularza na paskach kolorów ról ---------- */
+
+.ge-fs { padding-left: 14px; border-left: 4px solid var(--ge-fs); }
+.ge-fs--ident { --ge-fs: var(--m-zlec); }
+.ge-fs--addr { --ge-fs: var(--m-prod); }
+.ge-fs--contact { --ge-fs: var(--m-mag); }
+.ge-fs--terms { --ge-fs: var(--m-ksie); }
+.ge-fs__label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding-bottom: 10px;
+  color: color-mix(in oklab, var(--ge-fs) 80%, black);
+}
+.ge-fs__grid { display: grid; gap: 12px; }
+.ge-fs__note { font-size: 12.5px; color: var(--ge-neutral-700); padding-top: 8px; }
+.ge-fs__row { display: flex; align-items: flex-end; gap: 10px; }
+
+/* ---------- pole jako podkreślenie, nie ramka ---------- */
+
+.ge-uf { display: block; min-width: 0; }
+.ge-uf__label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+}
+.ge-uf__req { color: var(--m-alert); }
+.ge-uf__input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-400);
+  background: none;
+  padding: 6px 0 5px;
+  font-family: var(--ge-font-body);
+  font-size: 15px;
+  color: var(--ge-text);
+}
+.ge-uf__input::placeholder { color: var(--ge-neutral-500); }
+.ge-uf__input:hover { border-bottom-color: var(--ge-neutral-600); }
+.ge-uf__input:focus-visible {
+  outline: none;
+  border-bottom: 2px solid var(--ge-mod);
+  padding-bottom: 4px;
+}
+.ge-uf__input--num { font-family: var(--ge-font-heading); font-size: 20px; }
+.ge-uf__input--key {
+  font-family: var(--ge-font-heading);
+  font-size: 21px;
+  letter-spacing: 0.05em;
+  border-bottom-color: var(--ge-mod);
+}
+.ge-uf__error { font-size: 12px; color: var(--m-alert); padding-top: 4px; }
+.ge-uf.is-invalid .ge-uf__input { border-bottom-color: var(--m-alert); }
+
+/* ---------- ostrzeżenie o duplikacie ---------- */
+
+.ge-dupe {
+  padding: 10px 22px;
+  background: var(--m-alert-tint);
+  border-left: 4px solid var(--m-alert);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.ge-dupe strong { color: var(--m-alert); font-weight: 500; }
+.ge-dupe button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--ge-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- przełącznik on/off ---------- */
+
+.ge-toggle { display: flex; align-items: center; gap: 9px; font-size: 13.5px; cursor: pointer; }
+.ge-toggle__track {
+  width: 34px;
+  height: 18px;
+  flex: none;
+  background: var(--ge-neutral-300);
+  position: relative;
+}
+.ge-toggle__track::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  transition: left 0.16s ease;
+}
+.ge-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.ge-toggle input:checked + .ge-toggle__track { background: var(--ge-mod); }
+.ge-toggle input:checked + .ge-toggle__track::after { left: 18px; }
+.ge-toggle input:focus-visible + .ge-toggle__track {
+  outline: 2px solid var(--ge-mod);
+  outline-offset: 2px;
+}

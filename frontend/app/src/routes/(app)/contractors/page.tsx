@@ -1,6 +1,6 @@
 import { Typography } from '@mui/material';
 
-import ContractorModal from './_components/ContractorModal';
+import ContractorDrawer from './_components/ContractorDrawer';
 import PriceSectionsModal from './_components/PriceSectionsModal';
 import { useEffect, useState } from 'react';
 import { PiPencilSimple, PiPlus, PiTag } from 'react-icons/pi';
@@ -99,6 +99,9 @@ export default function Page() {
             <Button
               variant="contained"
               icon={<PiPlus />}
+              // Przycisk chowa się pod otwartym panelem — inaczej leżałby
+              // pod nim i wyglądał na zepsuty.
+              sx={{ visibility: formOpen ? 'hidden' : 'visible' }}
               onClick={() => {
                 setCard(null);
                 setFormOpen(true);
@@ -220,11 +223,17 @@ export default function Page() {
         )}
       </DataList>
 
-      <ContractorModal
+      <ContractorDrawer
         card={card}
         open={formOpen}
-        setOpen={setFormOpen}
-        onSaved={() => void load()}
+        onClose={() => setFormOpen(false)}
+        onSaved={(_id, keepOpen) => {
+          if (!keepOpen) {
+            setFormOpen(false);
+          }
+
+          void load();
+        }}
       />
 
       <PriceSectionsModal

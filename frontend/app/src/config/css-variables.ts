@@ -1,4 +1,4 @@
-import { industry, modules, rail } from './tokens';
+import { drawer, industry, modules, rail } from './tokens';
 
 /**
  * Zmienne CSS wyprowadzone z rejestru tokenów.
@@ -23,6 +23,13 @@ export function buildCssVariables(): string {
     `--ge-rail-tile: ${rail.tile};`,
     `--ge-rail-brand-bg: ${rail.brandBg};`,
     `--ge-rail-brand-fg: ${rail.brandFg};`,
+    `--ge-drawer-head-bg: ${drawer.headBg};`,
+    `--ge-drawer-head-fg: ${drawer.headFg};`,
+    `--ge-drawer-head-kicker: ${drawer.headKicker};`,
+    `--ge-drawer-switch-bg: ${drawer.switchBg};`,
+    `--ge-drawer-switch-fg: ${drawer.switchFg};`,
+    `--ge-drawer-shadow: ${drawer.shadow};`,
+    `--ge-scrim: ${drawer.scrim};`,
   ];
 
   for (const [step, value] of Object.entries(industry.accent)) {

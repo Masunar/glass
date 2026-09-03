@@ -311,8 +311,8 @@
       "all": "Wszyscy"
     },
     "type": {
-      "company": "firma",
-      "person": "osoba prywatna"
+      "company": "Firma",
+      "person": "Osoba prywatna"
     },
     "state": {
       "active": "aktywny",
@@ -355,7 +355,14 @@
       "registry_fetch": "Pobierz z GUS",
       "registry_needs_tax_id": "Najpierw wpisz dziesięciocyfrowy NIP.",
       "registry_not_found": "GUS nie zna firmy o tym numerze.",
-      "registry_filled": "Uzupełniono z rejestru GUS. Pola wypełnione wcześniej zostały bez zmian."
+      "registry_filled": "Pobrano dziś {{time}} — dane z rejestru. Pola wypełnione wcześniej zostały bez zmian.",
+      "duplicate": "Podobny kontrahent jest już w bazie",
+      "duplicate_dismiss": "to kto inny",
+      "only_name_required": "Wymagana jest tylko nazwa.",
+      "save": "Zapisz kontrahenta",
+      "save_and_next": "Zapisz i dodaj kolejnego",
+      "address_hint": "Adres dostawy ustawia się na zleceniu — jedna firma bywa obsługiwana na kilku budowach.",
+      "note_placeholder": "np. „faktury tylko na koniec miesiąca”"
     },
     "price_sections": {
       "title": "Sekcje cenowe kontrahenta",
