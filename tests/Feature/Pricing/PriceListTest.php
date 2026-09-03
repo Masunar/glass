@@ -69,7 +69,7 @@ class PriceListTest extends TestCase
      * przez zapis i odczyt: czy współczynnik wpisany w cenniku wraca
      * jako cena obowiązująca przy wycenie.
      *
-     * @return list<array{string, string, string}> nazwa produktu, współczynnik, cena
+     * @return array<string, array{string, string, string}> nazwa produktu, współczynnik, cena
      */
     public static function documentedCells(): array
     {

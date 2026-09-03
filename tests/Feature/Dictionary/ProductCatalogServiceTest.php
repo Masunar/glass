@@ -69,8 +69,11 @@ class ProductCatalogServiceTest extends TestCase
         $this->assertSame(Section::GLASS, $product->section);
         $this->assertSame(Unit::SQUARE_METER, $product->unit);
         $this->assertSame(6.0, $product->glass?->thickness_mm);
-        $this->assertSame('58.50', $product->purchasePriceAt()?->net_price);
-        $this->assertSame(PurchasePriceSource::MANUAL, $product->purchasePriceAt()?->source);
+        $purchase = $product->purchasePriceAt();
+
+        $this->assertNotNull($purchase, 'Produkt nie dostal ceny zakupu.');
+        $this->assertSame('58.50', $purchase->net_price);
+        $this->assertSame(PurchasePriceSource::MANUAL, $purchase->source);
     }
 
     public function test_szklo_bez_grubosci_nie_przechodzi(): void

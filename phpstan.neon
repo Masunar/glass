@@ -7,7 +7,17 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
+    # Seedery i testy tez sa kodem. Analizowane bylo samo app/, wiec
+    # blad w seederze wychodzil dopiero przy odpaleniu bazy.
     paths:
         - app/
+        - database/
+        - tests/
 
     level: 5
+
+    # Bez tego Larastan nie wie, jakie kolumny maja tabele, i kazda
+    # wlasciwosc modelu jest dla niego mixed — czyli przechodzi wszystko.
+    # Ze sciezka czyta typy wprost z migracji.
+    databaseMigrationsPath:
+        - database/migrations

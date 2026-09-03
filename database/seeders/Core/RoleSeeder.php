@@ -41,7 +41,9 @@ class RoleSeeder extends Seeder
                 ['name' => $name, 'guard_name' => 'web'],
             );
 
-            if ($isSuperuser && !$role->is_superuser) {
+            // Kolumna dodana migracja do tabeli Spatie, a nie polem ich
+            // modelu — stad odczyt przez getAttribute.
+            if ($isSuperuser && $role->getAttribute('is_superuser') !== true) {
                 $role->forceFill(['is_superuser' => true])->save();
             }
         }
