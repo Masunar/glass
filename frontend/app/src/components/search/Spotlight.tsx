@@ -1,5 +1,6 @@
 import {
   type KeyboardEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -9,22 +10,61 @@ import { PiMagnifyingGlass } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 
 import { useTranslation } from '@salvon/hooks/useTranslation';
+import {
+  getFromLocalStorage,
+  saveToLocalStorage,
+} from '@salvon/utils/local-storage';
 import { isMac } from '@salvon/utils/operating-system';
 
 import { SearchApi, type SearchGroup } from '@app/api/SearchApi';
 import { appModules } from '@app/config/modules';
 import { useHasPermission } from '@app/hook/use-permissions';
 
+const RECENT_KEY = 'ge.spotlight.recent';
+const RECENT_LIMIT = 4;
+
 type Row = {
   key: string;
+  /** Dwie litery zamiast ikony — kod jest krótszy niż nazwa. */
+  tile: string;
   title: string;
-  subtitle: string;
+  meta?: string;
+  shortcut?: string;
   path: string;
   module: string;
-  /** Pierwszy wiersz grupy niesie jej nagłówek. */
+  scope: string;
+  action?: boolean;
   groupLabel?: string;
-  groupCount?: number;
 };
+
+type Recent = {
+  key: string;
+  tile: string;
+  title: string;
+  meta?: string;
+  path: string;
+  module: string;
+};
+
+type Scope = { key: string; label: string; module: string };
+
+/** Kody grup — dwie litery, tak jak na listwie modułów. */
+const TILES: Record<string, string> = {
+  orders: 'ZL',
+  contractors: 'KO',
+  products: 'CE',
+  users: 'UŻ',
+  locations: 'LO',
+  screen: 'EK',
+};
+
+function readRecent(): Recent[] {
+  const stored = getFromLocalStorage(RECENT_KEY, []);
+
+  return Array.isArray(stored)
+    ? (stored as Recent[]).slice(0, RECENT_LIMIT)
+    : [];
+}
 
 type Props = {
   open: boolean;
@@ -35,13 +75,14 @@ type Props = {
  * Wyszukiwarka ogólna — jedno pole na całą aplikację.
  *
  * Stary system miał osobne wyszukiwanie na każdym ekranie, więc szukając
- * numeru trzeba było najpierw wiedzieć, gdzie ten numer mieszka. Tutaj
- * pytanie idzie do wszystkiego naraz, a kolor grupy to ten sam kolor,
- * co na listwie modułów — wynik mówi, skąd pochodzi, zanim się go
- * przeczyta.
+ * numeru trzeba było najpierw wiedzieć, gdzie ten numer mieszka.
  *
- * Ekrany pasujące do zapytania stoją nad danymi: „cennik" ma prowadzić
- * do cennika, a nie do produktu o tej nazwie.
+ * Pusty panel nie mówi „wpisz dwa znaki". Pokazuje ostatnio otwarte
+ * i szybkie akcje, bo najczęstszy powód otwarcia wyszukiwarki to powrót
+ * do czegoś, co się przed chwilą oglądało.
+ *
+ * Kolor grupy to ten sam kolor, co na listwie modułów — wynik mówi,
+ * skąd pochodzi, zanim się go przeczyta.
  */
 export default function Spotlight({ open, onClose }: Props) {
   const t = useTranslation();
@@ -52,8 +93,10 @@ export default function Spotlight({ open, onClose }: Props) {
 
   const [query, setQuery] = useState('');
   const [groups, setGroups] = useState<SearchGroup[]>([]);
-  const [active, setActive] = useState(0);
+  const [scope, setScope] = useState('all');
+  const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [recent, setRecent] = useState<Recent[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -62,7 +105,9 @@ export default function Spotlight({ open, onClose }: Props) {
 
     setQuery('');
     setGroups([]);
-    setActive(0);
+    setScope('all');
+    setSelected(0);
+    setRecent(readRecent());
     input.current?.focus();
   }, [open]);
 
@@ -81,7 +126,7 @@ export default function Spotlight({ open, onClose }: Props) {
         const { content } = await SearchApi.query(query.trim());
 
         setGroups(content?.data?.groups ?? []);
-        setActive(0);
+        setSelected(0);
         setLoading(false);
       })();
     }, 220);
@@ -89,68 +134,165 @@ export default function Spotlight({ open, onClose }: Props) {
     return () => clearTimeout(timer);
   }, [query, open]);
 
-  /** Ekrany aplikacji dopasowane po nazwie — bez pytania serwera. */
-  const screens = useMemo<Row[]>(() => {
-    const needle = query.trim().toLowerCase();
+  /** Ekrany aplikacji — dopasowane po nazwie, bez pytania serwera. */
+  const screens = useMemo(
+    () =>
+      appModules.flatMap((module) =>
+        module.links
+          .filter(
+            (link) =>
+              link.path !== undefined &&
+              (link.permission === undefined ||
+                hasPermissionTo([link.permission])),
+          )
+          .map((link) => ({
+            key: `screen:${link.path}`,
+            tile: TILES.screen,
+            title: t(link.labelKey),
+            meta: t(module.labelKey),
+            path: link.path ?? '/',
+            module: module.key,
+            scope: 'screens',
+          })),
+      ),
+    [t, hasPermissionTo],
+  );
 
-    if (needle.length < SearchApi.minLength) {
-      return [];
-    }
+  const scopes = useMemo<Scope[]>(() => {
+    const available: Scope[] = [
+      { key: 'all', label: t('page.search.scope.all'), module: 'zlec' },
+      { key: 'orders', label: t('page.search.scope.orders'), module: 'zlec' },
+      {
+        key: 'contractors',
+        label: t('page.search.scope.contractors'),
+        module: 'zlec',
+      },
+      {
+        key: 'products',
+        label: t('page.search.scope.products'),
+        module: 'zlec',
+      },
+      { key: 'screens', label: t('page.search.scope.screens'), module: 'adm' },
+      { key: 'users', label: t('page.search.scope.users'), module: 'adm' },
+    ];
 
+    return available;
+  }, [t]);
+
+  const inScope = useCallback(
+    (key: string) => scope === 'all' || scope === key,
+    [scope],
+  );
+
+  /** Szybkie akcje — tylko takie, które faktycznie dokądś prowadzą. */
+  const actions = useMemo<Row[]>(() => {
     const rows: Row[] = [];
 
-    for (const module of appModules) {
-      for (const link of module.links) {
-        if (link.path === undefined) {
-          continue;
-        }
-
-        if (link.permission && !hasPermissionTo([link.permission])) {
-          continue;
-        }
-
-        const label = t(link.labelKey);
-
-        if (!label.toLowerCase().includes(needle)) {
-          continue;
-        }
-
-        rows.push({
-          key: `screen:${link.path}`,
-          title: label,
-          subtitle: t(module.labelKey),
-          path: link.path,
-          module: module.key,
-        });
-      }
+    if (
+      screens.some((screen) => screen.path === '/contractors') &&
+      inScope('contractors')
+    ) {
+      rows.push({
+        key: 'action:new-contractor',
+        tile: '+',
+        title: t('page.search.action.new_contractor'),
+        path: '/contractors?new=1',
+        module: 'zlec',
+        scope: 'contractors',
+        action: true,
+      });
     }
 
     return rows;
-  }, [query, t, hasPermissionTo]);
+  }, [screens, inScope, t]);
 
   const rows = useMemo<Row[]>(() => {
-    const fromScreens = screens.map((row, index) => ({
-      ...row,
-      groupLabel: index === 0 ? t('page.search.screens') : undefined,
-      groupCount: index === 0 ? screens.length : undefined,
-    }));
+    const needle = query.trim().toLowerCase();
+    const searching = needle.length >= SearchApi.minLength;
 
-    const fromData = groups.flatMap((group) =>
-      group.hits.map((hit, index) => ({
-        key: `${group.key}:${hit.id}`,
-        title: hit.title,
-        subtitle: hit.subtitle,
-        path: hit.path,
-        module: group.module,
-        groupLabel: index === 0 ? group.label : undefined,
-        groupCount: index === 0 ? group.hits.length : undefined,
-      })),
-    );
+    if (!searching) {
+      // Stan pusty: ostatnio otwarte i szybkie akcje zamiast instrukcji.
+      const recentRows: Row[] = recent
+        .filter((item) => inScope(item.key.split(':')[0]))
+        .map((item) => ({
+          key: `recent:${item.key}`,
+          tile: item.tile,
+          title: item.title,
+          meta: item.meta,
+          path: item.path,
+          module: item.module,
+          scope: item.key.split(':')[0],
+        }));
 
-    return [...fromScreens, ...fromData];
-  }, [screens, groups, t]);
+      const screenRows: Row[] = inScope('screens') ? screens : [];
 
-  const open_ = (row: Row) => {
+      return [
+        ...withGroup(recentRows, t('page.search.group.recent')),
+        ...withGroup(
+          [...actions, ...screenRows],
+          t('page.search.group.actions'),
+        ),
+      ];
+    }
+
+    const screenRows: Row[] = inScope('screens')
+      ? screens.filter((screen) => screen.title.toLowerCase().includes(needle))
+      : [];
+
+    const dataRows: Row[] = groups
+      .filter((group) => inScope(group.key))
+      .flatMap((group) =>
+        group.hits.map((hit) => ({
+          key: `${group.key}:${hit.id}`,
+          tile: TILES[group.key] ?? '··',
+          title: hit.title,
+          meta: hit.subtitle,
+          path: hit.path,
+          module: group.module,
+          scope: group.key,
+          groupLabel: group.label,
+        })),
+      );
+
+    const grouped: Row[] = [];
+    let previous: string | null = null;
+
+    for (const row of dataRows) {
+      const label = row.groupLabel ?? '';
+
+      grouped.push(
+        label === previous ? { ...row, groupLabel: undefined } : row,
+      );
+      previous = label;
+    }
+
+    // Ekrany stoją nad danymi: „cennik" ma prowadzić do cennika, a nie
+    // do produktu o tej nazwie.
+    return [
+      ...withGroup(screenRows, t('page.search.group.screens')),
+      ...grouped,
+    ];
+  }, [query, recent, screens, actions, groups, inScope, t]);
+
+  const choose = (row: Row) => {
+    if (!row.action) {
+      const entry: Recent = {
+        key: row.key.replace(/^recent:/, ''),
+        tile: row.tile,
+        title: row.title,
+        meta: row.meta,
+        path: row.path,
+        module: row.module,
+      };
+
+      const next = [
+        entry,
+        ...readRecent().filter((item) => item.key !== entry.key),
+      ].slice(0, RECENT_LIMIT);
+
+      saveToLocalStorage(RECENT_KEY, next);
+    }
+
     onClose();
     void navigate(row.path);
   };
@@ -162,6 +304,18 @@ export default function Spotlight({ open, onClose }: Props) {
       return;
     }
 
+    // Tab przechodzi po zakresach — filtr modułu bez sięgania po mysz.
+    if (event.key === 'Tab') {
+      event.preventDefault();
+
+      const index = scopes.findIndex((item) => item.key === scope);
+      const step = event.shiftKey ? -1 : 1;
+
+      setScope(scopes[(index + step + scopes.length) % scopes.length].key);
+      setSelected(0);
+      return;
+    }
+
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
 
@@ -170,23 +324,24 @@ export default function Spotlight({ open, onClose }: Props) {
       }
 
       const step = event.key === 'ArrowDown' ? 1 : -1;
-      const next = (active + step + rows.length) % rows.length;
+      const next = (selected + step + rows.length) % rows.length;
 
-      setActive(next);
+      setSelected(next);
 
-      const hits = list.current?.querySelectorAll('.ge-spot__hit');
+      const items = list.current?.querySelectorAll('.ge-spot__item');
 
-      hits?.item(next)?.scrollIntoView({ block: 'nearest' });
+      items?.item(next)?.scrollIntoView({ block: 'nearest' });
       return;
     }
 
-    if (event.key === 'Enter' && rows[active]) {
+    if (event.key === 'Enter' && rows[selected]) {
       event.preventDefault();
-      open_(rows[active]);
+      choose(rows[selected]);
     }
   };
 
-  const tooShort = query.trim().length < SearchApi.minLength;
+  const searching = query.trim().length >= SearchApi.minLength;
+  const activeScope = scopes.find((item) => item.key === scope) ?? scopes[0];
 
   return (
     <>
@@ -203,9 +358,10 @@ export default function Spotlight({ open, onClose }: Props) {
         aria-label={t('page.search.title')}
         inert={!open}
         onKeyDown={handleKeyDown}
+        style={{ ['--ge-scp' as string]: `var(--m-${activeScope.module})` }}
       >
-        <div className="ge-spot__field">
-          <span className="ge-spot__icon">
+        <div className="ge-spot__query">
+          <span className="ge-spot__glass">
             <PiMagnifyingGlass size={20} />
           </span>
           <input
@@ -215,8 +371,37 @@ export default function Spotlight({ open, onClose }: Props) {
             value={query}
             placeholder={t('page.search.placeholder')}
             aria-label={t('page.search.title')}
+            autoComplete="off"
             onChange={(event) => setQuery(event.target.value)}
           />
+          <span className="ge-spot__badge">{isMac() ? '⌘ K' : 'CTRL K'}</span>
+        </div>
+
+        <div
+          className="ge-spot__scopes"
+          role="tablist"
+          aria-label={t('page.search.scope.label')}
+        >
+          {scopes.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              role="tab"
+              aria-selected={item.key === scope}
+              className={
+                item.key === scope
+                  ? 'ge-spot__scope is-active'
+                  : 'ge-spot__scope'
+              }
+              style={{ ['--ge-scp' as string]: `var(--m-${item.module})` }}
+              onClick={() => {
+                setScope(item.key);
+                setSelected(0);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
         <div className="ge-spot__body" ref={list}>
@@ -226,59 +411,86 @@ export default function Spotlight({ open, onClose }: Props) {
               style={{ ['--ge-grp' as string]: `var(--m-${row.module})` }}
             >
               {row.groupLabel && (
-                <div className="ge-spot__group">
-                  {row.groupLabel}
-                  <span className="ge-spot__count">{row.groupCount}</span>
-                </div>
+                <div className="ge-spot__group">{row.groupLabel}</div>
               )}
               <button
                 type="button"
                 className={
-                  index === active ? 'ge-spot__hit is-active' : 'ge-spot__hit'
+                  index === selected
+                    ? 'ge-spot__item is-selected'
+                    : 'ge-spot__item'
                 }
-                onClick={() => open_(row)}
-                onMouseEnter={() => setActive(index)}
+                onClick={() => choose(row)}
+                onMouseEnter={() => setSelected(index)}
               >
-                <span className="ge-spot__title">{row.title}</span>
-                {row.subtitle && (
-                  <span className="ge-spot__sub">{row.subtitle}</span>
+                <span
+                  className={
+                    row.action
+                      ? 'ge-spot__tile ge-spot__tile--action'
+                      : 'ge-spot__tile'
+                  }
+                >
+                  {row.tile}
+                </span>
+                <span className="ge-spot__text">
+                  <span className="ge-spot__title">{row.title}</span>
+                  {row.meta && (
+                    <span className="ge-spot__meta">{row.meta}</span>
+                  )}
+                </span>
+                {row.shortcut && (
+                  <span className="ge-spot__key">{row.shortcut}</span>
+                )}
+                {index === selected && !row.shortcut && (
+                  <span className="ge-spot__aside">
+                    {t('page.search.open')} ↵
+                  </span>
                 )}
               </button>
             </div>
           ))}
 
           {rows.length === 0 && (
-            <div className="ge-spot__empty">
-              {tooShort
-                ? t('page.search.hint', { count: SearchApi.minLength })
-                : loading
-                  ? t('page.search.searching')
-                  : t('page.search.empty', { query: query.trim() })}
+            <div className="ge-spot__none">
+              {loading
+                ? t('page.search.searching')
+                : searching
+                  ? t('page.search.none', { query: query.trim() })
+                  : t('page.search.nothing_yet')}
             </div>
           )}
         </div>
 
         <div className="ge-spot__foot">
           <span>
-            <span className="ge-spot__key">↑</span>
-            <span className="ge-spot__key">↓</span>
+            <span className="ge-spot__kbd">↑</span>
+            <span className="ge-spot__kbd">↓</span>
             {t('page.search.navigate')}
           </span>
           <span>
-            <span className="ge-spot__key">↵</span>
+            <span className="ge-spot__kbd">↵</span>
             {t('page.search.open')}
           </span>
           <span>
-            <span className="ge-spot__key">esc</span>
-            {t('page.search.close')}
+            <span className="ge-spot__kbd">tab</span>
+            {t('page.search.filter')}
           </span>
           <span className="ge-spot__foot-end">
-            {t('page.search.results', { count: rows.length })}
+            <span className="ge-spot__kbd">esc</span>
+            {t('page.search.close')}
           </span>
         </div>
       </div>
     </>
   );
+}
+
+/** Nagłówek grupy niesie pierwszy wiersz — grupy pustej nie ma. */
+function withGroup(rows: Row[], label: string): Row[] {
+  return rows.map((row, index) => ({
+    ...row,
+    groupLabel: index === 0 ? label : undefined,
+  }));
 }
 
 /** Pole w panelu modułu; samo nie szuka, tylko otwiera wyszukiwarkę. */

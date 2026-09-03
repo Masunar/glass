@@ -106,6 +106,22 @@ export const drawer = {
   shadow: '-14px 0 36px oklch(0.24 0.03 250 / 0.22)',
 } as const;
 
+/**
+ * Wyszukiwarka ogólna — ciemny panel nad przygaszonym tłem.
+ *
+ * Dzieli kolor z listwą modułów, bo obie warstwy stoją ponad treścią
+ * i nie należą do żadnego ekranu z osobna.
+ */
+export const spotlight = {
+  bg: 'oklch(0.24 0.03 250)',
+  fg: 'oklch(0.95 0.01 250)',
+  dim: 'oklch(0.68 0.02 250)',
+  line: 'oklch(0.36 0.03 250)',
+  hover: 'oklch(0.29 0.03 250)',
+  accent: 'oklch(0.72 0.13 250)',
+  shadow: '0 26px 70px oklch(0.18 0.03 250 / 0.5)',
+} as const;
+
 export const rail = {
   bg: 'oklch(0.24 0.03 250)',
   fg: 'oklch(0.95 0.01 250)',

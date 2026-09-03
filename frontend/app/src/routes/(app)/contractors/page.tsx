@@ -4,6 +4,7 @@ import ContractorDrawer from './_components/ContractorDrawer';
 import PriceSectionsModal from './_components/PriceSectionsModal';
 import { useEffect, useState } from 'react';
 import { PiPencilSimple, PiPlus, PiTag } from 'react-icons/pi';
+import { useSearchParams } from 'react-router';
 
 import { Button } from '@salvon/components/button';
 import { Flex } from '@salvon/components/div';
@@ -41,6 +42,7 @@ export default function Page() {
   const [card, setCard] = useState<ContractorCard | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [sectionsOpen, setSectionsOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   const load = async (
     search: string = query,
@@ -55,6 +57,18 @@ export default function Page() {
   useEffect(() => {
     void load('', false);
   }, []);
+
+  // Szybka akcja z wyszukiwarki otwiera panel od razu. Parametr znika
+  // z adresu, zeby odswiezenie strony nie otwieralo go po raz drugi.
+  useEffect(() => {
+    if (params.get('new') === null) {
+      return;
+    }
+
+    setCard(null);
+    setFormOpen(true);
+    setParams({}, { replace: true });
+  }, [params]);
 
   const openCard = async (id: number, target: 'form' | 'sections') => {
     const { content } = await ContractorsApi.card(id);
