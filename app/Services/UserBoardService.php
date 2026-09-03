@@ -6,7 +6,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Database\Eloquent\Collection;
@@ -183,7 +183,7 @@ final readonly class UserBoardService
             // Rola nadrzędna omija sprawdzanie uprawnień, więc widok
             // musi to pokazać wprost, a nie chować za nazwą roli.
             'is_superuser' => $user->roles->contains(
-                static fn(Role $role): bool => (bool) ($role->getAttribute('is_superuser') ?? false),
+                static fn(Role $role): bool => $role->is_superuser,
             ),
             'is_active' => (bool) $user->is_active,
             'is_self' => (int) $user->id === (int) Auth::id(),

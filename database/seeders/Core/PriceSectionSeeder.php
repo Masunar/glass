@@ -7,7 +7,7 @@ namespace Database\Seeders\Core;
 use App\Enum\Section;
 use App\Models\PriceSection;
 use Salvon\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use App\Models\RoleDiscountLimit;
 
 /**

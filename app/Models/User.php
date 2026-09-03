@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use App\Mail\ResetPasswordEmail;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\NewAccessToken;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Notifications\Notifiable;
@@ -77,15 +77,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active;
     }
 
+    /**
+     * Rola nadrzędna omija sprawdzanie uprawnień w całości — patrz
+     * `Gate::before` w AppServiceProvider.
+     */
     public function isSuperUser(): bool
     {
-        foreach ($this->roles as $role) {
-            if ($role['is_superuser'] ?? false) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->roles->contains(static fn(Role $role): bool => $role->is_superuser);
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void

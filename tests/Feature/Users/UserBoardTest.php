@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Location;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use App\Services\UserBoardService;
 use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
