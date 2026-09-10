@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property array|null $changes
  * @property string|null $ip_address
  * @property-read Carbon $created_at
+ * @property-read User|null $user
  */
 class AuditEntry extends Model
 {
@@ -55,6 +56,7 @@ class AuditEntry extends Model
         return $this->morphTo(__FUNCTION__, 'auditable_type', 'auditable_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');

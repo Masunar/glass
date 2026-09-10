@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders\Core;
 
 use Salvon\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 /**
  * Osiem ról systemowych z dokumentacji modułu Użytkownicy.

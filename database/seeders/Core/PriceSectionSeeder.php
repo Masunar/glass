@@ -7,7 +7,7 @@ namespace Database\Seeders\Core;
 use App\Enum\Section;
 use App\Models\PriceSection;
 use Salvon\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use App\Models\RoleDiscountLimit;
 
 /**
@@ -40,9 +40,6 @@ class PriceSectionSeeder extends Seeder
             [Section::SERVICES, 'Detaliczny extra', 20, false, [100, 15, 10]],
             [Section::SERVICES, 'Detaliczny podstawowy', 21, true, [100, 15, 10]],
             [Section::SERVICES, 'Biznesowy', 22, false, [100, 7, 5]],
-
-            [Section::FRAMES, 'Detaliczny podstawowy', 30, true, [100, 15, 10]],
-            [Section::FRAMES, 'Biznesowy', 31, false, [100, 10, 5]],
 
             [Section::OTHER, 'Detaliczny podstawowy', 40, true, [100, 15, 10]],
         ];

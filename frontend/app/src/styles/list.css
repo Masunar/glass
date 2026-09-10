@@ -1,0 +1,365 @@
+/* Warstwa list: pasma, wiersze, paski decyzyjne.
+   To one niosą gęstość, której komponenty MUI nie dają — wiersz ma
+   9 px pionu w biurze i 13 px na hali. Siatka kolumn przychodzi
+   z propsa jako zmienna --cols, więc każdy ekran deklaruje własną,
+   a reszta zachowania jest wspólna. */
+
+.ge-list { --cols: 1fr; display: flex; flex-direction: column; }
+
+.ge-list__head,
+.ge-row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 16px;
+  align-items: center;
+  padding-inline: 24px;
+}
+
+.ge-list__head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+.ge-list__head .r { text-align: right; }
+
+/* ---------- pasma pilności ---------- */
+
+.ge-band {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 24px;
+  border-top: 1px solid var(--ge-divider);
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-band__title {
+  font-family: var(--ge-font-heading);
+  font-size: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ge-band__meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-band__end { margin-left: auto; font-size: 12.5px; }
+
+.ge-band--mod { background: var(--ge-mod-tint); border-top: 0; }
+.ge-band--mod .ge-band__title,
+.ge-band--mod .ge-band__meta { color: color-mix(in oklab, var(--ge-mod) 70%, black); }
+
+.ge-band--alert { background: var(--m-alert-tint); border-left: 4px solid var(--m-alert); }
+.ge-band--alert .ge-band__title { color: var(--m-alert); }
+
+/* ---------- wiersz ---------- */
+
+.ge-row {
+  padding-block: 9px;
+  border-bottom: 1px solid var(--ge-divider);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.ge-row:hover { background: color-mix(in srgb, var(--ge-mod) 6%, transparent); }
+.ge-row.is-selected { box-shadow: inset 4px 0 0 var(--ge-mod); }
+.ge-row.is-alert { box-shadow: inset 4px 0 0 var(--m-alert); }
+.ge-row.is-static { cursor: default; }
+.ge-row:focus-visible { outline: 2px solid var(--ge-mod); outline-offset: -2px; }
+
+/* Hala: wieksze cele dotykowe i numer czytelny z odleglosci. */
+.ge-shop .ge-row { padding-block: 13px; }
+.ge-shop .ge-num { font-size: 22px; }
+
+.ge-num { font-family: var(--ge-font-heading); font-size: 19px; line-height: 1.1; }
+.ge-sub { font-size: 11.5px; color: var(--ge-neutral-600); }
+.ge-name { font-size: 15px; font-weight: 500; }
+.ge-note {
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ge-note--warn { color: var(--m-alert); }
+
+/* ---------- etap: kropka i slowo, nie pigulka ---------- */
+
+.ge-stage { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.ge-dot { width: 7px; height: 7px; flex: none; background: var(--ge-neutral-400); }
+.ge-dot--new { background: var(--m-zlec); }
+.ge-dot--prod { background: var(--m-prod); }
+.ge-dot--done { background: var(--m-mag); }
+.ge-dot--claim { background: var(--m-alert); }
+
+/* ---------- termin slowem ---------- */
+
+.ge-due { font-size: 14px; }
+.ge-due--today { color: color-mix(in oklab, var(--ge-mod) 85%, black); font-weight: 500; }
+.ge-due--late { color: var(--m-alert); font-weight: 500; }
+
+/* ---------- kwota i pasek zaplaty ---------- */
+
+.ge-money { text-align: right; }
+.ge-money__value { font-family: var(--ge-font-heading); font-size: 19px; line-height: 1.15; }
+.ge-money__note { font-size: 11.5px; color: var(--ge-neutral-600); }
+/* Przy zerze pasek zostaje widoczny jako tlo - inaczej wiersz bez
+   wplaty wygladalby jak wiersz bez informacji. */
+.ge-bar { height: 4px; background: var(--ge-neutral-300); margin: 3px 0 2px; }
+.ge-bar__fill { height: 100%; background: var(--ge-mod); }
+.ge-bar__fill--prod { background: var(--m-prod); }
+.ge-bar__fill--done { background: var(--m-mag); }
+.ge-bar__fill--alert { background: var(--m-alert); }
+
+/* ---------- co dalej ---------- */
+
+.ge-next { display: flex; align-items: center; gap: 10px; }
+.ge-next__text { font-size: 13px; color: var(--ge-neutral-600); }
+.ge-avatar {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--ge-neutral-200);
+  color: var(--ge-neutral-700);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ge-avatar--me { background: var(--ge-mod-tint); color: color-mix(in oklab, var(--ge-mod) 70%, black); }
+
+/* ---------- paski decyzyjne ---------- */
+
+.ge-strips { display: flex; align-items: stretch; gap: 16px; padding: 0 24px 16px; }
+.ge-strip {
+  flex: 1;
+  padding: 10px 14px;
+  border-left: 4px solid var(--ge-accent-400);
+  background: var(--ge-surface);
+}
+.ge-strip--mod { border-left-color: var(--ge-mod); background: var(--ge-mod-tint); }
+.ge-strip--money { border-left-color: var(--m-ksie); }
+.ge-strip--prod { border-left-color: var(--m-prod); }
+.ge-strip--alert { border-left-color: var(--m-alert); background: var(--m-alert-tint); }
+.ge-strip--wide { flex: 1.2; }
+
+.ge-strip__label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-700);
+}
+.ge-strip--mod .ge-strip__label { color: color-mix(in oklab, var(--ge-mod) 72%, black); }
+.ge-strip--money .ge-strip__label { color: color-mix(in oklab, var(--m-ksie) 82%, black); }
+.ge-strip--alert .ge-strip__label { color: var(--m-alert); }
+.ge-strip__value { font-family: var(--ge-font-heading); font-size: 26px; line-height: 1.15; }
+.ge-strip__note { font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-strip__note--warn { color: var(--m-alert); }
+.ge-strip__text { font-size: 15px; line-height: 1.45; margin-top: 4px; }
+
+/* ---------- filtry i stopka ---------- */
+
+.ge-filters {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-filters button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ge-neutral-700);
+  padding: 10px 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.ge-filters button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-filters button.is-active {
+  color: var(--ge-text);
+  font-weight: 500;
+  border-bottom-color: var(--ge-mod);
+}
+.ge-filters__end { margin-left: auto; color: var(--ge-neutral-600); font-size: 13px; }
+
+/* Zakladka bedaca odnosnikiem wyglada tak samo jak przycisk — roznica
+   jest w tym, ze prowadzi pod wlasny adres, nie zmienia stanu ekranu. */
+.ge-filters a {
+  color: var(--ge-neutral-700);
+  text-decoration: none;
+  padding: 10px 0;
+  border-bottom: 2px solid transparent;
+}
+.ge-filters a:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-filters a.is-active,
+.ge-filters__here {
+  color: var(--ge-text);
+  font-weight: 500;
+  border-bottom: 2px solid var(--ge-mod);
+  padding: 10px 0;
+}
+
+.ge-footbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--ge-neutral-900);
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+}
+.ge-footbar__end { margin-left: auto; }
+
+/* Zdanie wprowadzające nad listą — czym jest ten słownik i po co. */
+.ge-lead {
+  margin: 0;
+  padding: 12px 24px 0;
+  max-width: 68ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ge-neutral-700);
+}
+
+.ge-empty {
+  padding: 28px 24px;
+  color: var(--ge-neutral-600);
+  font-size: 14px;
+}
+
+.ge-lead--warn { color: var(--m-alert); }
+
+/* Nagłówek sekcji formularza: włos i wersalik, bez ramek.
+   Modal długi jak kartoteka kontrahenta bez podziału czyta się jak
+   ściana pól — a pola różnią się tym, skąd pochodzą: rejestr, kontakt,
+   warunki handlowe. */
+.ge-fieldset {
+  margin-top: 6px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-fieldset:first-child { margin-top: 0; }
+
+/* ---------- komórka użytkownika ---------- */
+
+.ge-user { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.ge-user .ge-avatar { width: 30px; height: 30px; font-size: 11.5px; }
+/* Konto założone, do którego nikt jeszcze nie wszedł — kontur zamiast
+   wypełnienia mówi, że tego użytkownika w systemie jeszcze nie ma. */
+.ge-avatar--invited {
+  background: none;
+  border: 1px dashed var(--ge-neutral-400);
+  color: var(--ge-neutral-600);
+}
+
+/* Wiersz wyłączony: dane zostają, ale nie krzyczą. */
+.ge-row--off,
+.ge-row--off .ge-name { color: var(--ge-neutral-700); }
+
+.ge-cell--wrap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-muted { color: var(--ge-neutral-500); }
+
+/* ---------- ekran parametrów ---------- */
+
+/* Parametry to nie formularz, tylko tabela decyzji. Sama liczba do
+   wpisania nie mówi nic; człowiek pyta „czego to dotknie" i „o ile
+   ruszy ceny", więc obie odpowiedzi stoją w wierszu obok wartości. */
+.ge-params { --cols: minmax(240px, 1.6fr) 170px 200px 200px 160px; }
+
+.ge-params__head,
+.ge-params__row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 20px;
+  align-items: center;
+  padding-inline: 24px;
+}
+
+.ge-params__head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+
+.ge-params__band {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 8px 24px;
+  border-block: 1px solid var(--ge-divider);
+}
+.ge-params__band-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.ge-params__band-meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+
+/* Odcień pasma niesie znaczenie: dopłaty są pieniędzmi, więc ochrą. */
+.ge-params__band--module { background: var(--ge-mod-tint); }
+.ge-params__band--module .ge-params__band-title { color: color-mix(in oklab, var(--ge-mod) 72%, black); }
+.ge-params__band--money { background: var(--m-ksie-tint); }
+.ge-params__band--money .ge-params__band-title { color: color-mix(in oklab, var(--m-ksie) 80%, black); }
+.ge-params__band--plain { background: var(--ge-neutral-100); }
+
+.ge-params__row {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ge-divider);
+  border-left: 3px solid transparent;
+}
+.ge-params__row:hover { background: color-mix(in srgb, var(--ge-mod) 5%, transparent); }
+/* Niezapisany wiersz dostaje krawędź, nie ramkę — ta sama zasada, co
+   przy wierszu listy wymagającym decyzji. */
+.ge-params__row.is-dirty { border-left-color: var(--m-ksie); }
+
+.ge-params__value { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; }
+.ge-params__value .MuiFormControl-root { margin: 0; }
+.ge-params__value input { text-align: right; font-family: var(--ge-font-heading); font-size: 19px; }
+.ge-params__unit { font-size: 12px; color: var(--ge-neutral-600); }
+.ge-params__error { font-size: 12px; color: var(--m-alert); }
+
+.ge-params__up { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+.ge-params__down { color: color-mix(in oklab, var(--m-mag) 80%, black); font-weight: 500; }
+.ge-params__unsaved { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; font-size: 13px; }
+
+/* Pasek niezapisanych zmian. Zapis obejmuje wszystkie zakładki naraz,
+   więc pasek musi być widoczny niezależnie od tego, którą się ogląda. */
+.ge-params__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 24px;
+  border-top: 1px solid var(--m-ksie);
+  background: var(--m-ksie-tint);
+  font-size: 13px;
+}
+.ge-params__foot strong { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+.ge-params__foot-end { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+/* Zakładka „Zmienione" — pojawia się dopiero, gdy jest co pokazać. */
+.ge-filters button.is-warn { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
+.ge-filters button.is-warn.is-active { border-bottom-color: var(--m-ksie); }
+
+/* ---------- historia wersji ---------- */
+
+.ge-hist { padding-bottom: 14px; border-bottom: 1px solid var(--ge-divider); }
+.ge-hist__head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 6px; }
+.ge-hist__version { font-family: var(--ge-font-heading); font-size: 16px; }
+.ge-hist__change {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 13px;
+}

@@ -11,7 +11,7 @@ return new class extends Migration {
     {
         Schema::create('product_groups', static function (Blueprint $table): void {
             $table->id();
-            // sekcja asortymentu: glass | fittings | frames | services | other
+            // sekcja asortymentu: glass | fittings | services | other
             $table->string('section', 20);
             $table->string('name', 100);
             $table->string('manufacturer', 100)->nullable();

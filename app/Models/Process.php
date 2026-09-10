@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $is_subcontracted
  * @property bool $requires_parameter
  * @property int $default_order
+ * @property bool $is_active
  */
 class Process extends Dateable
 {

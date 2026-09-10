@@ -20,6 +20,44 @@ export const appRoutes = {
       { permission: Permission.PARAMETERS, subPermission: SubPermission.LIST },
     ],
   },
+  orders: {
+    path: '/orders',
+    file: 'orders',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
+  orderCard: {
+    path: '/orders/:id',
+    file: 'orders/detail',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
+  orderPanes: {
+    path: '/orders/:id/formatki',
+    file: 'orders/formatki',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
+  contractors: {
+    path: '/contractors',
+    file: 'contractors',
+    permissions: [
+      { permission: Permission.CONTRACTORS, subPermission: SubPermission.LIST },
+    ],
+  },
+  dictionaries: {
+    path: '/dictionaries',
+    file: 'dictionaries',
+    permissions: [
+      {
+        permission: Permission.DICTIONARIES,
+        subPermission: SubPermission.LIST,
+      },
+    ],
+  },
   priceList: {
     path: '/price-list',
     file: 'price-list',

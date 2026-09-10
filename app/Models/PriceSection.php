@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property Section $section
  * @property bool $is_default
+ * @property int $position
+ * @property bool $is_active
  */
 class PriceSection extends Dateable
 {
@@ -30,11 +32,13 @@ class PriceSection extends Dateable
         return ['section' => Section::class, 'position' => 'integer', 'legacy_id' => 'integer'];
     }
 
+    /** @return HasMany<RoleDiscountLimit, $this> */
     public function discountLimits(): HasMany
     {
         return $this->hasMany(RoleDiscountLimit::class, 'price_section_id', 'id');
     }
 
+    /** @return HasMany<PriceListItem, $this> */
     public function priceListItems(): HasMany
     {
         return $this->hasMany(PriceListItem::class, 'price_section_id', 'id');

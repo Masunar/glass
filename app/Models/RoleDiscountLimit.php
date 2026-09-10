@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Salvon\Model\Dateable;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -30,11 +30,13 @@ class RoleDiscountLimit extends Dateable
         return ['max_discount_percent' => 'decimal:2'];
     }
 
+    /** @return BelongsTo<PriceSection, $this> */
     public function priceSection(): BelongsTo
     {
         return $this->belongsTo(PriceSection::class, 'price_section_id', 'id');
     }
 
+    /** @return BelongsTo<Role, $this> */
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id', 'id');

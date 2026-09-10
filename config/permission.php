@@ -24,7 +24,10 @@ return [
          * `Spatie\Permission\Contracts\Role` contract.
          */
 
-        'role' => Spatie\Permission\Models\Role::class,
+        // Wlasny model: rozszerza model pakietu o kolumne is_superuser,
+        // dodana migracja do ich tabeli. Bez podstawienia $user->roles
+        // oddawaloby klase pakietu, ktora o tej fladze nie wie.
+        'role' => App\Models\Role::class,
 
     ],
 

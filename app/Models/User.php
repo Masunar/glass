@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use App\Mail\ResetPasswordEmail;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\NewAccessToken;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Notifications\Notifiable;
@@ -16,6 +17,7 @@ use Spatie\Permission\Traits\HasPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -27,9 +29,22 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property bool $is_active
  * @property int|null $location_id
  * @property Location|null $location
- * @property Role[] $roles
- * @property Permission[] $permissions
  * @property UserMfa|null $mfa
+ * @property Carbon|null $last_login_at
+ *
+ * Relacje zwracaja kolekcje Eloquenta, nie tablice. Adnotacja "Role[]"
+ * byla nieprawda i przechodzila tylko dopoty, dopoki nikt nie wolal na
+ * niej metody kolekcji.
+ *
+ * @property-read Collection<int, Role> $roles
+ * @property-read Collection<int, Permission> $permissions
+ *
+ * Salvon zamienia znaczniki czasu na sformatowany string w akcesorze
+ * (CastBuiltInDates), wiec to nie sa daty. Do liczenia na nich trzeba
+ * siegnac po surowa wartosc przez getRawOriginal().
+ *
+ * @property-read string|null $created_at
+ * @property-read string|null $updated_at
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -62,15 +77,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active;
     }
 
+    /**
+     * Rola nadrzędna omija sprawdzanie uprawnień w całości — patrz
+     * `Gate::before` w AppServiceProvider.
+     */
     public function isSuperUser(): bool
     {
-        foreach ($this->roles as $role) {
-            if ($role['is_superuser'] ?? false) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->roles->contains(static fn(Role $role): bool => $role->is_superuser);
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
@@ -128,6 +141,9 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            // Bez rzutowania ostatnie logowanie jest zwyklym stringiem,
+            // a ekran uzytkownikow liczy na nim wiek konta.
+            'last_login_at' => 'datetime',
             'activation_token_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',

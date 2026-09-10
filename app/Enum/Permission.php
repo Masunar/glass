@@ -17,4 +17,7 @@ enum Permission: string
     case PARAMETERS = 'parameters';
     case PRICE_LIST = 'price_list';
     case PRODUCTS = 'products';
+    case CONTRACTORS = 'contractors';
+    case ORDERS = 'orders';
+    case DICTIONARIES = 'dictionaries';
 }

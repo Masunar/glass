@@ -79,7 +79,7 @@ final readonly class PaneCalculator
         $amount = $this->applySurcharges($pane, $amount, $parameters, $steps);
 
         foreach ($processes as $process) {
-            $cost = round($pane->runningMeters() * (float) $process['net_price_per_running_meter'], 2);
+            $cost = (float) $this->processAmount($pane, $process['net_price_per_running_meter']);
             $amount = round($amount + $cost, 2);
 
             $steps[] = new QuoteStep(
@@ -101,6 +101,20 @@ final readonly class PaneCalculator
             billableSquareMeters: $billable,
             runningMeters: round($pane->runningMeters(), 2),
         );
+    }
+
+    /**
+     * Kwota jednego procesu: metry bieżące × cena za mb.
+     *
+     * Publiczna, bo na zleceniu procesy są osobnymi wierszami i kwota
+     * każdego musi zostać zapisana z osobna. Wzór ma jednak zostać
+     * w jednym miejscu — inaczej wycena pozycji i suma zlecenia zaczną
+     * się różnić o grosze, a nikt nie będzie wiedział, która jest
+     * prawdziwa.
+     */
+    public function processAmount(PaneSpecification $pane, string $netPricePerRunningMeter): string
+    {
+        return $this->money(round($pane->runningMeters() * (float) $netPricePerRunningMeter, 2));
     }
 
     /** @param list<QuoteStep> $steps */

@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
 
     protected array $devSeeders = [
         Dev\UserSeeder::class,
+        Dev\ContractorSeeder::class,
+        Dev\OrderSeeder::class,
     ];
 
     protected function postScript(): void

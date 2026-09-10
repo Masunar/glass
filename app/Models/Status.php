@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * zlecenia były zaszyte w nazwach widoków SQL i katalog rozjeżdżał się
  * między modułami.
  *
- * @property string $domain
+ * @property StatusDomain $domain
  * @property string $code
  * @property string $name
  * @property string|null $short_name
@@ -62,11 +62,13 @@ class Status extends Dateable
         return $query->where('domain', $domain->value);
     }
 
+    /** @return HasMany<StatusTransition, $this> */
     public function transitionsFrom(): HasMany
     {
         return $this->hasMany(StatusTransition::class, 'from_status_id', 'id');
     }
 
+    /** @return HasMany<StatusTransition, $this> */
     public function transitionsTo(): HasMany
     {
         return $this->hasMany(StatusTransition::class, 'to_status_id', 'id');

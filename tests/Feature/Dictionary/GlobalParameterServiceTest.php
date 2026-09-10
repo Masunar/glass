@@ -107,7 +107,7 @@ class GlobalParameterServiceTest extends TestCase
 
         $this->assertCount(1, $entries, 'Trzy zmiany z jednego kliknięcia to jeden wpis, nie trzy.');
 
-        $changes = $entries->first()?->changes ?? [];
+        $changes = $entries->first()->changes ?? [];
 
         $this->assertCount(3, $changes);
         $this->assertSame('shape_surcharge_percent', $changes[0]['field']);
