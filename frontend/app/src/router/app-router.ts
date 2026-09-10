@@ -34,6 +34,13 @@ export const appRoutes = {
       { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
     ],
   },
+  orderPanes: {
+    path: '/orders/:id/formatki',
+    file: 'orders/formatki',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
   contractors: {
     path: '/contractors',
     file: 'contractors',

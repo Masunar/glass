@@ -191,6 +191,89 @@ export type OrderFormOptions = {
   status: string | null;
 };
 
+export type OrderPaneRow = {
+  id: number;
+  position: number;
+  section: string;
+  product_id: number | null;
+  group: string | null;
+  name: string;
+  thickness_mm: number | null;
+  quantity: string;
+  unit_net_price: string;
+  amount: string;
+  /** Materiał razem z procesami — to widzi klient. */
+  total: string;
+  processes: {
+    process_id: number;
+    code: string | null;
+    name: string | null;
+    unit_net_price: string;
+    amount: string;
+  }[];
+  price_path: {
+    code: string;
+    label: string;
+    value: string;
+    detail: string | null;
+  }[];
+  width_mm: number | null;
+  height_mm: number | null;
+  is_irregular_shape: boolean;
+  is_tempered: boolean;
+  needs_mark: boolean;
+  m2: number | null;
+  mb: number | null;
+  kg: number | null;
+};
+
+export type OrderItemsList = {
+  id: number;
+  number: number;
+  name: string | null;
+  role: 'component' | 'alternative';
+  is_included: boolean;
+  is_on_hold: boolean;
+  comment: string | null;
+  net: string;
+  glass: OrderPaneRow[];
+  services: OrderPaneRow[];
+};
+
+export type OrderItemsBoard = {
+  order: {
+    id: number;
+    number: number;
+    status: string | null;
+    contractor: string | null;
+  };
+  lists: OrderItemsList[];
+  totals: {
+    net: string;
+    vat_rate: number | null;
+    gross: string | null;
+    m2: number;
+    mb: number;
+    kg: number;
+  };
+  catalogue: {
+    products: {
+      id: number;
+      name: string;
+      group: string | null;
+      thickness_mm: number | null;
+      is_tempered_by_default: boolean;
+    }[];
+    processes: {
+      id: number;
+      code: string;
+      name: string;
+      is_subcontracted: boolean;
+    }[];
+    services: { id: number; name: string }[];
+  };
+};
+
 export class OrdersApi extends ApiRequest {
   static prefix: string = '/orders';
 
@@ -221,6 +304,39 @@ export class OrdersApi extends ApiRequest {
    * Warunki przejścia są sprawdzane ponownie po stronie serwera, więc
    * ta metoda może się nie powieść mimo widocznego przycisku.
    */
+  public static async items(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/${id}/items`);
+  }
+
+  public static async savePane(
+    id: number,
+    data: Record<string, unknown>,
+    itemId?: number | null,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return itemId
+      ? await this.put(`/${id}/panes/${itemId}`, data)
+      : await this.post(`/${id}/panes`, data);
+  }
+
+  public static async saveService(
+    id: number,
+    data: Record<string, unknown>,
+    itemId?: number | null,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return itemId
+      ? await this.put(`/${id}/services/${itemId}`, data)
+      : await this.post(`/${id}/services`, data);
+  }
+
+  public static async deleteItem(
+    id: number,
+    itemId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/${id}/items/${itemId}`);
+  }
+
   public static async transition(
     id: number,
     transitionId: number,

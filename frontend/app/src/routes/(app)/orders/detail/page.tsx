@@ -220,6 +220,11 @@ export default function Page() {
         >
           {t('page.orders.card.tab_history')} {card.history.length}
         </button>
+        {/* Formatki maja wlasny adres — wysyla sie do nich link. */}
+        <Link to={`/orders/${id}/formatki`}>
+          {t('page.orders.card.tab_panes')}{' '}
+          {card.lists.reduce((sum, list) => sum + list.items.length, 0)}
+        </Link>
       </nav>
 
       <div className="ge-card">

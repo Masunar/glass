@@ -64,4 +64,10 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/form', [OrderController::class, 'formOptions'])->name('form');
     Route::get('/{order}', [OrderController::class, 'card'])->name('card');
     Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
+    Route::get('/{order}/items', [OrderController::class, 'items'])->name('items');
+    Route::post('/{order}/panes', [OrderController::class, 'savePane'])->name('pane_create');
+    Route::put('/{order}/panes/{item}', [OrderController::class, 'savePane'])->name('pane_update');
+    Route::post('/{order}/services', [OrderController::class, 'saveService'])->name('service_create');
+    Route::put('/{order}/services/{item}', [OrderController::class, 'saveService'])->name('service_update');
+    Route::delete('/{order}/items/{item}', [OrderController::class, 'deleteItem'])->name('item_delete');
 });

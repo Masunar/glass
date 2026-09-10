@@ -184,6 +184,23 @@
 }
 .ge-filters__end { margin-left: auto; color: var(--ge-neutral-600); font-size: 13px; }
 
+/* Zakladka bedaca odnosnikiem wyglada tak samo jak przycisk — roznica
+   jest w tym, ze prowadzi pod wlasny adres, nie zmienia stanu ekranu. */
+.ge-filters a {
+  color: var(--ge-neutral-700);
+  text-decoration: none;
+  padding: 10px 0;
+  border-bottom: 2px solid transparent;
+}
+.ge-filters a:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-filters a.is-active,
+.ge-filters__here {
+  color: var(--ge-text);
+  font-weight: 500;
+  border-bottom: 2px solid var(--ge-mod);
+  padding: 10px 0;
+}
+
 .ge-footbar {
   display: flex;
   align-items: center;
