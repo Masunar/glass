@@ -59,6 +59,9 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
 
 Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/', [OrderController::class, 'board'])->name('board');
+    Route::post('/', [OrderController::class, 'create'])->name('create');
+    // Przed trasa z parametrem, inaczej "form" zostanie wziete za numer.
+    Route::get('/form', [OrderController::class, 'formOptions'])->name('form');
     Route::get('/{order}', [OrderController::class, 'card'])->name('card');
     Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
 });

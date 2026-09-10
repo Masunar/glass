@@ -1,5 +1,7 @@
+import OrderDrawer from './_components/OrderDrawer';
 import { useEffect, useMemo, useState } from 'react';
 import { PiPlus, PiWarningCircle } from 'react-icons/pi';
+import { useNavigate } from 'react-router';
 
 import { Button } from '@salvon/components/button';
 import { Flex } from '@salvon/components/div';
@@ -54,6 +56,8 @@ export default function Page() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const navigate = useNavigate();
 
   const load = async (
     nextQuery: string = query,
@@ -157,7 +161,11 @@ export default function Page() {
             permission={Permission.ORDERS}
             sub={SubPermission.CREATE}
           >
-            <Button variant="contained" icon={<PiPlus />} disabled>
+            <Button
+              variant="contained"
+              icon={<PiPlus />}
+              onClick={() => setFormOpen(true)}
+            >
               {t('page.orders.add')}
             </Button>
           </HasPermission>
@@ -206,6 +214,17 @@ export default function Page() {
         ))}
         <span className="ge-filters__end">{t('page.orders.sorted_by')}</span>
       </nav>
+
+      <OrderDrawer
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onCreated={(id) => {
+          setFormOpen(false);
+          // Zalozone zlecenie jest puste — czlowiek zaklada je po to,
+          // zeby od razu dopisac pozycje, wiec ladujemy na karcie.
+          void navigate(`/orders/${id}`);
+        }}
+      />
 
       <DataList columns={columns}>
         <ListHead columns={columns} translate={t} />

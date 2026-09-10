@@ -10,6 +10,7 @@ use Salvon\Enum\SubPermission;
 use Illuminate\Http\JsonResponse;
 use Salvon\Controller\ApiController;
 use App\Services\Orders\OrderCard;
+use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderBoardService;
 
@@ -22,8 +23,14 @@ class OrderController extends ApiController
         private readonly OrderBoardService $board,
         private readonly OrderCard $cardService,
         private readonly OrderTransition $transitionService,
+        private readonly OrderService $service,
     ) {
         $this->protect(['board', 'card'], Permission::ORDERS->value, SubPermission::LIST->value);
+        $this->protect(
+            ['formOptions', 'create'],
+            Permission::ORDERS->value,
+            SubPermission::CREATE->value,
+        );
         $this->protect(['transition'], Permission::ORDERS->value, SubPermission::UPDATE->value);
     }
 
@@ -37,6 +44,33 @@ class OrderController extends ApiController
                 is_string($query) ? $query : null,
                 is_string($status) ? $status : null,
             ));
+        });
+    }
+
+    /** Słowniki formularza zakładania zlecenia. */
+    public function formOptions(): JsonResponse
+    {
+        return $this->secure(fn(): JsonResponse => $this->dataResponse(
+            $this->service->formOptions(),
+        ));
+    }
+
+    public function create(Request $request): JsonResponse
+    {
+        return $this->secure(function () use ($request): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->service->create($input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse([
+                'id' => $result['id'],
+                'number' => $result['number'],
+            ]);
         });
     }
 

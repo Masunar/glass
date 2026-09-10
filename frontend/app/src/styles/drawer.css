@@ -136,6 +136,27 @@
 }
 .ge-switch button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
+/* Wariant w tresci panelu, nie w naglowku: trzy rowne cele zamiast
+   przyciskow dopasowanych do dlugosci slowa. */
+.ge-switch--wide {
+  gap: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ge-neutral-400);
+}
+.ge-switch--wide button { flex: 1; padding-block: 7px; }
+
+/* Odnosnik w miejscu, gdzie nie ma miejsca na przycisk. */
+.ge-linkish {
+  border: 0;
+  background: none;
+  padding: 0 0 0 8px;
+  font: inherit;
+  font-size: 12.5px;
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ---------- sekcje formularza na paskach kolorów ról ---------- */
 
 .ge-fs { padding-left: 14px; border-left: 4px solid var(--ge-fs); }
@@ -196,6 +217,62 @@
 }
 .ge-uf__error { font-size: 12px; color: var(--m-alert); padding-top: 4px; }
 .ge-uf.is-invalid .ge-uf__input { border-bottom-color: var(--m-alert); }
+
+/* Natywna lista rozwijana w jezyku pozostalych pol: podkreslenie,
+   zero zaokraglen, strzalka rysowana gradientem zamiast obrazkiem. */
+.ge-uf__select {
+  appearance: none;
+  padding-right: 18px;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ge-neutral-600) 50%),
+    linear-gradient(135deg, var(--ge-neutral-600) 50%, transparent 50%);
+  background-position: right 6px center, right 1px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.ge-uf__static {
+  padding: 6px 0 5px;
+  font-size: 15px;
+  border-bottom: 1px solid var(--ge-divider);
+  min-height: 33px;
+}
+.ge-uf__static .ge-quiet { font-size: 12.5px; }
+
+/* ---------- wyszukiwarka kontrahenta w panelu ---------- */
+
+/* Kontrahent nie jest listą rozwijaną: w kartotece jest ich tysiące,
+   a handlowiec i tak zna nazwę albo numer. Pisze, wybiera, koniec. */
+.ge-pick { position: relative; }
+.ge-pick__list {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  max-height: 232px;
+  overflow-y: auto;
+  background: var(--ge-surface);
+  border: 1px solid var(--ge-neutral-900);
+  box-shadow: var(--ge-shadow-md, 0 8px 24px rgb(0 0 0 / 12%));
+}
+.ge-pick__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  font: inherit;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-pick__item:last-child { border-bottom: 0; }
+.ge-pick__item:hover,
+.ge-pick__item.is-active { background: var(--ge-mod-tint); }
+.ge-pick__name { font-size: 14px; }
+.ge-pick__meta { font-size: 12px; color: var(--ge-neutral-700); }
+.ge-pick__empty { padding: 8px 12px; font-size: 12.5px; color: var(--ge-neutral-700); }
 
 /* ---------- ostrzeżenie o duplikacie ---------- */
 

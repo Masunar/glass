@@ -67,7 +67,7 @@ class OrderSeeder extends Seeder
 
             /** @var Order $order */
             $order = Order::query()->create([
-                'number' => $sequence->next('order', 24000),
+                'number' => $sequence->next(NumberSequence::ORDERS, 24000),
                 'contractor_id' => $contractors[$index % $contractors->count()]->id,
                 'status_id' => $status->id,
                 'location_id' => $stobno?->id,

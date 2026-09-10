@@ -653,6 +653,33 @@
       },
       "no_history": "Zlecenie nie ma jeszcze żadnego wpisu w dzienniku.",
       "system": "System"
+    },
+    "form": {
+      "add": "Nowe zlecenie",
+      "save": "Załóż zlecenie",
+      "foot_note": "Zlecenie powstanie w statusie „{{status}}” z pustą listą nr 1.",
+      "change": "zmień",
+      "section": {
+        "client": "Kontrahent",
+        "handover": "Wydanie",
+        "terms": "Warunki",
+        "note": "Uwaga"
+      },
+      "contractor": "Kontrahent",
+      "contractor_hint": "nazwa, skrót lub NIP — od dwóch znaków",
+      "contractor_none": "Nic nie pasuje. Nowego kontrahenta założysz w kartotece.",
+      "contractor_required": "Wskaż kontrahenta.",
+      "contractor_note": "Zlecenie bez kontrahenta nie ma komu wystawić faktury, więc to jedyne pole wymagane obok sposobu wydania.",
+      "pickup_point": "Punkt odbioru",
+      "address": "Adres wydania",
+      "contact": "Kontakt na miejscu",
+      "deadline": "Termin klienta",
+      "invoice_type": "Typ faktury",
+      "invoice_type_later": "ustalimy później",
+      "branch": "Oddział",
+      "branch_none": "bez przypisania",
+      "short_note": "Krótka uwaga",
+      "short_note_hint": "jedno zdanie widoczne na liście"
     }
   }
 }

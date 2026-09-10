@@ -178,6 +178,19 @@ export type OrderCard = {
   history: OrderHistoryEntry[];
 };
 
+export type OrderFormOptions = {
+  branches: { id: number; name: string }[];
+  /** Nie każda lokalizacja wydaje towar — hala produkcyjna nie musi. */
+  pickup_points: { id: number; name: string }[];
+  invoice_types: { id: number; name: string; vat_rate: number }[];
+  defaults: {
+    branch_id: number | null;
+    invoice_type_id: number | null;
+    delivery_method: string;
+  };
+  status: string | null;
+};
+
 export class OrdersApi extends ApiRequest {
   static prefix: string = '/orders';
 
@@ -186,6 +199,16 @@ export class OrdersApi extends ApiRequest {
     status: string | null = null,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.get('', { q: query, status: status ?? '' });
+  }
+
+  public static async formOptions(): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/form');
+  }
+
+  public static async create(
+    data: Record<string, unknown>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post('', data);
   }
 
   public static async card(
