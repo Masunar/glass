@@ -22,6 +22,10 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSaved: (id: number, keepOpen: boolean) => void;
+  /** Panel otwarty z wnętrza innego panelu — patrz `Drawer.layer`. */
+  layer?: number;
+  /** Nazwa wpisana tam, skąd panel został otwarty. */
+  initialName?: string;
 };
 
 const emptyValues = {
@@ -52,6 +56,8 @@ export default function ContractorDrawer({
   open,
   onClose,
   onSaved,
+  layer,
+  initialName,
 }: Props) {
   const t = useTranslation();
   const form = useForm();
@@ -77,7 +83,7 @@ export default function ContractorDrawer({
     form.reset({
       ...emptyValues,
       type: contractor?.type ?? 'company',
-      name: contractor?.name ?? '',
+      name: contractor?.name ?? initialName ?? '',
       short_name: contractor?.short_name ?? '',
       tax_id: contractor?.tax_id ?? '',
       registry_id: contractor?.registry_id ?? '',
@@ -224,6 +230,7 @@ export default function ContractorDrawer({
     <Drawer
       open={open}
       onClose={onClose}
+      layer={layer}
       kicker={t('page.contractors.title')}
       title={t(
         contractor ? 'page.contractors.form.edit' : 'page.contractors.form.add',

@@ -1,6 +1,5 @@
 import { Typography } from '@mui/material';
 
-import ContractorDrawer from './_components/ContractorDrawer';
 import PriceSectionsModal from './_components/PriceSectionsModal';
 import { useEffect, useState } from 'react';
 import { PiPencilSimple, PiPlus, PiTag } from 'react-icons/pi';
@@ -16,6 +15,7 @@ import {
   ContractorsApi,
 } from '@app/api/ContractorsApi';
 import HasPermission from '@app/components/HasPermission';
+import ContractorDrawer from '@app/components/contractor/ContractorDrawer';
 import {
   type Column,
   DataList,

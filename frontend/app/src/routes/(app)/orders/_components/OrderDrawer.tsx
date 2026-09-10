@@ -8,8 +8,9 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import { validationCompleted } from '@salvon/utils/api-validation';
 import { notifyError, notifySuccess } from '@salvon/utils/notify';
 
-import type { ContractorRow } from '@app/api/ContractorsApi';
+import { type ContractorRow, ContractorsApi } from '@app/api/ContractorsApi';
 import { type OrderFormOptions, OrdersApi } from '@app/api/OrdersApi';
+import ContractorDrawer from '@app/components/contractor/ContractorDrawer';
 import Drawer, { DrawerColumn } from '@app/components/drawer/Drawer';
 import Field, { Choice } from '@app/components/drawer/Field';
 import Fieldset, { FieldNote } from '@app/components/drawer/Fieldset';
@@ -48,6 +49,7 @@ export default function OrderDrawer({ open, onClose, onCreated }: Props) {
   const [contractorError, setContractorError] = useState<string | null>(null);
   const [method, setMethod] = useState<Method>('pickup');
   const [saving, setSaving] = useState(false);
+  const [newContractor, setNewContractor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -56,6 +58,7 @@ export default function OrderDrawer({ open, onClose, onCreated }: Props) {
 
     setContractor(null);
     setContractorError(null);
+    setNewContractor(null);
 
     void (async () => {
       const { content } = await OrdersApi.formOptions();
@@ -78,6 +81,23 @@ export default function OrderDrawer({ open, onClose, onCreated }: Props) {
   }, [open]);
 
   const isPickup = method === 'pickup';
+
+  /**
+   * Kartoteka założona z panelu wraca tu od razu wybrana. Bez tego
+   * człowiek zakłada klienta, wraca do zlecenia i musi go wyszukać —
+   * choć przed chwilą wpisał jego nazwę.
+   */
+  const pickCreated = async (id: number) => {
+    setNewContractor(null);
+
+    const { content } = await ContractorsApi.card(id);
+    const row: ContractorRow | undefined = content?.data?.contractor;
+
+    if (row) {
+      setContractor(row);
+      setContractorError(null);
+    }
+  };
 
   const submit = async (data: any) => {
     if (!contractor) {
@@ -115,124 +135,141 @@ export default function OrderDrawer({ open, onClose, onCreated }: Props) {
   };
 
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      kicker={t('page.orders.title')}
-      title={t('page.orders.form.add')}
-      narrow
-      foot={
-        <>
-          <span className="ge-drawer__foot-note">
-            {t('page.orders.form.foot_note', {
-              status: options?.status ?? '—',
-            })}
-          </span>
-          <div className="ge-drawer__foot-end">
-            <Button variant="text" onClick={onClose}>
-              {t('cancel')}
-            </Button>
-            <Button
-              variant="contained"
-              loading={saving}
-              onClick={() => void form.handleSubmit(submit)()}
-            >
-              {t('page.orders.form.save')}
-            </Button>
-          </div>
-        </>
-      }
-    >
-      <Form form={form} onSubmit={submit}>
-        <DrawerColumn>
-          <Fieldset tone="ident" label={t('page.orders.form.section.client')}>
-            <ContractorPicker
-              value={contractor}
-              error={contractorError}
-              onPick={(row) => {
-                setContractor(row);
-                setContractorError(null);
-              }}
-            />
-            <FieldNote>{t('page.orders.form.contractor_note')}</FieldNote>
-          </Fieldset>
-
-          <Fieldset tone="addr" label={t('page.orders.form.section.handover')}>
-            <div className="ge-switch ge-switch--wide">
-              {(['pickup', 'installation', 'delivery'] as Method[]).map(
-                (option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={method === option ? 'is-active' : ''}
-                    onClick={() => setMethod(option)}
-                  >
-                    {t(`page.orders.handover.${option}`)}
-                  </button>
-                ),
-              )}
+    <>
+      <Drawer
+        open={open}
+        // Panel kartoteki lezy na wierzchu — Esc i klikniecie w tlo
+        // naleza do niego, nie do formularza pod spodem.
+        onClose={() => newContractor === null && onClose()}
+        kicker={t('page.orders.title')}
+        title={t('page.orders.form.add')}
+        narrow
+        foot={
+          <>
+            <span className="ge-drawer__foot-note">
+              {t('page.orders.form.foot_note', {
+                status: options?.status ?? '—',
+              })}
+            </span>
+            <div className="ge-drawer__foot-end">
+              <Button variant="text" onClick={onClose}>
+                {t('cancel')}
+              </Button>
+              <Button
+                variant="contained"
+                loading={saving}
+                onClick={() => void form.handleSubmit(submit)()}
+              >
+                {t('page.orders.form.save')}
+              </Button>
             </div>
+          </>
+        }
+      >
+        <Form form={form} onSubmit={submit}>
+          <DrawerColumn>
+            <Fieldset tone="ident" label={t('page.orders.form.section.client')}>
+              <ContractorPicker
+                value={contractor}
+                error={contractorError}
+                onPick={(row) => {
+                  setContractor(row);
+                  setContractorError(null);
+                }}
+                onCreate={(name) => setNewContractor(name)}
+              />
+              <FieldNote>{t('page.orders.form.contractor_note')}</FieldNote>
+            </Fieldset>
 
-            {isPickup ? (
+            <Fieldset
+              tone="addr"
+              label={t('page.orders.form.section.handover')}
+            >
+              <div className="ge-switch ge-switch--wide">
+                {(['pickup', 'installation', 'delivery'] as Method[]).map(
+                  (option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={method === option ? 'is-active' : ''}
+                      onClick={() => setMethod(option)}
+                    >
+                      {t(`page.orders.handover.${option}`)}
+                    </button>
+                  ),
+                )}
+              </div>
+
+              {isPickup ? (
+                <Choice
+                  name="pickup_location_id"
+                  label={t('page.orders.form.pickup_point')}
+                  required
+                  options={(options?.pickup_points ?? []).map((point) => ({
+                    value: point.id,
+                    label: point.name,
+                  }))}
+                />
+              ) : (
+                <>
+                  <Field
+                    name="delivery_address"
+                    label={t('page.orders.form.address')}
+                    required
+                  />
+                  <Field
+                    name="delivery_contact"
+                    label={t('page.orders.form.contact')}
+                  />
+                </>
+              )}
+            </Fieldset>
+
+            <Fieldset tone="terms" label={t('page.orders.form.section.terms')}>
+              <Field
+                name="client_deadline"
+                label={t('page.orders.form.deadline')}
+                type="date"
+              />
               <Choice
-                name="pickup_location_id"
-                label={t('page.orders.form.pickup_point')}
-                required
-                options={(options?.pickup_points ?? []).map((point) => ({
-                  value: point.id,
-                  label: point.name,
+                name="invoice_type_id"
+                label={t('page.orders.form.invoice_type')}
+                emptyLabel={t('page.orders.form.invoice_type_later')}
+                options={(options?.invoice_types ?? []).map((type) => ({
+                  value: type.id,
+                  label: `${type.name} · VAT ${type.vat_rate} %`,
                 }))}
               />
-            ) : (
-              <>
-                <Field
-                  name="delivery_address"
-                  label={t('page.orders.form.address')}
-                  required
-                />
-                <Field
-                  name="delivery_contact"
-                  label={t('page.orders.form.contact')}
-                />
-              </>
-            )}
-          </Fieldset>
+              <Choice
+                name="location_id"
+                label={t('page.orders.form.branch')}
+                emptyLabel={t('page.orders.form.branch_none')}
+                options={(options?.branches ?? []).map((branch) => ({
+                  value: branch.id,
+                  label: branch.name,
+                }))}
+              />
+            </Fieldset>
 
-          <Fieldset tone="terms" label={t('page.orders.form.section.terms')}>
-            <Field
-              name="client_deadline"
-              label={t('page.orders.form.deadline')}
-              type="date"
-            />
-            <Choice
-              name="invoice_type_id"
-              label={t('page.orders.form.invoice_type')}
-              emptyLabel={t('page.orders.form.invoice_type_later')}
-              options={(options?.invoice_types ?? []).map((type) => ({
-                value: type.id,
-                label: `${type.name} · VAT ${type.vat_rate} %`,
-              }))}
-            />
-            <Choice
-              name="location_id"
-              label={t('page.orders.form.branch')}
-              emptyLabel={t('page.orders.form.branch_none')}
-              options={(options?.branches ?? []).map((branch) => ({
-                value: branch.id,
-                label: branch.name,
-              }))}
-            />
-          </Fieldset>
+            <Fieldset tone="contact" label={t('page.orders.form.section.note')}>
+              <Field
+                name="short_note"
+                label={t('page.orders.form.short_note')}
+                placeholder={t('page.orders.form.short_note_hint')}
+              />
+            </Fieldset>
+          </DrawerColumn>
+        </Form>
+      </Drawer>
 
-          <Fieldset tone="contact" label={t('page.orders.form.section.note')}>
-            <Field
-              name="short_note"
-              label={t('page.orders.form.short_note')}
-              placeholder={t('page.orders.form.short_note_hint')}
-            />
-          </Fieldset>
-        </DrawerColumn>
-      </Form>
-    </Drawer>
+      <ContractorDrawer
+        card={null}
+        open={newContractor !== null}
+        layer={1}
+        initialName={newContractor ?? ''}
+        onClose={() => setNewContractor(null)}
+        onSaved={(id) => void pickCreated(id)}
+      />
+    </>
   );
 }

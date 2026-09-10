@@ -13,6 +13,12 @@ type Props = {
   banner?: ReactNode;
   foot?: ReactNode;
   narrow?: boolean;
+  /**
+   * Panel otwarty z wnętrza innego panelu. Podnosi warstwę, żeby
+   * przygaszone tło zakryło ten pod spodem — inaczej niższy panel
+   * wyglądałby na nadal aktywny.
+   */
+  layer?: number;
   children: ReactNode;
 };
 
@@ -35,6 +41,7 @@ export default function Drawer({
   banner,
   foot,
   narrow,
+  layer = 0,
   children,
 }: Props) {
   const t = useTranslation();
@@ -66,6 +73,7 @@ export default function Drawer({
     <>
       <div
         className={open ? 'ge-scrim is-open' : 'ge-scrim'}
+        style={layer > 0 ? { zIndex: 1190 + layer * 20 } : undefined}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -79,6 +87,7 @@ export default function Drawer({
         ]
           .filter(Boolean)
           .join(' ')}
+        style={layer > 0 ? { zIndex: 1200 + layer * 20 } : undefined}
         aria-label={title}
         aria-hidden={!open}
         // Panel zasunięty zostaje w drzewie, żeby animacja miała co

@@ -7,6 +7,8 @@ import { type ContractorRow, ContractorsApi } from '@app/api/ContractorsApi';
 type Props = {
   value: ContractorRow | null;
   onPick: (contractor: ContractorRow | null) => void;
+  /** Zakładanie kartoteki bez wychodzenia z formularza zlecenia. */
+  onCreate: (name: string) => void;
   error?: string | null;
 };
 
@@ -18,7 +20,12 @@ type Props = {
  * przewinięcia i wymusza dokładne pamiętanie pierwszej litery nazwy —
  * a firma bywa zapisana i jako „STECKO MEBLE", i jako „Stecko".
  */
-export default function ContractorPicker({ value, onPick, error }: Props) {
+export default function ContractorPicker({
+  value,
+  onPick,
+  onCreate,
+  error,
+}: Props) {
   const t = useTranslation();
   const [query, setQuery] = useState('');
   const [rows, setRows] = useState<ContractorRow[]>([]);
@@ -125,9 +132,16 @@ export default function ContractorPicker({ value, onPick, error }: Props) {
               setActive((index) => Math.max(index - 1, 0));
             }
 
-            if (event.key === 'Enter' && rows[active]) {
+            if (event.key === 'Enter') {
               event.preventDefault();
-              pick(rows[active]);
+
+              // Bez trafienia Enter zaklada kartoteke — to jedyna rzecz,
+              // ktora ma sens, gdy lista jest pusta.
+              if (rows[active]) {
+                pick(rows[active]);
+              } else if (query.trim().length >= 2) {
+                onCreate(query.trim());
+              }
             }
           }}
         />
@@ -136,30 +150,42 @@ export default function ContractorPicker({ value, onPick, error }: Props) {
 
       {open && query.trim().length >= 2 && (
         <div className="ge-pick__list">
-          {rows.length === 0 ? (
+          {rows.length === 0 && (
             <div className="ge-pick__empty">
               {t('page.orders.form.contractor_none')}
             </div>
-          ) : (
-            rows.map((row, index) => (
-              <button
-                key={row.id}
-                type="button"
-                className={
-                  index === active ? 'ge-pick__item is-active' : 'ge-pick__item'
-                }
-                onMouseEnter={() => setActive(index)}
-                onClick={() => pick(row)}
-              >
-                <div className="ge-pick__name">{row.display_name}</div>
-                <div className="ge-pick__meta">
-                  {[row.tax_id ? `NIP ${row.tax_id}` : null, row.phone]
-                    .filter(Boolean)
-                    .join(' · ') || row.name}
-                </div>
-              </button>
-            ))
           )}
+
+          {rows.map((row, index) => (
+            <button
+              key={row.id}
+              type="button"
+              className={
+                index === active ? 'ge-pick__item is-active' : 'ge-pick__item'
+              }
+              onMouseEnter={() => setActive(index)}
+              onClick={() => pick(row)}
+            >
+              <div className="ge-pick__name">{row.display_name}</div>
+              <div className="ge-pick__meta">
+                {[row.tax_id ? `NIP ${row.tax_id}` : null, row.phone]
+                  .filter(Boolean)
+                  .join(' · ') || row.name}
+              </div>
+            </button>
+          ))}
+
+          {/* Klient dzwoni pierwszy raz — kartoteki jeszcze nie ma,
+              a formularz zlecenia jest w połowie wypełniony. */}
+          <button
+            type="button"
+            className="ge-pick__item ge-pick__item--add"
+            onClick={() => onCreate(query.trim())}
+          >
+            <div className="ge-pick__name">
+              {t('page.orders.form.contractor_new', { name: query.trim() })}
+            </div>
+          </button>
         </div>
       )}
     </div>
