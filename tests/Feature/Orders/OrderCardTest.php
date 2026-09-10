@@ -75,7 +75,7 @@ class OrderCardTest extends TestCase
             'payment_days' => 14,
         ]);
 
-        /** @var Order $order */
+        /** @var Order */
         return Order::query()->create([
             'number' => random_int(90000, 99999),
             'contractor_id' => $contractor->id,

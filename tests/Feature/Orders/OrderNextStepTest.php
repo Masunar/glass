@@ -49,6 +49,20 @@ class OrderNextStepTest extends TestCase
         $this->steps = new OrderNextStep();
     }
 
+    /**
+     * Nazwa typu faktury musi byc poza katalogiem: `DictionarySeeder`
+     * odpalony przez inna klase testowa zostawia w bazie „VAT 23%",
+     * a `name` jest unikalne.
+     */
+    private function invoiceType(): InvoiceType
+    {
+        /** @var InvoiceType */
+        return InvoiceType::query()->create([
+            'name' => 'Testowy typ ' . random_int(100000, 999999),
+            'vat_rate' => 23,
+        ]);
+    }
+
     private function order(string $statusCode, array $attributes = []): Order
     {
         /** @var Status $status */
@@ -124,14 +138,8 @@ class OrderNextStepTest extends TestCase
     #[Test]
     public function komplet_warunkow_odblokowuje_przejscie(): void
     {
-        /** @var InvoiceType $invoiceType */
-        $invoiceType = InvoiceType::query()->create([
-            'name' => 'VAT 23%',
-            'vat_rate' => 23,
-        ]);
-
         $order = $this->withList($this->order('DO_WYCENY', [
-            'invoice_type_id' => $invoiceType->id,
+            'invoice_type_id' => $this->invoiceType()->id,
         ]));
 
         $step = $this->step($order, 'ZLECENIE');
@@ -220,11 +228,8 @@ class OrderNextStepTest extends TestCase
     #[Test]
     public function firma_bez_nipu_nie_przechodzi_do_zlecenia(): void
     {
-        /** @var InvoiceType $invoiceType */
-        $invoiceType = InvoiceType::query()->create(['name' => 'VAT 23%', 'vat_rate' => 23]);
-
         $order = $this->withList($this->order('DO_WYCENY', [
-            'invoice_type_id' => $invoiceType->id,
+            'invoice_type_id' => $this->invoiceType()->id,
         ]));
 
         $order->contractor?->update(['tax_id' => null]);

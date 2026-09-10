@@ -45,6 +45,7 @@ final readonly class OrderBoardService
         $day = ($today ?? Carbon::today())->startOfDay();
         $needle = $query !== null ? trim($query) : '';
 
+        /** @var Collection<int, Order> $orders */
         $orders = Order::query()
             ->with([
                 'contractor',
@@ -118,7 +119,7 @@ final readonly class OrderBoardService
     {
         $deadline = $this->deadline($order);
 
-        if ($deadline === null || ($order->status?->is_final ?? false)) {
+        if ($deadline === null || ($order->status->is_final ?? false)) {
             return 'later';
         }
 
@@ -176,7 +177,7 @@ final readonly class OrderBoardService
             'days_left' => $deadline === null ? null : (int) $day->diffInDays($deadline, false),
             'is_shifted' => $order->shifted_deadline !== null,
             'delivery_method' => $order->delivery_method->value,
-            'delivery_place' => $order->pickupLocation?->name ?? $order->delivery_address,
+            'delivery_place' => $order->pickupLocation->name ?? $order->delivery_address,
             'amount' => $this->total($order),
             'owner_initials' => $this->initials($order),
             'is_on_hold' => (bool) $order->is_on_hold,

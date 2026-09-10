@@ -104,6 +104,8 @@ final readonly class OrderNextStep
      */
     private function check(Order $order, array $conditions): array
     {
+        $missing = null;
+
         foreach ($conditions as $condition) {
             $rule = (string) ($condition['rule'] ?? '');
             $message = isset($condition['message']) ? (string) $condition['message'] : $rule;
@@ -111,13 +113,21 @@ final readonly class OrderNextStep
 
             $result = $this->evaluate($order, $rule, $value);
 
-            if ($result === null) {
-                return [false, $this->missingModule($rule), true];
-            }
-
+            // Warunek niespełniony wygrywa z nierozstrzygalnym, nawet gdy
+            // stoi w katalogu później. Człowiek ma dostać rzecz, którą da
+            // się zrobić — „dodaj rysunki" zamiast „poczekaj na moduł
+            // wpłat", skoro i tak brakuje obu.
             if ($result === false) {
                 return [false, $message, false];
             }
+
+            if ($result === null) {
+                $missing ??= $this->missingModule($rule);
+            }
+        }
+
+        if ($missing !== null) {
+            return [false, $missing, true];
         }
 
         return [true, null, false];

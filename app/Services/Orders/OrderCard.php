@@ -89,7 +89,7 @@ final readonly class OrderCard
             'created_by' => $this->personName($order),
             'status' => $order->status?->name,
             'status_code' => $order->status?->code,
-            'is_final' => (bool) ($order->status?->is_final ?? false),
+            'is_final' => (bool) ($order->status->is_final ?? false),
             'is_on_hold' => (bool) $order->is_on_hold,
             'hold_reason' => $order->hold_reason,
             'has_open_claim' => (bool) $order->has_open_claim,
@@ -225,7 +225,7 @@ final readonly class OrderCard
 
         usort($steps, static fn(array $a, array $b): int => $a['order'] <=> $b['order']);
 
-        return array_values(array_map(
+        return array_map(
             fn(array $step): array => [
                 'code' => $step['code'],
                 'name' => $step['name'],
@@ -234,7 +234,7 @@ final readonly class OrderCard
                 'amount' => $this->amount((float) $step['amount']),
             ],
             $steps,
-        ));
+        );
     }
 
     /**
@@ -256,7 +256,7 @@ final readonly class OrderCard
                 $processAmount = 0.0;
 
                 foreach ($item->processes as $entry) {
-                    $processes[] = $entry->process?->name ?? '—';
+                    $processes[] = $entry->process->name ?? '—';
                     $processAmount += (float) $entry->amount;
                 }
 
@@ -317,7 +317,7 @@ final readonly class OrderCard
             $user = $entry->user;
 
             $rows[] = [
-                'at' => $entry->created_at?->format('d.m.Y H:i'),
+                'at' => $entry->created_at->format('d.m.Y H:i'),
                 'event' => $entry->event,
                 'user' => $user === null
                     ? null
