@@ -115,6 +115,28 @@ class OrderCreateTest extends TestCase
     }
 
     #[Test]
+    public function numer_omija_zlecenia_wgrane_poza_ciagiem(): void
+    {
+        /** @var Status $status */
+        $status = Status::findByCode(StatusDomain::ORDER, 'DO_WYCENY');
+
+        // Zlecenie z importu: numer w bazie juz jest, ciagu numeracji
+        // jeszcze nie ma. Bez pilnowania serwis oddalby ten sam numer
+        // i zapis skonczylby sie bledem, a nie zalozonym zleceniem.
+        Order::query()->create([
+            'number' => 24000,
+            'contractor_id' => $this->contractor()->id,
+            'status_id' => $status->id,
+            'delivery_method' => DeliveryMethod::PICKUP->value,
+        ]);
+
+        $result = $this->service->create($this->input());
+
+        $this->assertSame([], $result['errors']);
+        $this->assertGreaterThan(24000, (int) $result['number']);
+    }
+
+    #[Test]
     public function odbior_wlasny_bez_punktu_jest_odrzucony(): void
     {
         $result = $this->service->create($this->input(['pickup_location_id' => null]));

@@ -34,6 +34,9 @@ use Illuminate\Support\Facades\Validator;
  */
 final readonly class OrderService
 {
+    /** Numeracja przeniesiona ze starego systemu zaczyna się powyżej tej wartości. */
+    private const FIRST_NUMBER = 24000;
+
     public function __construct(
         private NumberSequence $numbers = new NumberSequence(),
         private AuditTrail $audit = new AuditTrail(),
@@ -130,7 +133,7 @@ final readonly class OrderService
         }
 
         $method = DeliveryMethod::from((string) $input['delivery_method']);
-        $number = $this->numbers->next(NumberSequence::ORDERS, 24000);
+        $number = $this->nextNumber();
 
         /** @var Order $order */
         $order = Order::query()->create([
@@ -260,6 +263,29 @@ final readonly class OrderService
         }
 
         return $errors;
+    }
+
+    /**
+     * Numer zlecenia z pilnowaniem, żeby nie trafić w istniejący.
+     *
+     * Ciąg numeracji może zostać założony później niż same zlecenia —
+     * po imporcie starej bazy, po ręcznym wgraniu danych albo gdy ktoś
+     * numerował z innej domeny. Sam unikalny indeks też by to złapał,
+     * ale użytkownik zobaczyłby „wystąpił nieoczekiwany błąd" zamiast
+     * założonego zlecenia.
+     */
+    private function nextNumber(): int
+    {
+        $number = $this->numbers->next(NumberSequence::ORDERS, self::FIRST_NUMBER);
+        $highest = (int) Order::query()->max('number');
+
+        if ($number > $highest) {
+            return $number;
+        }
+
+        $this->numbers->seedFrom(NumberSequence::ORDERS, $highest);
+
+        return $this->numbers->next(NumberSequence::ORDERS, self::FIRST_NUMBER);
     }
 
     /**

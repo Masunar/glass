@@ -41,6 +41,23 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
+        // Salvon zamraza zegar na czas seederow deweloperskich, zeby dane
+        // byly powtarzalne. Zlecenia sa wyjatkiem: lista dzieli je na
+        // „dzis", „zalegle" i „kolejne dni" wzgledem dnia dzisiejszego,
+        // wiec przy zegarze stojacym w 2024 roku caly zbior wpada do
+        // pasma zaleglych i ekran przestaje pokazywac to, co ma pokazywac.
+        $frozen = Carbon::hasTestNow() ? Carbon::getTestNow() : null;
+        Carbon::setTestNow();
+
+        try {
+            $this->seed();
+        } finally {
+            Carbon::setTestNow($frozen);
+        }
+    }
+
+    private function seed(): void
+    {
         if (Order::query()->exists()) {
             return;
         }

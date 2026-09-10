@@ -2,9 +2,15 @@
    Wszystkie wartości ze zmiennych generowanych z config/tokens.ts —
    żadnych kolorów wpisanych wprost. */
 
+/* Powloka jest DOKLADNIE ekranem, nie „co najmniej".
+   Przewijanie w pionie nalezy do obszaru tresci (SimpleBar, 100vh).
+   Przy `min-height` wystarczylo, ze listwa albo panel modulu urosly
+   ponad ekran, zeby dokument zaczal sie przewijac pod spodem powloki —
+   a wtedy po przewinieciu widac bialy pas tam, gdzie powloka sie
+   skonczyla. */
 .ge-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--ge-bg);
   color: var(--ge-text);
   /* aplikacja biurowa: ponizej tej szerokosci pojawia sie przewijanie
@@ -24,6 +30,9 @@
 .ge-rail {
   width: 64px;
   flex: none;
+  /* Wlasne przewijanie zamiast rozpychania dokumentu — modulow moze
+     przybyc, a listwa i tak ma sie miescic w ekranie. */
+  overflow-y: auto;
   background: var(--ge-rail-bg);
   color: var(--ge-rail-fg);
   display: flex;
@@ -85,6 +94,7 @@
 .ge-panel {
   width: 260px;
   flex: none;
+  overflow-y: auto;
   border-right: 1px solid var(--ge-neutral-900);
   display: flex;
   flex-direction: column;
