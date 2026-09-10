@@ -30,6 +30,13 @@ final readonly class NextStep
          * pierwsze zniknie samo, drugie wymaga działania człowieka.
          */
         public bool $unknown = false,
+        /**
+         * Warunek da się spełnić treścią podaną razem z akcją — powód
+         * anulowania przychodzi z okna anulowania, nie z osobnego
+         * formularza edycji zlecenia. Ekran pokazuje takie przejście
+         * jako możliwe do wykonania po dopisaniu powodu.
+         */
+        public bool $needsReason = false,
     ) {
     }
 
@@ -46,6 +53,7 @@ final readonly class NextStep
             'available' => $this->available,
             'blocked_by' => $this->blockedBy,
             'unknown' => $this->unknown,
+            'needs_reason' => $this->needsReason,
         ];
     }
 }

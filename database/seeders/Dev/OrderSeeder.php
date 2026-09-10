@@ -8,17 +8,20 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Order;
 use App\Enum\Section;
+use App\Enum\ListRole;
 use App\Models\Status;
+use App\Models\Process;
 use App\Models\Product;
 use App\Models\Location;
-use App\Enum\ListRole;
 use App\Models\OrderList;
 use App\Models\OrderPane;
 use App\Models\OrderItem;
 use App\Enum\StatusDomain;
 use App\Models\Contractor;
+use App\Models\InvoiceType;
 use App\Enum\DeliveryMethod;
 use Salvon\Database\Seeder;
+use App\Models\OrderItemProcess;
 use App\Services\NumberSequence;
 
 /**
@@ -56,6 +59,7 @@ class OrderSeeder extends Seeder
         $sequence = new NumberSequence();
         $users = User::query()->orderBy('id')->get();
         $stobno = Location::query()->where('name', 'Stobno')->first();
+        $invoiceType = InvoiceType::query()->where('is_default', true)->first();
 
         foreach ($this->rows() as $index => $row) {
             /** @var Status $status */
@@ -74,6 +78,9 @@ class OrderSeeder extends Seeder
                 'is_on_hold' => $row['on_hold'] ?? false,
                 'hold_reason' => $row['hold_reason'] ?? null,
                 'has_open_claim' => $row['claim'] ?? false,
+                'invoice_type_id' => $invoiceType?->id,
+                'production_comment' => $row['production_comment'] ?? null,
+                'installer_comment' => $row['installer_comment'] ?? null,
                 'short_note' => $row['note'],
                 'client_deadline' => $row['deadline_in'] === null
                     ? null
@@ -152,6 +159,43 @@ class OrderSeeder extends Seeder
             'is_irregular_shape' => $spec['irregular'] ?? false,
             'is_tempered' => true,
         ]);
+
+        $this->processes($item, $spec);
+    }
+
+    /**
+     * Procesy na formatce. Bez nich karta zlecenia nie ma z czego
+     * zbudować ścieżki produkcji — a ścieżka jest tam po to, żeby
+     * powiedzieć, przez co ta szyba musi przejść.
+     *
+     * @param array{w: int, h: int, price: string, irregular?: bool} $spec
+     */
+    private function processes(OrderItem $item, array $spec): void
+    {
+        // Obwód w metrach bieżących — podstawa wyceny obróbki krawędzi.
+        $perimeter = 2 * ($spec['w'] + $spec['h']) / 1000;
+        $position = 0;
+
+        foreach ([['C', '9.00'], ['S', '14.00'], ['H', '38.00']] as [$code, $rate]) {
+            $process = Process::findByCode($code);
+
+            if ($process === null) {
+                continue;
+            }
+
+            // Hartowanie liczy sie od m2, obrobka krawedzi od mb.
+            $units = $code === 'H'
+                ? $spec['w'] * $spec['h'] / 1_000_000
+                : $perimeter;
+
+            OrderItemProcess::query()->create([
+                'order_item_id' => $item->id,
+                'process_id' => $process->id,
+                'unit_net_price' => $rate,
+                'amount' => number_format($units * (float) $rate, 2, '.', ''),
+                'position' => $position += 10,
+            ]);
+        }
     }
 
     /**
@@ -163,6 +207,8 @@ class OrderSeeder extends Seeder
             [
                 'status' => 'ZLECENIE', 'delivery' => DeliveryMethod::INSTALLATION->value,
                 'deadline_in' => 0, 'note' => 'montaż potwierdzony telefonicznie',
+                'production_comment' => 'szyby pakować pionowo, klient odbiera windą towarową',
+                'installer_comment' => 'wjazd od podwórza, kod do bramy 4512',
                 'panes' => [
                     ['w' => 1200, 'h' => 900, 'price' => '1240.00'],
                     ['w' => 800, 'h' => 600, 'price' => '520.00'],

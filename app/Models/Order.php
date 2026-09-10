@@ -35,6 +35,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $client_deadline
  * @property Carbon|null $production_deadline
  * @property Carbon|null $shifted_deadline
+ * @property int|null $invoice_type_id
+ * @property string|null $buyer_name
+ * @property string|null $buyer_tax_id
+ * @property string|null $buyer_address
+ * @property string|null $accounting_note
+ * @property string|null $shift_reason
+ * @property string|null $cancellation_reason
  * @property int|null $created_by
  * @property-read Collection<int, OrderList> $lists
  * @property-read Collection<int, OrderDiscount> $discounts
@@ -42,6 +49,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Status|null $status
  * @property-read Location|null $pickupLocation
  * @property-read User|null $creator
+ * @property-read InvoiceType|null $invoiceType
  */
 class Order extends Dateable
 {
@@ -124,6 +132,18 @@ class Order extends Dateable
     public function pickupLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'pickup_location_id', 'id');
+    }
+
+    /**
+     * Typ faktury rozstrzyga stawkę VAT. Bez niego karta nie pokazuje
+     * kwoty brutto — domyślne 23 % byłoby zgadywaniem stawki na
+     * dokumencie księgowym.
+     *
+     * @return BelongsTo<InvoiceType, $this>
+     */
+    public function invoiceType(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceType::class, 'invoice_type_id', 'id');
     }
 
     /**

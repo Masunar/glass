@@ -52,6 +52,8 @@ export default function Page() {
   const [board, setBoard] = useState<OrderBoard | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
 
   const load = async (
     nextQuery: string = query,
@@ -68,6 +70,33 @@ export default function Page() {
   useEffect(() => {
     void load('', null);
   }, []);
+
+  /**
+   * Przejście wykonane z listy, bez wchodzenia w zlecenie — po nim
+   * wiersz zmienia pasmo, więc lista wczytuje się od nowa.
+   */
+  const run = async (row: OrderRow, transitionId: number) => {
+    setBusy(row.id);
+    setError(null);
+
+    const { content, response } = await OrdersApi.transition(
+      row.id,
+      transitionId,
+    );
+
+    setBusy(null);
+
+    if (!response.success) {
+      setError(
+        content?.errors?.transition?.[0] ??
+          t('page.orders.transition_failed', { number: row.number }),
+      );
+
+      return;
+    }
+
+    await load();
+  };
 
   const summary = board?.summary;
   const bands = useMemo(
@@ -134,6 +163,8 @@ export default function Page() {
           </HasPermission>
         </div>
       </header>
+
+      {error && <div className="ge-alert">{error}</div>}
 
       {summary && (
         <Strips>
@@ -257,7 +288,12 @@ export default function Page() {
                     {money(row.amount)}
                   </div>
 
-                  <NextCell row={row} t={t} />
+                  <NextCell
+                    row={row}
+                    t={t}
+                    busy={busy === row.id}
+                    onRun={(transitionId) => void run(row, transitionId)}
+                  />
                 </Row>
               );
             })}
@@ -288,19 +324,40 @@ function bandVariant(key: OrderBandKey): 'plain' | 'module' | 'alert' {
 function NextCell({
   row,
   t,
+  busy,
+  onRun,
 }: {
   row: OrderRow;
   t: (key: string, options?: Record<string, unknown>) => string;
+  busy: boolean;
+  onRun: (transitionId: number) => void;
 }) {
   if (row.next_step) {
+    const step = row.next_step;
+
     return (
       <Flex gap={1} align="center">
         {row.owner_initials && (
           <span className="ge-avatar">{row.owner_initials}</span>
         )}
-        <Button variant="contained" size="small" disabled>
-          {row.next_step.label}
-        </Button>
+        <HasPermission
+          permission={Permission.ORDERS}
+          sub={SubPermission.UPDATE}
+        >
+          <Button
+            variant="contained"
+            size="small"
+            disabled={busy}
+            onClick={(event) => {
+              // Przycisk siedzi w klikalnym wierszu — bez tego klik
+              // otwiera zlecenie zamiast wykonac przejscie.
+              event.stopPropagation();
+              onRun(step.transition_id);
+            }}
+          >
+            {step.label}
+          </Button>
+        </HasPermission>
       </Flex>
     );
   }

@@ -1,0 +1,146 @@
+/* Karta zlecenia.
+   Dwie kolumny: wąska z tym, co się nie zmienia w trakcie realizacji
+   (klient, wydanie, faktura), szeroka z tym, co się zmienia (ścieżka,
+   pozycje, komentarze). Bez kafelków i bez cieni — sekcje rozdziela
+   włos, tak jak wiersze list. */
+
+.ge-card {
+  display: flex;
+  align-items: flex-start;
+  border-top: 1px solid var(--ge-neutral-900);
+}
+
+.ge-card__side {
+  flex: none;
+  width: 330px;
+  border-right: 1px solid var(--ge-divider);
+}
+
+.ge-card__main { flex: 1; min-width: 0; }
+
+.ge-section { padding: 12px 24px 14px; border-bottom: 1px solid var(--ge-divider); }
+.ge-section:last-child { border-bottom: 0; }
+
+.ge-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+}
+.ge-section__head--strong {
+  color: var(--ge-text);
+  border-bottom: 1px solid var(--ge-neutral-900);
+  margin-bottom: 8px;
+}
+.ge-section__end { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+
+.ge-section__body { font-size: 14px; line-height: 1.5; }
+.ge-quiet { font-size: 12.5px; color: var(--ge-neutral-700); line-height: 1.5; }
+
+.ge-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 13.5px;
+}
+.ge-kv__k { color: var(--ge-neutral-700); }
+
+/* ---------- sciezka produkcji ---------- */
+
+/* Procesy pochodzą z pozycji, nie z wyobraźni. Stanu wykonania nie ma,
+   bo nikt go jeszcze nie zapisuje — i tak to jest tu napisane. */
+.ge-path { display: flex; gap: 16px; }
+.ge-path__step { flex: 1; min-width: 0; }
+.ge-path__rule { height: 5px; background: var(--m-prod); }
+.ge-path__rule--sub { background: var(--ge-neutral-400); }
+.ge-path__label { font-size: 14.5px; padding-top: 6px; }
+.ge-path__meta { font-size: 12.5px; color: var(--ge-neutral-700); }
+
+/* ---------- pozycje ---------- */
+
+.ge-items { --cols: 30px 1fr 210px 70px 96px 104px; }
+.ge-items__head,
+.ge-items__row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 14px;
+  align-items: baseline;
+  padding-block: 7px;
+}
+.ge-items__head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-items__row { border-bottom: 1px solid var(--ge-divider); font-size: 14px; }
+.ge-items .r { text-align: right; }
+.ge-items__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 8px;
+  margin-top: 2px;
+  border-top: 1px solid var(--ge-neutral-900);
+}
+.ge-items__sum { font-family: var(--ge-font-heading); font-size: 19px; }
+.ge-dim { font-family: var(--ge-font-heading); font-size: 16px; }
+
+/* Lista wyłączona to odrzucona alternatywa: dane zostają w zleceniu,
+   ale nie wchodzą do kwoty — i nie mogą wyglądać, jakby wchodziły. */
+.ge-list--off { opacity: 0.62; }
+.ge-list--off .ge-items__sum { text-decoration: line-through; }
+
+/* ---------- co dalej ---------- */
+
+.ge-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.ge-step { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.ge-step__why { color: var(--ge-neutral-700); }
+.ge-step__why--wait { color: var(--ge-neutral-600); font-style: italic; }
+
+.ge-reason { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.ge-reason input {
+  flex: 1;
+  height: 32px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-400);
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ge-text);
+}
+.ge-reason input:focus-visible { outline: none; border-bottom-color: var(--m-alert); }
+
+/* ---------- dziennik ---------- */
+
+.ge-log__entry {
+  display: flex;
+  gap: 14px;
+  padding: 6px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-log__time { flex: none; width: 108px; color: var(--ge-neutral-600); font-size: 12.5px; }
+
+/* Pasek błędu akcji: warunki są sprawdzane drugi raz na serwerze,
+   więc przycisk może się nie powieść mimo tego, że był widoczny. */
+.ge-alert {
+  margin: 0 24px 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--m-alert);
+  background: var(--m-alert-tint);
+  font-size: 13.5px;
+  color: var(--m-alert);
+}
+
+@media (max-width: 1280px) {
+  .ge-card { flex-direction: column; }
+  .ge-card__side { width: 100%; border-right: 0; border-bottom: 1px solid var(--ge-neutral-900); }
+}

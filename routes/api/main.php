@@ -59,4 +59,6 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
 
 Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/', [OrderController::class, 'board'])->name('board');
+    Route::get('/{order}', [OrderController::class, 'card'])->name('card');
+    Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
 });

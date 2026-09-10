@@ -52,7 +52,8 @@ final readonly class OrderNextStep
                 continue;
             }
 
-            [$available, $reason, $unknown] = $this->check($order, $transition->conditions ?? []);
+            $conditions = $transition->conditions ?? [];
+            [$available, $reason, $unknown] = $this->check($order, $conditions);
 
             $steps[] = new NextStep(
                 transitionId: (int) $transition->getKey(),
@@ -61,6 +62,7 @@ final readonly class OrderNextStep
                 available: $available,
                 blockedBy: $reason,
                 unknown: $unknown,
+                needsReason: $this->needsReason($conditions),
             );
         }
 
@@ -77,6 +79,23 @@ final readonly class OrderNextStep
         }
 
         return null;
+    }
+
+    /**
+     * Czy brakujący warunek da się uzupełnić treścią podaną razem
+     * z akcją — dziś dotyczy to wyłącznie powodu anulowania.
+     *
+     * @param array<int, array<string, mixed>> $conditions
+     */
+    private function needsReason(array $conditions): bool
+    {
+        foreach ($conditions as $condition) {
+            if (($condition['rule'] ?? null) === 'cancellation_reason_set') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
