@@ -50,6 +50,7 @@ final readonly class OrderDrawingService
 
     public function __construct(
         private AuditTrail $audit = new AuditTrail(),
+        private OrderTabs $tabs = new OrderTabs(),
     ) {
     }
 
@@ -89,6 +90,7 @@ final readonly class OrderDrawingService
                 'number' => (int) $order->number,
                 'status' => $order->status?->name,
             ],
+            'tabs' => $this->tabs->counts($order),
             'drawings' => $rows,
             'complete' => [
                 'declared' => $order->drawings_complete_at !== null,

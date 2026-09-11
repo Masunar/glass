@@ -105,6 +105,12 @@ export type OrderHistoryEntry = {
   changes: { field: string; before: unknown; after: unknown }[];
 };
 
+export type OrderTabCounts = {
+  panes: number;
+  drawings: number;
+  log: number;
+};
+
 export type OrderCard = {
   order: {
     id: number;
@@ -157,6 +163,7 @@ export type OrderCard = {
       offer: string | null;
     };
   };
+  tabs: OrderTabCounts;
   money: OrderTotals;
   credit: {
     limit: string;
@@ -267,6 +274,7 @@ export type OrderItemsBoard = {
     status: string | null;
     contractor: string | null;
   };
+  tabs: OrderTabCounts;
   lists: OrderItemsList[];
   totals: OrderTotals & { m2: number; mb: number; kg: number };
   discounts: OrderDiscountRow[];
@@ -303,6 +311,7 @@ export type OrderDrawingRow = {
 
 export type OrderDrawingsBoard = {
   order: { id: number; number: number; status: string | null };
+  tabs: OrderTabCounts;
   drawings: OrderDrawingRow[];
   /** Komplet deklaruje człowiek — tu jest kto i kiedy. */
   complete: { declared: boolean; at: string | null; by: string | null };

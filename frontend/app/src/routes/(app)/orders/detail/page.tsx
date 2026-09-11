@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { PiArrowLeft, PiWarningCircle } from 'react-icons/pi';
+import OrderTabs from '../_components/OrderTabs';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { PiArrowLeft, PiCaretDown, PiWarningCircle } from 'react-icons/pi';
 import { Link, useParams } from 'react-router';
 
 import { Button } from '@salvon/components/button';
@@ -25,7 +26,7 @@ export default function Page() {
   const id = Number(params.id);
 
   const [card, setCard] = useState<OrderCard | null>(null);
-  const [tab, setTab] = useState<'card' | 'history'>('card');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasonFor, setReasonFor] = useState<number | null>(null);
   const [reason, setReason] = useState('');
@@ -57,6 +58,14 @@ export default function Page() {
         (step) => step.available && step.to_status_code !== 'ANULOWANE',
       ) ?? null,
     [card],
+  );
+
+  /** Przejście, które czeka na powód — pasek pod nagłówkiem, nie modal. */
+  const reasonStep = useMemo(
+    () =>
+      (card?.steps ?? []).find((step) => step.transition_id === reasonFor) ??
+      null,
+    [card, reasonFor],
   );
 
   const run = async (step: NextStep, withReason?: string) => {
@@ -121,6 +130,28 @@ export default function Page() {
             <PiArrowLeft style={{ verticalAlign: '-2px', marginRight: 4 }} />
             {t('page.orders.card.back')}
           </Link>
+          <MoreMenu
+            steps={card.steps}
+            primary={primary}
+            busy={busy}
+            open={menuOpen}
+            t={t}
+            onToggle={() => setMenuOpen((value) => !value)}
+            onClose={() => setMenuOpen(false)}
+            onPick={(step) => {
+              setMenuOpen(false);
+
+              if (step.needs_reason) {
+                setReasonFor(step.transition_id);
+                setReason('');
+
+                return;
+              }
+
+              void run(step);
+            }}
+          />
+
           {primary && (
             <Button
               variant="contained"
@@ -134,6 +165,34 @@ export default function Page() {
       </header>
 
       {error && <div className="ge-alert">{error}</div>}
+
+      {reasonStep && (
+        <div className="ge-reasonbar">
+          <span>{reasonStep.label}</span>
+          <input
+            autoFocus
+            value={reason}
+            placeholder={t('page.orders.card.reason')}
+            aria-label={t('page.orders.card.reason')}
+            onChange={(event) => setReason(event.target.value)}
+          />
+          <Button
+            variant="contained"
+            size="small"
+            disabled={busy || reason.trim() === ''}
+            onClick={() => void run(reasonStep, reason.trim())}
+          >
+            {t('page.orders.card.confirm')}
+          </Button>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => setReasonFor(null)}
+          >
+            {t('cancel')}
+          </Button>
+        </div>
+      )}
 
       <Strips>
         <Strip
@@ -149,15 +208,27 @@ export default function Page() {
                   gross: money(card.money.gross ?? '0'),
                 })
           }
+          // Kwota bez rozbicia to liczba bez pochodzenia. Sekcje mowia,
+          // z czego sie wziela, a rabat pokazuje sie osobno, bo nie jest
+          // czescia wyceny pozycji.
           text={
-            Number(card.money.discount) > 0 ? (
-              <span className="ge-quiet">
-                {t('page.orders.discount.applied', {
-                  base: money(card.money.base),
-                  discount: money(card.money.discount),
-                })}
-              </span>
-            ) : undefined
+            <span className="ge-from">
+              {card.money.sections.map((section) => (
+                <span className="ge-from__row" key={section.section}>
+                  <span>{t(`page.price_list.section.${section.section}`)}</span>
+                  <span>{money(section.base)}</span>
+                </span>
+              ))}
+              {Number(card.money.discount) > 0 && (
+                <span className="ge-from__row ge-from__row--off">
+                  <span>{t('page.orders.discount.title')}</span>
+                  <span>−{money(card.money.discount)}</span>
+                </span>
+              )}
+              <Link to={`/orders/${id}/formatki`} className="ge-from__link">
+                {t('page.orders.card.value_where')}
+              </Link>
+            </span>
           }
         />
 
@@ -190,6 +261,19 @@ export default function Page() {
                     days: card.credit.payment_days,
                   })
             }
+            // Sam limit nic nie mowi, dopoki nie widac, z czym go
+            // porownujemy — i czego w tym porownaniu brakuje.
+            text={
+              <span className="ge-from">
+                <span className="ge-from__row">
+                  <span>{t('page.orders.card.credit_this_order')}</span>
+                  <span>{money(card.credit.order_value)}</span>
+                </span>
+                <span className="ge-from__note">
+                  {t('page.orders.card.credit_missing')}
+                </span>
+              </span>
+            }
           />
         )}
 
@@ -197,48 +281,15 @@ export default function Page() {
           variant={primary ? 'plain' : 'alert'}
           wide
           label={t('page.orders.card.next')}
-          text={
-            <Steps
-              steps={card.steps}
-              busy={busy}
-              reasonFor={reasonFor}
-              reason={reason}
-              t={t}
-              onReasonFor={(step) => {
-                setReasonFor(step);
-                setReason('');
-              }}
-              onReason={setReason}
-              onRun={(step, value) => void run(step, value)}
-            />
-          }
+          // Jedno zdanie, nie lista przyciskow: akcja stoi w naglowku,
+          // a pasek ma powiedziec, co dalej i czego brakuje. Lista
+          // rosnaca z liczba slepych sciezek rozpychala rzad paskow
+          // i powtarzala przycisk, ktory juz byl obok.
+          text={<NextSentence steps={card.steps} primary={primary} t={t} />}
         />
       </Strips>
 
-      <nav className="ge-filters" aria-label={t('page.orders.card.sections')}>
-        <button
-          type="button"
-          className={tab === 'card' ? 'is-active' : ''}
-          onClick={() => setTab('card')}
-        >
-          {t('page.orders.card.tab_card')}
-        </button>
-        <button
-          type="button"
-          className={tab === 'history' ? 'is-active' : ''}
-          onClick={() => setTab('history')}
-        >
-          {t('page.orders.card.tab_history')} {card.history.length}
-        </button>
-        {/* Formatki maja wlasny adres — wysyla sie do nich link. */}
-        <Link to={`/orders/${id}/formatki`}>
-          {t('page.orders.card.tab_panes')}{' '}
-          {card.lists.reduce((sum, list) => sum + list.items.length, 0)}
-        </Link>
-        <Link to={`/orders/${id}/rysunki`}>
-          {t('page.orders.drawings.title')}
-        </Link>
-      </nav>
+      <OrderTabs orderId={id} active="card" counts={card.tabs} />
 
       <div className="ge-card">
         <aside className="ge-card__side">
@@ -327,79 +378,45 @@ export default function Page() {
         </aside>
 
         <div className="ge-card__main">
-          {tab === 'card' ? (
-            <>
-              <section className="ge-section">
-                <div className="ge-section__head ge-section__head--strong">
-                  {t('page.orders.card.path')}
-                  <span className="ge-section__end ge-quiet">
-                    {t('page.orders.card.path_note')}
-                  </span>
-                </div>
-                {card.path.length === 0 ? (
-                  <div className="ge-quiet">
-                    {t('page.orders.card.no_path')}
-                  </div>
-                ) : (
-                  <div className="ge-path">
-                    {card.path.map((step) => (
-                      <div className="ge-path__step" key={step.code}>
-                        <div
-                          className={
-                            step.is_subcontracted
-                              ? 'ge-path__rule ge-path__rule--sub'
-                              : 'ge-path__rule'
-                          }
-                        />
-                        <div className="ge-path__label">{step.name}</div>
-                        <div className="ge-path__meta">
-                          {t('page.orders.card.path_items', {
-                            count: step.items,
-                          })}{' '}
-                          · {money(step.amount)}
-                          {step.is_subcontracted
-                            ? ` · ${t('page.orders.card.subcontracted')}`
-                            : ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {card.lists.map((list) => (
-                <ListSection key={list.id} list={list} t={t} />
-              ))}
-            </>
-          ) : (
-            <section className="ge-section">
-              <div className="ge-section__head ge-section__head--strong">
-                {t('page.orders.card.tab_history')}
-              </div>
-              {card.history.length === 0 ? (
-                <div className="ge-quiet">
-                  {t('page.orders.card.no_history')}
-                </div>
-              ) : (
-                <div className="ge-log">
-                  {card.history.map((entry, index) => (
-                    <div className="ge-log__entry" key={index}>
-                      <span className="ge-log__time">{entry.at}</span>
-                      <span>
-                        {entry.user ?? t('page.orders.card.system')} —{' '}
-                        {entry.changes
-                          .map(
-                            (change) =>
-                              `${change.field}: ${String(change.before ?? '—')} → ${String(change.after ?? '—')}`,
-                          )
-                          .join(', ')}
-                      </span>
+          <section className="ge-section">
+            <div className="ge-section__head ge-section__head--strong">
+              {t('page.orders.card.path')}
+              <span className="ge-section__end ge-quiet">
+                {t('page.orders.card.path_note')}
+              </span>
+            </div>
+            {card.path.length === 0 ? (
+              <div className="ge-quiet">{t('page.orders.card.no_path')}</div>
+            ) : (
+              <div className="ge-path">
+                {card.path.map((step) => (
+                  <div className="ge-path__step" key={step.code}>
+                    <div
+                      className={
+                        step.is_subcontracted
+                          ? 'ge-path__rule ge-path__rule--sub'
+                          : 'ge-path__rule'
+                      }
+                    />
+                    <div className="ge-path__label">{step.name}</div>
+                    <div className="ge-path__meta">
+                      {t('page.orders.card.path_items', {
+                        count: step.items,
+                      })}{' '}
+                      · {money(step.amount)} zł
+                      {step.is_subcontracted
+                        ? ` · ${t('page.orders.card.subcontracted')}`
+                        : ''}
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {card.lists.map((list) => (
+            <ListSection key={list.id} list={list} t={t} />
+          ))}
         </div>
       </div>
     </>
@@ -445,101 +462,161 @@ function Comment({
 }
 
 /**
- * Wszystkie przejścia z bieżącego statusu, nie tylko dostępne.
- * Zablokowane niosą powód — ekran, który pokazuje sam brak przycisku,
- * zostawia człowieka z pytaniem „dlaczego nie mogę".
+ * Co dalej — jedno zdanie.
+ *
+ * Akcja stoi w nagłówku, a pasek mówi, co się z tym zleceniem dzieje.
+ * Wcześniej była tu lista wszystkich przejść z przyciskami: rosła razem
+ * z liczbą ślepych ścieżek, rozpychała rząd pasków przy każdym zleceniu
+ * inaczej i powtarzała przycisk stojący dwa centymetry wyżej.
  */
-function Steps({
+function NextSentence({
   steps,
-  busy,
-  reasonFor,
-  reason,
+  primary,
   t,
-  onReasonFor,
-  onReason,
-  onRun,
 }: {
   steps: NextStep[];
-  busy: boolean;
-  reasonFor: number | null;
-  reason: string;
+  primary: NextStep | null;
   t: (key: string, options?: Record<string, unknown>) => string;
-  onReasonFor: (id: number | null) => void;
-  onReason: (value: string) => void;
-  onRun: (step: NextStep, reason?: string) => void;
 }) {
-  if (steps.length === 0) {
-    return <span className="ge-quiet">{t('page.orders.card.no_steps')}</span>;
+  if (primary) {
+    const others = steps.filter(
+      (step) => step.transition_id !== primary.transition_id,
+    ).length;
+
+    return (
+      <span>
+        {t('page.orders.card.next_is', { label: primary.label })}
+        {others > 0 && (
+          <span className="ge-quiet"> {t('page.orders.card.next_more')}</span>
+        )}
+      </span>
+    );
+  }
+
+  // Zablokowane z powodem, ktory da sie usunac, wyprzedza ten czekajacy
+  // na moduł — czlowiek ma dostac rzecz do zrobienia.
+  const blocking =
+    steps.find(
+      (step) => !step.available && !step.unknown && !step.needs_reason,
+    ) ??
+    steps.find((step) => !step.available && step.unknown) ??
+    null;
+
+  if (blocking === null) {
+    return <span className="ge-quiet">{t('page.orders.nothing_to_do')}</span>;
   }
 
   return (
-    <div className="ge-steps">
-      {steps.map((step) => (
-        <div className="ge-step" key={step.transition_id}>
-          {step.available && (
-            <Button
-              variant="outlined"
-              size="small"
-              disabled={busy}
-              onClick={() => onRun(step)}
-            >
-              {step.label}
-            </Button>
-          )}
+    <span>
+      <PiWarningCircle style={{ verticalAlign: '-2px', marginRight: 6 }} />
+      {blocking.blocked_by}
+      <span className="ge-quiet"> {t('page.orders.card.next_more')}</span>
+    </span>
+  );
+}
 
-          {!step.available && step.needs_reason && (
-            <>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={busy}
-                onClick={() =>
-                  onReasonFor(
-                    reasonFor === step.transition_id
-                      ? null
-                      : step.transition_id,
-                  )
+/**
+ * Pozostałe przejścia — te, które nie są krokiem głównym.
+ *
+ * Zablokowane zostają widoczne i wyłączone, z powodem: brak pozycji
+ * w menu nie odpowiada na pytanie „dlaczego nie mogę".
+ */
+function MoreMenu({
+  steps,
+  primary,
+  busy,
+  open,
+  t,
+  onToggle,
+  onClose,
+  onPick,
+}: {
+  steps: NextStep[];
+  primary: NextStep | null;
+  busy: boolean;
+  open: boolean;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  onToggle: () => void;
+  onClose: () => void;
+  onPick: (step: NextStep) => void;
+}) {
+  const anchor = useRef<HTMLDivElement>(null);
+  const rest = steps.filter(
+    (step) => step.transition_id !== primary?.transition_id,
+  );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const outside = (event: MouseEvent) => {
+      if (!anchor.current?.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('keydown', escape);
+
+    return () => {
+      document.removeEventListener('mousedown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open, onClose]);
+
+  if (rest.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="ge-menu" ref={anchor}>
+      <Button
+        variant="outlined"
+        disabled={busy}
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        {t('page.orders.card.more')} <PiCaretDown style={{ marginLeft: 4 }} />
+      </Button>
+
+      {open && (
+        <div className="ge-menu__list" role="menu">
+          {rest.map((step) => {
+            const usable = step.available || step.needs_reason;
+
+            return (
+              <button
+                key={step.transition_id}
+                type="button"
+                role="menuitem"
+                className={
+                  step.to_status_code === 'ANULOWANE'
+                    ? 'ge-menu__item ge-menu__item--danger'
+                    : 'ge-menu__item'
                 }
+                disabled={!usable || busy}
+                onClick={() => onPick(step)}
               >
-                {step.label}
-              </Button>
-              {reasonFor === step.transition_id && (
-                <span className="ge-reason">
-                  <input
-                    value={reason}
-                    placeholder={t('page.orders.card.reason')}
-                    aria-label={t('page.orders.card.reason')}
-                    onChange={(event) => onReason(event.target.value)}
-                  />
-                  <Button
-                    variant="contained"
-                    size="small"
-                    disabled={busy || reason.trim() === ''}
-                    onClick={() => onRun(step, reason.trim())}
-                  >
-                    {t('page.orders.card.confirm')}
-                  </Button>
-                </span>
-              )}
-            </>
-          )}
-
-          {!step.available && !step.needs_reason && (
-            <span
-              className={
-                step.unknown
-                  ? 'ge-step__why ge-step__why--wait'
-                  : 'ge-step__why'
-              }
-            >
-              <PiWarningCircle
-                style={{ verticalAlign: '-2px', marginRight: 4 }}
-              />
-              {step.label}: {step.blocked_by}
-            </span>
-          )}
+                <span className="ge-menu__label">{step.label}</span>
+                {!step.available && (
+                  <span className="ge-menu__why">
+                    {step.needs_reason
+                      ? t('page.orders.card.needs_reason')
+                      : step.blocked_by}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      ))}
+      )}
     </div>
   );
 }

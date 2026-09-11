@@ -1,6 +1,7 @@
+import OrderTabs from '../_components/OrderTabs';
 import { useEffect, useState } from 'react';
 import { PiFilePdf, PiImage, PiTrash } from 'react-icons/pi';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { Button } from '@salvon/components/button';
 import { FileUpload } from '@salvon/components/file-upload';
@@ -109,15 +110,7 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.orders.card.sections')}>
-        <Link to={`/orders/${id}`}>{t('page.orders.card.tab_card')}</Link>
-        <Link to={`/orders/${id}/formatki`}>
-          {t('page.orders.card.tab_panes')}
-        </Link>
-        <span className="ge-filters__here">
-          {t('page.orders.drawings.title')} {board.drawings.length}
-        </span>
-      </nav>
+      <OrderTabs orderId={id} active="drawings" counts={board.tabs} />
 
       <div className="ge-card">
         <div className="ge-card__main">

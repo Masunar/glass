@@ -653,7 +653,14 @@
         "amount": "Kwota"
       },
       "no_history": "Zlecenie nie ma jeszcze żadnego wpisu w dzienniku.",
-      "system": "System"
+      "system": "System",
+      "value_where": "skąd ta kwota →",
+      "credit_this_order": "to zlecenie",
+      "credit_missing": "bez sald z pozostałych zleceń — czeka na moduł wpłat",
+      "next_is": "Następny krok: {{label}}.",
+      "next_more": "Pozostałe ścieżki w „Więcej\".",
+      "more": "Więcej",
+      "needs_reason": "wymaga powodu"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -731,7 +738,8 @@
         "count": "Il.",
         "processes": "Procesy",
         "area": "m² / mb"
-      }
+      },
+      "no_trace": "Ta pozycja nie ma zapisanej ścieżki wyliczenia — powstała, zanim cennik ją objął."
     },
     "discount": {
       "title": "Rabat",
