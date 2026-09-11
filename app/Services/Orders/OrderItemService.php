@@ -37,6 +37,8 @@ final readonly class OrderItemService
 
     public function __construct(
         private OrderPricing $pricing = new OrderPricing(),
+        private OrderValue $value = new OrderValue(),
+        private OrderDiscountService $discounts = new OrderDiscountService(),
         private AuditTrail $audit = new AuditTrail(),
     ) {
     }
@@ -55,6 +57,7 @@ final readonly class OrderItemService
                 'contractor',
                 'status',
                 'invoiceType',
+                'discounts',
                 'lists.items.pane',
                 'lists.items.product.group',
                 'lists.items.processes.process',
@@ -62,7 +65,6 @@ final readonly class OrderItemService
             ->findOrFail($orderId);
 
         $lists = [];
-        $net = 0.0;
         $squareMeters = 0.0;
         $runningMeters = 0.0;
         $weight = 0.0;
@@ -93,10 +95,6 @@ final readonly class OrderItemService
                 $services[] = $row;
             }
 
-            if ($list->is_included) {
-                $net += $listNet;
-            }
-
             $lists[] = [
                 'id' => (int) $list->getKey(),
                 'number' => (int) $list->number,
@@ -111,8 +109,6 @@ final readonly class OrderItemService
             ];
         }
 
-        $vatRate = $order->invoiceType?->vat_rate;
-
         return [
             'order' => [
                 'id' => (int) $order->getKey(),
@@ -121,16 +117,14 @@ final readonly class OrderItemService
                 'contractor' => $order->contractor?->displayName(),
             ],
             'lists' => $lists,
-            'totals' => [
-                'net' => $this->money($net),
-                'vat_rate' => $vatRate,
-                'gross' => $vatRate === null
-                    ? null
-                    : $this->money($net * (100 + $vatRate) / 100),
+            // Sumy pieniezne licza sie w jednym miejscu dla wszystkich
+            // ekranow; tutaj dochodza tylko wielkosci fizyczne szkla.
+            'totals' => $this->value->totals($order)->toArray() + [
                 'm2' => round($squareMeters, 2),
                 'mb' => round($runningMeters, 2),
                 'kg' => round($weight, 2),
             ],
+            'discounts' => $this->discounts->board($order),
             'catalogue' => [
                 'products' => $this->glassCatalogue(),
                 'processes' => $this->processCatalogue(),

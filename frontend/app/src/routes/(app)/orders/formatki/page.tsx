@@ -1,3 +1,4 @@
+import DiscountPanel from '../_components/DiscountPanel';
 import PaneDrawer from '../_components/PaneDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
 import { useEffect, useState } from 'react';
@@ -149,7 +150,34 @@ export default function Page() {
                     })
               }
             />
+
+            {/* Rabat pokazany osobno, nie wtopiony w kwote — klient
+                dostaje go w tej samej postaci na ofercie. */}
+            {Number(totals.discount) > 0 && (
+              <div className="ge-disc__summary">
+                <div className="ge-kv">
+                  <span className="ge-kv__k">
+                    {t('page.orders.discount.before')}
+                  </span>
+                  <span>{money(totals.base)}</span>
+                </div>
+                <div className="ge-kv">
+                  <span className="ge-kv__k">
+                    {t('page.orders.discount.title')}
+                  </span>
+                  <span className="ge-disc__value">
+                    −{money(totals.discount)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+
+          <DiscountPanel
+            orderId={id}
+            rows={board.discounts}
+            onSaved={() => void load()}
+          />
 
           <section className="ge-section">
             <div className="ge-section__head">

@@ -149,6 +149,16 @@ export default function Page() {
                   gross: money(card.money.gross ?? '0'),
                 })
           }
+          text={
+            Number(card.money.discount) > 0 ? (
+              <span className="ge-quiet">
+                {t('page.orders.discount.applied', {
+                  base: money(card.money.base),
+                  discount: money(card.money.discount),
+                })}
+              </span>
+            ) : undefined
+          }
         />
 
         <Strip

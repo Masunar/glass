@@ -27,6 +27,11 @@ use App\Models\StatusTransition;
  */
 final readonly class OrderNextStep
 {
+    public function __construct(
+        private OrderValue $value = new OrderValue(),
+    ) {
+    }
+
     /**
      * Wszystkie przejścia wychodzące z bieżącego statusu, w kolejności
      * z katalogu — pierwsze dostępne jest tym, które ekran pokazuje
@@ -145,7 +150,7 @@ final readonly class OrderNextStep
             'no_list_on_hold' => !$order->lists->contains(
                 static fn($list): bool => (bool) $list->is_on_hold,
             ),
-            'total_above_zero' => $this->total($order) > 0.0,
+            'total_above_zero' => (float) $this->value->net($order) > 0.0,
             'customer_complete' => $this->customerComplete($order),
             'invoice_data_complete' => $order->invoice_type_id !== null,
             'handover_method_is' => $order->delivery_method === DeliveryMethod::tryFrom((string) $value),
@@ -189,26 +194,5 @@ final readonly class OrderNextStep
         }
 
         return $contractor->type !== ContractorType::COMPANY || $contractor->tax_id !== null;
-    }
-
-    private function total(Order $order): float
-    {
-        $total = 0.0;
-
-        foreach ($order->lists as $list) {
-            if (!$list->is_included) {
-                continue;
-            }
-
-            foreach ($list->items as $item) {
-                $total += (float) $item->amount;
-
-                foreach ($item->processes as $process) {
-                    $total += (float) $process->amount;
-                }
-            }
-        }
-
-        return $total;
     }
 }
