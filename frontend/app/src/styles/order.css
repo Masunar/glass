@@ -496,3 +496,58 @@
   border-left: 4px solid var(--m-alert);
   background: color-mix(in oklab, var(--m-alert) 8%, transparent);
 }
+
+/* ---------- kolejka stanowiska ---------- */
+
+/* Ekran dla czlowieka przy maszynie: wiersze wysokie, bo czyta sie je
+   z odleglosci, i bez ani jednej kolumny z kwota. */
+.ge-task {
+  display: grid;
+  grid-template-columns: 140px minmax(220px, 1fr) 160px 110px;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--ge-divider);
+  border-left: 4px solid transparent;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ge-task:last-of-type { border-bottom: 0; }
+.ge-task.is-current {
+  border-left-color: var(--ge-accent-400);
+  background: var(--ge-neutral-100);
+}
+.ge-task--late .ge-task__when { color: var(--m-alert); }
+.ge-task--stuck { border-left-color: var(--m-alert); }
+.ge-task--done { opacity: 0.55; }
+.ge-task__when { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.ge-task__when .ge-quiet { font-size: 11.5px; }
+.ge-task__what { display: flex; flex-direction: column; min-width: 0; }
+.ge-task__what .ge-quiet { font-size: 12px; }
+/* Parametr ma sie rzucac w oczy: to po niego operator szedl do biura. */
+.ge-task__param {
+  font-family: var(--ge-font-heading);
+  font-size: 14px;
+  color: color-mix(in oklab, var(--m-alert) 76%, black);
+}
+.ge-task__state { display: flex; flex-direction: column; text-align: right; font-size: 12.5px; }
+.ge-task__state .ge-quiet { font-size: 11.5px; }
+.ge-task__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ge-task__actions > .ge-quiet,
+.ge-task__actions > .ge-warn { flex-basis: 100%; }
+.ge-task__issue {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ge-divider);
+}
+.ge-task__issue .ge-uf { flex: 1 1 180px; }
+
+/* Stan etapu na sciezce produkcji karty zlecenia. */
+.ge-path__state { font-size: 12px; color: color-mix(in oklab, var(--ge-mod) 70%, black); padding-top: 2px; }
+.ge-path__state--stuck { color: var(--m-alert); }
+
+.ge-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }

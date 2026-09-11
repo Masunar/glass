@@ -12,6 +12,7 @@ use App\Models\OrderItem;
 use App\Models\OrderList;
 use App\Models\AuditEntry;
 use App\Models\ContractorAddress;
+use App\Services\Production\ProductionQueue;
 
 /**
  * Karta zlecenia — jedno miejsce decyzji.
@@ -21,9 +22,9 @@ use App\Models\ContractorAddress;
  * Reszta — pozycje, formatki, komentarze — jest uzasadnieniem tych
  * czterech odpowiedzi, nie osobnym tematem.
  *
- * **Czego tu nie ma i dlaczego.** Ścieżka produkcji pokazuje etapy, ale
- * nie ich stan — ewidencji wykonania jeszcze nie ma, a „0 % zrobione"
- * byłoby zdaniem fałszywym, nie brakiem danych. Pasek „Do zapłaty"
+ * **Czego tu nie ma i dlaczego.** Ścieżka produkcji pokazuje stan
+ * etapów dopiero od chwili wejścia zlecenia na produkcję — wcześniej
+ * zadań nie ma, bo marszruta to jeszcze plan, nie praca. Pasek „Do zapłaty"
  * milczy o procencie, dopóki zlecenie nie ma typu faktury: bez stawki
  * VAT nie znamy kwoty brutto, a procent liczony od netto pokazywałby
  * spłacone więcej, niż jest.
@@ -35,6 +36,7 @@ final readonly class OrderCard
         private OrderValue $value = new OrderValue(),
         private OrderTabs $tabs = new OrderTabs(),
         private ContractorBalance $balance = new ContractorBalance(),
+        private ProductionQueue $production = new ProductionQueue(),
     ) {
     }
 
@@ -209,13 +211,16 @@ final readonly class OrderCard
 
     /**
      * Ścieżka produkcji zbudowana z procesów faktycznie przypisanych do
-     * pozycji, w kolejności ze słownika procesów. Stanu wykonania nie
-     * pokazujemy, bo nikt go jeszcze nie zapisuje.
+     * pozycji, w kolejności ze słownika procesów — razem ze stanem
+     * wykonania, o ile zlecenie było już na produkcji. Zanim tam trafi,
+     * liczniki są puste: marszruta jest wtedy planem, nie pracą.
      *
      * @return list<array<string, mixed>>
      */
     private function path(Order $order): array
     {
+        $progress = $this->production->progressByProcess($order);
+
         /** @var array<int, array<string, mixed>> $steps */
         $steps = [];
 
@@ -237,6 +242,9 @@ final readonly class OrderCard
                         'is_subcontracted' => (bool) $process->is_subcontracted,
                         'items' => 0,
                         'amount' => 0.0,
+                        'done' => $progress[$id]['done'] ?? null,
+                        'tasks' => $progress[$id]['total'] ?? null,
+                        'problems' => $progress[$id]['problems'] ?? 0,
                     ];
 
                     $steps[$id]['items'] = (int) $steps[$id]['items'] + 1;
@@ -254,6 +262,11 @@ final readonly class OrderCard
                 'is_subcontracted' => $step['is_subcontracted'],
                 'items' => $step['items'],
                 'amount' => $this->amount((float) $step['amount']),
+                // `null` znaczy „zlecenie nie było jeszcze na produkcji",
+                // a nie „zero zrobione". To dwie różne rzeczy.
+                'done' => $step['done'],
+                'tasks' => $step['tasks'],
+                'problems' => $step['problems'],
             ],
             $steps,
         );

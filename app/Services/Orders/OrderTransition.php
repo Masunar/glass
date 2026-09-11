@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\DTO\Orders\NextStep;
 use App\Services\AuditTrail;
 use App\Models\StatusTransition;
+use App\Services\Production\ProductionPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -33,9 +34,13 @@ final readonly class OrderTransition
      */
     private const REASON_RULE = 'cancellation_reason_set';
 
+    /** Status, przy wejściu w który powstają zadania produkcyjne. */
+    private const PRODUCTION = 'PRODUKCJA';
+
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
         private AuditTrail $audit = new AuditTrail(),
+        private ProductionPlan $plan = new ProductionPlan(),
     ) {
     }
 
@@ -101,6 +106,13 @@ final readonly class OrderTransition
                 [['field' => 'status', 'before' => $before, 'after' => $target->code]],
                 'status_changed',
             );
+
+            // Marszruta staje sie praca do wykonania dopiero tutaj.
+            // Wywolanie jest powtarzalne: powrot na produkcje po
+            // poprawce odnajduje te same zadania, nie zaklada drugich.
+            if ($target->code === self::PRODUCTION) {
+                $this->plan->sync($order);
+            }
         });
 
         return ['errors' => [], 'status' => $target->name, 'status_code' => $target->code];

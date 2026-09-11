@@ -170,13 +170,13 @@ class OrderNextStepTest extends TestCase
     #[Test]
     public function warunku_bez_modulu_nie_przepuszczamy(): void
     {
-        // Oznaczenie zlecenia jako gotowe zalezy od wykonanych etapow
-        // produkcji, a ewidencji produkcji nie ma. Gdyby brak modulu
-        // znaczyl "warunek spelniony", zlecenie szloby dalej bez
-        // wykonania — czyli dokladnie to, przed czym to ma chronic.
-        $order = $this->withList($this->order('PRODUKCJA'));
+        // Odrzucenie oferty wymaga powodu, a pola na powod nie ma.
+        // Gdyby brak pola znaczyl "warunek spelniony", oferta dalaby sie
+        // zamknac bez sladu, dlaczego klient jej nie przyjal — czyli
+        // dokladnie to, przed czym ten mechanizm ma chronic.
+        $order = $this->withList($this->order('DO_WYCENY'));
 
-        $step = $this->step($order, 'GOTOWE');
+        $step = $this->step($order, 'OFERTA_ODRZUCONA');
 
         $this->assertNotNull($step);
         $this->assertFalse($step->available);

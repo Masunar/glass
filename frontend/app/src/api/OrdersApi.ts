@@ -96,6 +96,10 @@ export type OrderPathStep = {
   is_subcontracted: boolean;
   items: number;
   amount: string;
+  /** `null` = zlecenie nie było jeszcze na produkcji, a nie „zero zrobione". */
+  done: number | null;
+  tasks: number | null;
+  problems: number;
 };
 
 export type OrderHistoryEntry = {

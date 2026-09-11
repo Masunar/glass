@@ -62,6 +62,13 @@ export const appRoutes = {
       { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
     ],
   },
+  production: {
+    path: '/produkcja',
+    file: 'produkcja',
+    permissions: [
+      { permission: Permission.PRODUCTION, subPermission: SubPermission.LIST },
+    ],
+  },
   contractors: {
     path: '/contractors',
     file: 'contractors',

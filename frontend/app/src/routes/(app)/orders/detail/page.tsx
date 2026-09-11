@@ -447,6 +447,27 @@ export default function Page() {
                         ? ` · ${t('page.orders.card.subcontracted')}`
                         : ''}
                     </div>
+                    {/* Pusty licznik znaczy „zlecenie nie bylo jeszcze
+                        na produkcji", nie „zero zrobione". */}
+                    {step.tasks !== null && (
+                      <div
+                        className={
+                          step.problems > 0
+                            ? 'ge-path__state ge-path__state--stuck'
+                            : 'ge-path__state'
+                        }
+                      >
+                        {t('page.orders.card.path_done', {
+                          done: step.done ?? 0,
+                          total: step.tasks,
+                        })}
+                        {step.problems > 0
+                          ? ` · ${t('page.orders.card.path_problems', {
+                              count: step.problems,
+                            })}`
+                          : ''}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

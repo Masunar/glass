@@ -10,6 +10,7 @@ use App\DTO\Orders\NextStep;
 use App\Enum\DeliveryMethod;
 use App\Enum\ContractorType;
 use App\Models\StatusTransition;
+use App\Services\Production\ProductionPlan;
 
 /**
  * Co można zrobić z tym zleceniem i czego brakuje, żeby móc.
@@ -30,6 +31,7 @@ final readonly class OrderNextStep
     public function __construct(
         private OrderValue $value = new OrderValue(),
         private ContractorBalance $balance = new ContractorBalance(),
+        private ProductionPlan $plan = new ProductionPlan(),
     ) {
     }
 
@@ -165,9 +167,12 @@ final readonly class OrderNextStep
             // klient, ktory cos wplacil, potwierdzil zamowienie czynem.
             'prepayment_or_credit_limit' => $this->prepaidOrWithinLimit($order),
             'balance_is_zero' => $this->balanceIsZero($order),
+            // Zlecenie bez ani jednego zadania nie ma czego czekać:
+            // pozycja usługowa bez procesów technologicznych nie
+            // przechodzi przez halę.
+            'all_production_tasks_done' => $this->plan->allDone($order),
 
             // Poniższe czekają na moduły, których nie ma. Nie zgadujemy.
-            'all_production_tasks_done' => null,
             'rejection_reason_set' => null,
 
             default => null,
@@ -182,7 +187,6 @@ final readonly class OrderNextStep
     private function missingModule(string $rule): string
     {
         return match ($rule) {
-            'all_production_tasks_done' => 'Wymaga ewidencji etapów produkcji — jeszcze jej nie ma.',
             'rejection_reason_set' => 'Wymaga pola „powód nieprzyjęcia oferty" — jeszcze go nie ma.',
             // Limit kupiecki i saldo sa kwotami brutto, a brutto bez
             // stawki VAT nie istnieje. To brak danej, nie brak modulu.

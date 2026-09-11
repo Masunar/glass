@@ -63,7 +63,10 @@
     "contractors": "Kontrahenci",
     "designers": "Projektanci",
     "offers": "Oferty",
-    "dictionaries": "Słowniki"
+    "dictionaries": "Słowniki",
+    "production": "Kolejka produkcji",
+    "tempering": "Hartownia",
+    "workload": "Obciążenie stanowisk"
   },
   "user_account": {
     "mfa": {
@@ -630,7 +633,7 @@
       "comment_offer": "Na ofertę",
       "none": "brak",
       "path": "Ścieżka produkcji",
-      "path_note": "z procesów przypisanych do pozycji — wykonania nikt jeszcze nie odnotowuje",
+      "path_note": "z procesów przypisanych do pozycji",
       "path_items_one": "{{count}} pozycja",
       "path_items_few": "{{count}} pozycje",
       "path_items_many": "{{count}} pozycji",
@@ -666,7 +669,12 @@
       "paid_none": "wpłat nie było",
       "paid_over": "nadpłata {{amount}}",
       "paid_unknown": "bez typu faktury nie znamy kwoty brutto — wpłacono {{paid}}",
-      "tab_payments": "Płatności"
+      "tab_payments": "Płatności",
+      "path_done": "{{done}} z {{total}} zrobione",
+      "path_problems_one": "{{count}} problem",
+      "path_problems_few": "{{count}} problemy",
+      "path_problems_many": "{{count}} problemów",
+      "path_problems_other": "{{count}} problemów"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -822,6 +830,70 @@
         "by": "Kto",
         "note": "Opis"
       }
+    }
+  },
+  "production": {
+    "loading": "Wczytywanie kolejki…",
+    "kicker": "Produkcja",
+    "title": "Kolejka stanowiska",
+    "count_zero": "Nic nie czeka",
+    "count_one": "{{count}} etap",
+    "count_few": "{{count}} etapy",
+    "count_many": "{{count}} etapów",
+    "count_other": "{{count}} etapów",
+    "overdue_one": "{{count}} po terminie",
+    "overdue_few": "{{count}} po terminie",
+    "overdue_many": "{{count}} po terminie",
+    "overdue_other": "{{count}} po terminie",
+    "problems_one": "{{count}} zgłoszony problem",
+    "problems_few": "{{count}} zgłoszone problemy",
+    "problems_many": "{{count}} zgłoszonych problemów",
+    "problems_other": "{{count}} zgłoszonych problemów",
+    "stations": "Stanowiska",
+    "all_stations": "Wszystkie",
+    "no_station": "Bez stanowiska",
+    "show_done": "pokaż zrobione",
+    "empty": "Na tym stanowisku nic nie czeka.",
+    "pick": "Wybierz pozycję z listy — strzałkami albo kliknięciem.",
+    "late_by_one": "{{count}} dzień po terminie",
+    "late_by_few": "{{count}} dni po terminie",
+    "late_by_many": "{{count}} dni po terminie",
+    "late_by_other": "{{count}} dni po terminie",
+    "in_days_zero": "dziś",
+    "in_days_one": "za {{count}} dzień",
+    "in_days_few": "za {{count}} dni",
+    "in_days_many": "za {{count}} dni",
+    "in_days_other": "za {{count}} dni",
+    "item": "Pozycja",
+    "size": "Wymiar",
+    "quantity": "Ilość",
+    "parameter": "Parametr",
+    "station": "Stanowisko",
+    "comment": "Uwagi do wykonania",
+    "start": "Zacznij",
+    "finish": "Wykonane",
+    "report": "Zgłoś problem",
+    "reopen": "Cofnij wykonanie",
+    "cancel": "Anuluj",
+    "started_at": "rozpoczęte {{when}}",
+    "done_at": "{{when}} · {{who}}",
+    "took": "{{minutes}} min na stanowisku",
+    "issue_type": "Co się stało",
+    "issue_note": "Opis",
+    "issue_hint": "bez tego nikt tego nie odblokuje",
+    "issue_save": "Zgłoś",
+    "keys": "Strzałki wybierają pozycję, Enter odhacza, S zaczyna, P zgłasza problem.",
+    "status": {
+      "pending": "czeka",
+      "in_progress": "w toku",
+      "done": "zrobione",
+      "problem": "stoi"
+    },
+    "issue": {
+      "breakage": "stłuczka",
+      "material": "brak materiału",
+      "drawing": "błąd rysunku",
+      "rework": "poprawka"
     }
   }
 }
