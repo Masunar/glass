@@ -21,12 +21,12 @@ use App\Models\ContractorAddress;
  * Reszta — pozycje, formatki, komentarze — jest uzasadnieniem tych
  * czterech odpowiedzi, nie osobnym tematem.
  *
- * **Czego tu nie ma i dlaczego.** Projekt przewiduje pasek „Do zapłaty"
- * z procentem wpłat i ścieżkę produkcji ze stanem etapów. Modułu wpłat
- * i ewidencji produkcji jeszcze nie ma, więc zamiast „0 % zapłacone"
- * (co jest zdaniem fałszywym, nie brakiem danych) karta pokazuje
- * wartość zlecenia, a przy ścieżce mówi wprost, że wykonania nikt
- * jeszcze nie odnotowuje.
+ * **Czego tu nie ma i dlaczego.** Ścieżka produkcji pokazuje etapy, ale
+ * nie ich stan — ewidencji wykonania jeszcze nie ma, a „0 % zrobione"
+ * byłoby zdaniem fałszywym, nie brakiem danych. Pasek „Do zapłaty"
+ * milczy o procencie, dopóki zlecenie nie ma typu faktury: bez stawki
+ * VAT nie znamy kwoty brutto, a procent liczony od netto pokazywałby
+ * spłacone więcej, niż jest.
  */
 final readonly class OrderCard
 {
@@ -34,6 +34,7 @@ final readonly class OrderCard
         private OrderNextStep $nextStep = new OrderNextStep(),
         private OrderValue $value = new OrderValue(),
         private OrderTabs $tabs = new OrderTabs(),
+        private ContractorBalance $balance = new ContractorBalance(),
     ) {
     }
 
@@ -56,6 +57,7 @@ final readonly class OrderCard
                 'discounts',
                 'lists.items.pane',
                 'lists.items.processes.process',
+                'payments',
             ])
             ->findOrFail($orderId);
 
@@ -66,6 +68,7 @@ final readonly class OrderCard
             'order' => $this->header($order, $day),
             'tabs' => $this->tabs->counts($order),
             'money' => $totals->toArray(),
+            'payment' => $this->payment($order, $totals->gross),
             'credit' => $this->credit($order, (float) $totals->net, $totals->vatRate),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
             'path' => $this->path($order),
@@ -143,9 +146,42 @@ final readonly class OrderCard
     }
 
     /**
-     * Limit kupiecki bez modułu wpłat da się zestawić tylko z tym jednym
-     * zleceniem. Ile klient jest winien z pozostałych — nie wiadomo,
-     * i ekran mówi to wprost zamiast pokazywać zaniżone wykorzystanie.
+     * Wpłaty i saldo zlecenia.
+     *
+     * Procent liczymy wyłącznie od brutto. Zlecenie bez typu faktury nie
+     * ma znanej kwoty do zapłaty, więc pasek pokazuje samą sumę wpłat
+     * i mówi, czego brakuje — zamiast dzielić przez netto i twierdzić,
+     * że klient zapłacił więcej, niż zapłacił.
+     *
+     * @return array<string, mixed>
+     */
+    private function payment(Order $order, ?string $gross): array
+    {
+        $paid = 0.0;
+
+        // Korekta jest zwyklym wierszem z kwota ujemna, wiec sumuje sie
+        // sama — nie ma tu zadnego wyjatku do obsluzenia.
+        foreach ($order->payments as $payment) {
+            $paid += (float) $payment->amount_base;
+        }
+
+        $due = $gross === null ? null : (float) $gross - $paid;
+
+        return [
+            'paid' => $this->amount($paid),
+            'due' => $due === null ? null : $this->amount($due),
+            'percent' => $gross === null || (float) $gross <= 0.0
+                ? null
+                : (int) round($paid / (float) $gross * 100),
+            'count' => $order->payments->count(),
+            'currency' => PaymentService::BASE_CURRENCY,
+        ];
+    }
+
+    /**
+     * Limit kupiecki zestawiony z całym długiem kontrahenta, nie z tym
+     * jednym zleceniem: pytanie brzmi „czy ten klient ma jeszcze limit",
+     * a nie „czy mieści się to zlecenie".
      *
      * @return array<string, mixed>|null
      */
@@ -159,12 +195,14 @@ final readonly class OrderCard
 
         $limit = (float) $contractor->credit_limit;
         $value = $vatRate === null ? $net : $net * (100 + $vatRate) / 100;
+        $outstanding = (float) $this->balance->outstanding($contractor);
 
         return [
             'limit' => $this->amount($limit),
             'payment_days' => $contractor->payment_days,
             'order_value' => $this->amount($value),
-            'exceeds_by' => $value > $limit ? $this->amount($value - $limit) : null,
+            'outstanding' => $this->amount($outstanding),
+            'exceeds_by' => $outstanding > $limit ? $this->amount($outstanding - $limit) : null,
             'is_gross' => $vatRate !== null,
         ];
     }

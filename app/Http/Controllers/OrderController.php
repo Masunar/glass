@@ -18,6 +18,7 @@ use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
+use App\Services\Orders\PaymentService;
 
 /**
  * Zlecenia: lista w pasmach pilności i karta pojedynczego zlecenia.
@@ -32,9 +33,10 @@ class OrderController extends ApiController
         private readonly OrderItemService $itemService,
         private readonly OrderDiscountService $discountService,
         private readonly OrderDrawingService $drawingService,
+        private readonly PaymentService $paymentService,
     ) {
         $this->protect(
-            ['board', 'card', 'items', 'drawings', 'drawingFile'],
+            ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments'],
             Permission::ORDERS->value,
             SubPermission::LIST->value,
         );
@@ -44,7 +46,10 @@ class OrderController extends ApiController
             SubPermission::CREATE->value,
         );
         $this->protect(
-            ['transition', 'savePane', 'saveService', 'saveDiscounts', 'addDrawing', 'declareDrawings'],
+            [
+                'transition', 'savePane', 'saveService', 'saveDiscounts',
+                'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
+            ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
         );
@@ -234,6 +239,47 @@ class OrderController extends ApiController
             }
 
             return $this->updatedResponse();
+        });
+    }
+
+    /** Wpłaty do zlecenia razem z saldem i limitem kupieckim. */
+    public function payments(int $order): JsonResponse
+    {
+        return $this->secure(fn(): JsonResponse => $this->dataResponse(
+            $this->paymentService->board($order),
+        ));
+    }
+
+    public function addPayment(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->paymentService->store($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Korekta wpłaty. Świadomie pod POST, a nie DELETE: nic nie znika,
+     * dopisujemy wiersz odwrotny.
+     */
+    public function reversePayment(Request $request, int $order, int $payment): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order, $payment): JsonResponse {
+            $result = $this->paymentService->reverse($order, $payment, $request->input('note'));
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['id' => $result['id']]);
         });
     }
 

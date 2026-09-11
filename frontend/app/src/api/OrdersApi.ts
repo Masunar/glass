@@ -108,6 +108,7 @@ export type OrderHistoryEntry = {
 export type OrderTabCounts = {
   panes: number;
   drawings: number;
+  payments: number;
   log: number;
 };
 
@@ -165,10 +166,13 @@ export type OrderCard = {
   };
   tabs: OrderTabCounts;
   money: OrderTotals;
+  payment: OrderPaymentSummary;
   credit: {
     limit: string;
     payment_days: number;
     order_value: string;
+    /** Cały dług kontrahenta, nie tylko to zlecenie. */
+    outstanding: string;
     exceeds_by: string | null;
     is_gross: boolean;
   } | null;
@@ -320,6 +324,58 @@ export type OrderDrawingsBoard = {
   max_kilobytes: number;
 };
 
+export type OrderPaymentSummary = {
+  paid: string;
+  /** Bez typu faktury nie znamy brutto, więc i salda. */
+  due: string | null;
+  percent: number | null;
+  count: number;
+  currency: string;
+};
+
+export type OrderPaymentRow = {
+  id: number;
+  amount: string;
+  currency: string;
+  exchange_rate: string;
+  amount_base: string;
+  paid_on: string;
+  register: string | null;
+  note: string | null;
+  /** Korekta: kwota ujemna wskazująca odwracaną wpłatę. */
+  is_reversal: boolean;
+  reverses_id: number | null;
+  is_reversed: boolean;
+  by: string | null;
+};
+
+export type OrderPaymentsBoard = {
+  order: { id: number; number: number; contractor: string | null };
+  tabs: OrderTabCounts;
+  payments: OrderPaymentRow[];
+  summary: {
+    net: string;
+    vat_rate: number | null;
+    gross: string | null;
+    paid: string;
+    due: string | null;
+    paid_percent: number | null;
+  };
+  credit: {
+    limit: string;
+    outstanding: string;
+    payment_days: number;
+  } | null;
+  registers: {
+    id: number;
+    name: string;
+    currency: string;
+    /** Kasa w innej walucie niż rozliczeniowa wymaga kursu. */
+    needs_rate: boolean;
+  }[];
+  base_currency: string;
+};
+
 export class OrdersApi extends ApiRequest {
   static prefix: string = '/orders';
 
@@ -431,6 +487,28 @@ export class OrdersApi extends ApiRequest {
   /** Plik idzie przez aplikację, nie z katalogu publicznego. */
   public static drawingUrl(id: number, drawingId: number): string {
     return `${this.baseUrl ?? ''}${this.prefix}/${id}/drawings/${drawingId}`;
+  }
+
+  public static async payments(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/${id}/payments`);
+  }
+
+  public static async addPayment(
+    id: number,
+    data: Record<string, unknown>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/payments`, data);
+  }
+
+  /** Korekta dopisuje wiersz odwrotny — nic nie znika, stąd POST. */
+  public static async reversePayment(
+    id: number,
+    paymentId: number,
+    note: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/payments/${paymentId}/reverse`, { note });
   }
 
   public static async transition(

@@ -29,6 +29,7 @@ final readonly class OrderNextStep
 {
     public function __construct(
         private OrderValue $value = new OrderValue(),
+        private ContractorBalance $balance = new ContractorBalance(),
     ) {
     }
 
@@ -160,10 +161,12 @@ final readonly class OrderNextStep
             // Komplet rysunkow deklaruje czlowiek, nie licznik plikow:
             // zlecenie na proste docinki nie potrzebuje zadnego rysunku.
             'all_drawings_added' => $order->drawings_complete_at !== null,
+            // Zaliczka albo limit kupiecki. Sama zaliczka wystarczy —
+            // klient, ktory cos wplacil, potwierdzil zamowienie czynem.
+            'prepayment_or_credit_limit' => $this->prepaidOrWithinLimit($order),
+            'balance_is_zero' => $this->balanceIsZero($order),
 
             // Poniższe czekają na moduły, których nie ma. Nie zgadujemy.
-            'prepayment_or_credit_limit' => null,
-            'balance_is_zero' => null,
             'all_production_tasks_done' => null,
             'rejection_reason_set' => null,
 
@@ -171,14 +174,72 @@ final readonly class OrderNextStep
         };
     }
 
+    /**
+     * Zdanie na „nie wiadomo". Czasem brakuje modułu, czasem samej
+     * danej — człowiek ma przeczytać, czego konkretnie, a nie „warunek
+     * nierozstrzygalny".
+     */
     private function missingModule(string $rule): string
     {
         return match ($rule) {
-            'prepayment_or_credit_limit', 'balance_is_zero' => 'Wymaga modułu wpłat — jeszcze go nie ma.',
             'all_production_tasks_done' => 'Wymaga ewidencji etapów produkcji — jeszcze jej nie ma.',
             'rejection_reason_set' => 'Wymaga pola „powód nieprzyjęcia oferty" — jeszcze go nie ma.',
+            // Limit kupiecki i saldo sa kwotami brutto, a brutto bez
+            // stawki VAT nie istnieje. To brak danej, nie brak modulu.
+            'prepayment_or_credit_limit', 'balance_is_zero' =>
+                'Bez typu faktury nie znamy kwoty brutto — limit i saldo są kwotami brutto.',
             default => sprintf('Nieznany warunek „%s" — nie da się go rozstrzygnąć.', $rule),
         };
+    }
+
+    /**
+     * Zaliczka albo limit. „Nie wiadomo" tylko wtedy, gdy nie znamy
+     * kwoty brutto — zlecenie bez typu faktury nie ma jak zmierzyć się
+     * z limitem, który jest kwotą brutto.
+     */
+    /**
+     * Lista zleceń sprawdza ten warunek dla każdego wiersza, więc musi
+     * móc wypełnić pamięć sald jednym zapytaniem zamiast dwustu.
+     */
+    public function balance(): ContractorBalance
+    {
+        return $this->balance;
+    }
+
+    private function prepaidOrWithinLimit(Order $order): ?bool
+    {
+        $paid = 0.0;
+
+        foreach ($order->payments as $payment) {
+            $paid += (float) $payment->amount_base;
+        }
+
+        if ($paid > 0.0) {
+            return true;
+        }
+
+        return $this->balance->withinLimit($order);
+    }
+
+    /**
+     * Saldo zamknięte. Bez typu faktury nie znamy kwoty brutto, więc
+     * nie da się powiedzieć, czy zlecenie jest zapłacone.
+     */
+    private function balanceIsZero(Order $order): ?bool
+    {
+        $gross = $this->value->totals($order)->gross;
+
+        if ($gross === null) {
+            return null;
+        }
+
+        $paid = 0.0;
+
+        foreach ($order->payments as $payment) {
+            $paid += (float) $payment->amount_base;
+        }
+
+        return round((float) $gross - $paid, 2) <= 0.0;
     }
 
     /**

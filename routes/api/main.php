@@ -76,4 +76,8 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/{order}/drawings/{drawing}', [OrderController::class, 'drawingFile'])->name('drawing_file');
     Route::delete('/{order}/drawings/{drawing}', [OrderController::class, 'deleteDrawing'])->name('drawing_delete');
     Route::put('/{order}/drawings-complete', [OrderController::class, 'declareDrawings'])->name('drawings_declare');
+    Route::get('/{order}/payments', [OrderController::class, 'payments'])->name('payments');
+    Route::post('/{order}/payments', [OrderController::class, 'addPayment'])->name('payment_add');
+    // Korekta dopisuje wiersz, nie kasuje — stad POST.
+    Route::post('/{order}/payments/{payment}/reverse', [OrderController::class, 'reversePayment'])->name('payment_reverse');
 });

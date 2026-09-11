@@ -7,6 +7,7 @@ namespace App\Services\Orders;
 use App\Enum\Section;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\AuditEntry;
 use App\Models\OrderDrawing;
 
@@ -21,7 +22,7 @@ use App\Models\OrderDrawing;
 final readonly class OrderTabs
 {
     /**
-     * @return array{panes: int, drawings: int, log: int}
+     * @return array{panes: int, drawings: int, payments: int, log: int}
      */
     public function counts(Order $order): array
     {
@@ -33,6 +34,7 @@ final readonly class OrderTabs
                 ->whereHas('list', static fn($query) => $query->where('order_id', $id))
                 ->count(),
             'drawings' => OrderDrawing::query()->where('order_id', $id)->count(),
+            'payments' => Payment::query()->where('order_id', $id)->count(),
             'log' => AuditEntry::query()
                 ->where('auditable_type', Order::class)
                 ->where('auditable_id', $id)

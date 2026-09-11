@@ -54,6 +54,7 @@ final readonly class OrderBoardService
                 'invoiceType',
                 'discounts',
                 'lists.items.processes',
+                'payments',
             ])
             ->when(
                 $statusCode !== null && $statusCode !== '',
@@ -69,6 +70,15 @@ final readonly class OrderBoardService
             ->orderByDesc('number')
             ->limit($limit)
             ->get();
+
+        // Warunek zaliczki pyta o saldo kontrahenta przy kazdym wierszu.
+        // Jedno pobranie dla wszystkich naraz zamiast dwustu osobnych.
+        $this->nextStep->balance()->preload(array_values(array_filter(
+            $orders->pluck('contractor_id')->unique()->map(
+                static fn($id): int => (int) $id,
+            )->all(),
+            static fn(int $id): bool => $id > 0,
+        )));
 
         $bands = ['today' => [], 'overdue' => [], 'later' => []];
 

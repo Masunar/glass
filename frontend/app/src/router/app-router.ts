@@ -48,6 +48,13 @@ export const appRoutes = {
       { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
     ],
   },
+  orderPayments: {
+    path: '/orders/:id/platnosci',
+    file: 'orders/platnosci',
+    permissions: [
+      { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
+    ],
+  },
   orderLog: {
     path: '/orders/:id/dziennik',
     file: 'orders/dziennik',
