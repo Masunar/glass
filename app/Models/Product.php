@@ -55,11 +55,13 @@ class Product extends Dateable
         ];
     }
 
+    /** @return BelongsTo<ProductGroup, $this> */
     public function group(): BelongsTo
     {
         return $this->belongsTo(ProductGroup::class, 'product_group_id', 'id');
     }
 
+    /** @return HasOne<ProductGlass, $this> */
     public function glass(): HasOne
     {
         return $this->hasOne(ProductGlass::class, 'product_id', 'id');

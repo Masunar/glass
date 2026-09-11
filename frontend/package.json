@@ -7,7 +7,8 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
+    "typecheck": "react-router typegen && node scripts/typecheck.mjs",
+    "typecheck:all": "react-router typegen && tsc",
     "lint": "eslint app/src",
     "pretty": "prettier --write ./app ./salvon"
   },
