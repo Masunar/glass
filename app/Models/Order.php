@@ -53,6 +53,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read User|null $creator
  * @property-read InvoiceType|null $invoiceType
  * @property-read Collection<int, OrderDrawing> $drawings
+ * @property-read Collection<int, Payment> $payments
  */
 class Order extends Dateable
 {
@@ -148,6 +149,17 @@ class Order extends Dateable
     public function drawings(): HasMany
     {
         return $this->hasMany(OrderDrawing::class, 'order_id', 'id');
+    }
+
+    /**
+     * Wpłaty do zlecenia — razem z korektami, bo storno jest zwykłym
+     * wierszem z kwotą ujemną.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'order_id', 'id');
     }
 
     /**

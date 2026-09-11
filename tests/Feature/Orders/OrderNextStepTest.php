@@ -15,7 +15,10 @@ use App\Enum\StatusDomain;
 use App\Models\Contractor;
 use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
+use App\Models\Payment;
 use App\Models\InvoiceType;
+use App\Models\CashRegister;
+use App\Enum\PaymentChannel;
 use App\Services\Orders\OrderNextStep;
 use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
@@ -167,10 +170,84 @@ class OrderNextStepTest extends TestCase
     #[Test]
     public function warunku_bez_modulu_nie_przepuszczamy(): void
     {
-        // Przekazanie do produkcji zalezy od zaliczki i limitu kredytowego,
-        // a modulu wplat nie ma. Gdyby brak modulu znaczyl "warunek
-        // spelniony", zlecenie trafialoby do produkcji bez zaliczki —
-        // czyli dokladnie to, przed czym ten mechanizm ma chronic.
+        // Oznaczenie zlecenia jako gotowe zalezy od wykonanych etapow
+        // produkcji, a ewidencji produkcji nie ma. Gdyby brak modulu
+        // znaczyl "warunek spelniony", zlecenie szloby dalej bez
+        // wykonania — czyli dokladnie to, przed czym to ma chronic.
+        $order = $this->withList($this->order('PRODUKCJA'));
+
+        $step = $this->step($order, 'GOTOWE');
+
+        $this->assertNotNull($step);
+        $this->assertFalse($step->available);
+        $this->assertTrue($step->unknown);
+        $this->assertStringContainsString('jeszcze', (string) $step->blockedBy);
+    }
+
+    #[Test]
+    public function bez_zaliczki_i_bez_limitu_produkcja_stoi(): void
+    {
+        // Kontrahent z zerowym limitem i zlecenie bez wplaty: warunek
+        // jest dzis sprawdzalny, wiec czlowiek dostaje konkretny powod,
+        // a nie "poczekaj na modul".
+        $order = $this->withDrawings($this->withList($this->order('ZLECENIE', [
+            'invoice_type_id' => $this->invoiceType()->id,
+        ])));
+
+        $step = $this->step($order, 'PRODUKCJA');
+
+        $this->assertNotNull($step);
+        $this->assertFalse($step->available);
+        $this->assertFalse($step->unknown);
+        $this->assertSame(
+            'Brak zaliczki, a kontrahent nie mieści się w limicie kredytowym.',
+            $step->blockedBy,
+        );
+    }
+
+    #[Test]
+    public function sama_zaliczka_wystarczy_zeby_ruszyc_produkcje(): void
+    {
+        $order = $this->withDrawings($this->withList($this->order('ZLECENIE', [
+            'invoice_type_id' => $this->invoiceType()->id,
+        ])));
+
+        /** @var CashRegister $register */
+        $register = CashRegister::query()->create([
+            'name' => 'Kasa testowa ' . random_int(1000, 9999),
+            'channel' => PaymentChannel::CASH->value,
+            'default_currency' => 'PLN',
+            'is_active' => true,
+            'position' => 1,
+        ]);
+
+        // Klient, ktory cos wplacil, potwierdzil zamowienie czynem —
+        // limit kupiecki przestaje byc pytaniem.
+        Payment::query()->create([
+            'order_id' => $order->id,
+            'cash_register_id' => $register->id,
+            'amount' => '100.00',
+            'currency' => 'PLN',
+            'exchange_rate' => '1.000000',
+            'amount_base' => '100.00',
+            'paid_on' => Carbon::now()->toDateString(),
+        ]);
+
+        $step = $this->step(
+            $order->fresh(['lists.items.processes', 'payments']) ?? $order,
+            'PRODUKCJA',
+        );
+
+        $this->assertNotNull($step);
+        $this->assertTrue($step->available, (string) $step->blockedBy);
+    }
+
+    #[Test]
+    public function bez_typu_faktury_limit_jest_nierozstrzygalny(): void
+    {
+        // Limit kupiecki jest kwota brutto, a brutto bez stawki VAT nie
+        // istnieje. To brak danej, nie brak modulu — i tak tez brzmi
+        // zdanie, ktore dostaje czlowiek.
         $order = $this->withDrawings($this->withList($this->order('ZLECENIE')));
 
         $step = $this->step($order, 'PRODUKCJA');
@@ -178,7 +255,7 @@ class OrderNextStepTest extends TestCase
         $this->assertNotNull($step);
         $this->assertFalse($step->available);
         $this->assertTrue($step->unknown);
-        $this->assertStringContainsString('jeszcze', (string) $step->blockedBy);
+        $this->assertStringContainsString('typu faktury', (string) $step->blockedBy);
     }
 
     #[Test]

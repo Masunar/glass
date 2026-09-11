@@ -99,6 +99,7 @@ export default function Page() {
 
   const due = order.deadline;
   const vat = card.money.vat_rate;
+  const paid = card.payment;
 
   return (
     <>
@@ -246,6 +247,42 @@ export default function Page() {
           }
         />
 
+        <Strip
+          // Nadplata to anomalia i zasluguje na czerwony pasek. Samo
+          // „jeszcze nie zaplacone" nia nie jest — kazde swieze zlecenie
+          // tak wyglada, a pasek alarmowy na wszystkim nie alarmuje.
+          variant={
+            paid.due !== null && Number(paid.due) < 0 ? 'alert' : 'money'
+          }
+          label={t('page.orders.card.paid')}
+          value={paid.due === null ? '—' : money(paid.due)}
+          noteWarn={paid.due === null}
+          // Procent tylko od brutto. Liczony od netto pokazywalby
+          // splacone wiecej, niz jest — a to jest klamstwo o pieniadzach.
+          note={
+            paid.due === null
+              ? t('page.orders.card.paid_unknown', { paid: money(paid.paid) })
+              : Number(paid.paid) === 0
+                ? t('page.orders.card.paid_none')
+                : Number(paid.due) < 0
+                  ? t('page.orders.card.paid_over', {
+                      amount: money(String(-Number(paid.due))),
+                    })
+                  : t('page.orders.card.paid_note', {
+                      paid: money(paid.paid),
+                      gross: money(card.money.gross ?? '0'),
+                      percent: paid.percent ?? 0,
+                    })
+          }
+          text={
+            <span className="ge-from">
+              <Link to={`/orders/${id}/platnosci`} className="ge-from__link">
+                {t('page.orders.payments.count', { count: paid.count })} →
+              </Link>
+            </span>
+          }
+        />
+
         {card.credit && (
           <Strip
             variant={card.credit.exceeds_by ? 'alert' : 'plain'}
@@ -262,15 +299,17 @@ export default function Page() {
                   })
             }
             // Sam limit nic nie mowi, dopoki nie widac, z czym go
-            // porownujemy — i czego w tym porownaniu brakuje.
+            // porownujemy: dlug kontrahenta ze wszystkich otwartych
+            // zlecen, a obok udzial tego jednego.
             text={
               <span className="ge-from">
                 <span className="ge-from__row">
+                  <span>{t('page.orders.card.credit_outstanding')}</span>
+                  <span>{money(card.credit.outstanding)}</span>
+                </span>
+                <span className="ge-from__row ge-from__row--off">
                   <span>{t('page.orders.card.credit_this_order')}</span>
                   <span>{money(card.credit.order_value)}</span>
-                </span>
-                <span className="ge-from__note">
-                  {t('page.orders.card.credit_missing')}
                 </span>
               </span>
             }

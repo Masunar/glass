@@ -216,6 +216,8 @@
   border-bottom-color: var(--ge-mod);
 }
 .ge-uf__error { font-size: 12px; color: var(--m-alert); padding-top: 4px; }
+/* Podpowiedz pod polem: zdanie, ktore tlumaczy pole, a nie krzyczy. */
+.ge-uf__hint { display: block; font-size: 11.5px; color: var(--ge-neutral-600); padding-top: 4px; }
 .ge-uf.is-invalid .ge-uf__input { border-bottom-color: var(--m-alert); }
 
 /* Natywna lista rozwijana w jezyku pozostalych pol: podkreslenie,
