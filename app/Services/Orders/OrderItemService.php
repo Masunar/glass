@@ -39,6 +39,7 @@ final readonly class OrderItemService
         private OrderPricing $pricing = new OrderPricing(),
         private OrderValue $value = new OrderValue(),
         private OrderDiscountService $discounts = new OrderDiscountService(),
+        private OrderTabs $tabs = new OrderTabs(),
         private AuditTrail $audit = new AuditTrail(),
     ) {
     }
@@ -116,6 +117,7 @@ final readonly class OrderItemService
                 'status' => $order->status?->name,
                 'contractor' => $order->contractor?->displayName(),
             ],
+            'tabs' => $this->tabs->counts($order),
             'lists' => $lists,
             // Sumy pieniezne licza sie w jednym miejscu dla wszystkich
             // ekranow; tutaj dochodza tylko wielkosci fizyczne szkla.

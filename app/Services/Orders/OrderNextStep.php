@@ -157,12 +157,14 @@ final readonly class OrderNextStep
             'pickup_point_set' => $order->pickup_location_id !== null,
             'no_open_complaint' => !$order->has_open_claim,
             'cancellation_reason_set' => $order->cancellation_reason !== null,
+            // Komplet rysunkow deklaruje czlowiek, nie licznik plikow:
+            // zlecenie na proste docinki nie potrzebuje zadnego rysunku.
+            'all_drawings_added' => $order->drawings_complete_at !== null,
 
             // Poniższe czekają na moduły, których nie ma. Nie zgadujemy.
             'prepayment_or_credit_limit' => null,
             'balance_is_zero' => null,
             'all_production_tasks_done' => null,
-            'all_drawings_added' => null,
             'rejection_reason_set' => null,
 
             default => null,
@@ -174,7 +176,6 @@ final readonly class OrderNextStep
         return match ($rule) {
             'prepayment_or_credit_limit', 'balance_is_zero' => 'Wymaga modułu wpłat — jeszcze go nie ma.',
             'all_production_tasks_done' => 'Wymaga ewidencji etapów produkcji — jeszcze jej nie ma.',
-            'all_drawings_added' => 'Wymaga oznaczenia rysunków na zleceniu — jeszcze go nie ma.',
             'rejection_reason_set' => 'Wymaga pola „powód nieprzyjęcia oferty" — jeszcze go nie ma.',
             default => sprintf('Nieznany warunek „%s" — nie da się go rozstrzygnąć.', $rule),
         };

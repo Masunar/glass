@@ -1,9 +1,10 @@
 import DiscountPanel from '../_components/DiscountPanel';
+import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
 import { useEffect, useState } from 'react';
 import { PiPlus, PiTrash } from 'react-icons/pi';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { Button } from '@salvon/components/button';
 import { useTranslation } from '@salvon/hooks/useTranslation';
@@ -71,7 +72,6 @@ export default function Page() {
     return <div className="ge-empty">{t('page.orders.card.loading')}</div>;
   }
 
-  const panes = board.lists.reduce((sum, list) => sum + list.glass.length, 0);
   const totals = board.totals;
 
   return (
@@ -107,12 +107,7 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.orders.card.sections')}>
-        <Link to={`/orders/${id}`}>{t('page.orders.card.tab_card')}</Link>
-        <span className="ge-filters__here">
-          {t('page.orders.card.tab_panes')} {panes}
-        </span>
-      </nav>
+      <OrderTabs orderId={id} active="panes" counts={board.tabs} />
 
       <div className="ge-card">
         <div className="ge-card__main">
@@ -244,6 +239,7 @@ function ListBlock({
 }) {
   const title =
     list.name ?? t('page.orders.card.list', { number: list.number });
+  const [shown, setShown] = useState<number | null>(null);
 
   return (
     <div className={list.is_included ? undefined : 'ge-list--off'}>
@@ -289,7 +285,16 @@ function ListBlock({
               {decimal(row.m2, 2)} / {decimal(row.mb, 2)}
             </span>
             <span className="r ge-dim">
-              {money(row.total)}
+              {/* Kwota bez sladu to liczba bez pochodzenia — a tu naklada
+                  sie cennik, minimalna powierzchnia, doplaty i procesy. */}
+              <button
+                type="button"
+                className="ge-amount"
+                aria-expanded={shown === row.id}
+                onClick={() => setShown(shown === row.id ? null : row.id)}
+              >
+                {money(row.total)}
+              </button>
               {Number(row.total) === 0 && (
                 <div className="ge-note ge-note--warn">
                   {t('page.orders.panes.no_price')}
@@ -308,6 +313,46 @@ function ListBlock({
                 <PiTrash />
               </button>
             </span>
+
+            {shown === row.id && (
+              <div className="ge-path__trace">
+                <div className="ge-path__trace-head">
+                  {t('page.orders.panes.section.path')}
+                </div>
+                {row.price_path.length === 0 ? (
+                  <div className="ge-quiet">
+                    {t('page.orders.panes.no_trace')}
+                  </div>
+                ) : (
+                  row.price_path.map((step, position) => (
+                    <div className="ge-kv" key={position}>
+                      <span className="ge-kv__k">
+                        {step.label}
+                        {step.detail && (
+                          <span className="ge-quiet"> — {step.detail}</span>
+                        )}
+                      </span>
+                      <span className="ge-dim">{step.value}</span>
+                    </div>
+                  ))
+                )}
+                {row.processes.length > 0 && (
+                  <div className="ge-kv">
+                    <span className="ge-kv__k">
+                      {t('page.orders.panes.column.processes')}
+                    </span>
+                    <span className="ge-dim">
+                      {money(
+                        row.processes.reduce(
+                          (sum, entry) => sum + Number(entry.amount),
+                          0,
+                        ),
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
 

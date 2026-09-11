@@ -6,14 +6,17 @@ namespace App\Http\Controllers;
 
 use App\Enum\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Salvon\Enum\SubPermission;
 use Illuminate\Http\JsonResponse;
 use Salvon\Controller\ApiController;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use App\Services\Orders\OrderCard;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderDiscountService;
+use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
 
 /**
@@ -28,19 +31,28 @@ class OrderController extends ApiController
         private readonly OrderService $service,
         private readonly OrderItemService $itemService,
         private readonly OrderDiscountService $discountService,
+        private readonly OrderDrawingService $drawingService,
     ) {
-        $this->protect(['board', 'card', 'items'], Permission::ORDERS->value, SubPermission::LIST->value);
+        $this->protect(
+            ['board', 'card', 'items', 'drawings', 'drawingFile'],
+            Permission::ORDERS->value,
+            SubPermission::LIST->value,
+        );
         $this->protect(
             ['formOptions', 'create'],
             Permission::ORDERS->value,
             SubPermission::CREATE->value,
         );
         $this->protect(
-            ['transition', 'savePane', 'saveService', 'saveDiscounts'],
+            ['transition', 'savePane', 'saveService', 'saveDiscounts', 'addDrawing', 'declareDrawings'],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
         );
-        $this->protect(['deleteItem'], Permission::ORDERS->value, SubPermission::DELETE->value);
+        $this->protect(
+            ['deleteItem', 'deleteDrawing'],
+            Permission::ORDERS->value,
+            SubPermission::DELETE->value,
+        );
     }
 
     public function board(Request $request): JsonResponse
@@ -141,6 +153,81 @@ class OrderController extends ApiController
             $input = $request->input('discounts', []);
 
             $result = $this->discountService->save($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
+        });
+    }
+
+    /** Rysunki zlecenia razem z oświadczeniem o komplecie. */
+    public function drawings(int $order): JsonResponse
+    {
+        return $this->secure(fn(): JsonResponse => $this->dataResponse(
+            $this->drawingService->board($order),
+        ));
+    }
+
+    public function addDrawing(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            $result = $this->drawingService->store(
+                $order,
+                $request->file('file') instanceof UploadedFile ? $request->file('file') : null,
+                $request->input('order_item_id'),
+                $request->input('note'),
+            );
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Plik idzie strumieniem przez aplikację, a nie z katalogu publicznego —
+     * rysunek techniczny klienta nie ma leżeć pod zgadywalnym adresem.
+     */
+    public function drawingFile(int $order, int $drawing): HttpResponse
+    {
+        return $this->secure(function () use ($order, $drawing): HttpResponse {
+            $file = $this->drawingService->file($order, $drawing);
+
+            if ($file === null) {
+                return $this->notFoundResponse();
+            }
+
+            // Pobrany plik ma sie nazywac tak, jak go wgrano — na dysku
+            // lezy pod nazwa wygenerowana, zeby dwa "rysunek.pdf" sie nie
+            // nadpisaly, ale czlowiekowi to nic nie mowi.
+            return response()->download(
+                $this->drawingService->path($file),
+                $file->original_name,
+            );
+        });
+    }
+
+    public function deleteDrawing(int $order, int $drawing): JsonResponse
+    {
+        return $this->secure(function () use ($order, $drawing): JsonResponse {
+            $result = $this->drawingService->delete($order, $drawing);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->deletedResponse();
+        });
+    }
+
+    public function declareDrawings(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            $result = $this->drawingService->declare($order, $request->boolean('complete'));
 
             if ($result['errors'] !== []) {
                 return $this->validationResponse($result['errors']);

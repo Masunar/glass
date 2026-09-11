@@ -269,3 +269,170 @@
 
 .ge-disc__summary { padding-top: 10px; }
 .ge-disc__value { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+
+/* ---------- rysunki ---------- */
+
+.ge-upload__meta {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  padding-bottom: 14px;
+}
+
+.ge-draw {
+  display: grid;
+  grid-template-columns: 24px minmax(200px, 1fr) 80px 180px 32px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+}
+.ge-draw:last-of-type { border-bottom: 0; }
+.ge-draw__icon { color: var(--ge-neutral-600); display: grid; place-items: center; }
+.ge-draw__name { display: flex; flex-direction: column; min-width: 0; }
+.ge-draw__name a { color: var(--ge-text); font-size: 14px; }
+.ge-draw__name .ge-quiet { font-size: 12px; }
+.ge-draw__remove {
+  border: 0;
+  background: none;
+  color: var(--ge-neutral-600);
+  cursor: pointer;
+  padding: 2px;
+}
+.ge-draw__remove:hover { color: var(--m-alert); }
+
+/* Oswiadczenie, nie checkbox: widac kto i kiedy, bo produkcja rusza
+   na jego podstawie. */
+.ge-draw__declared {
+  font-size: 14px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--m-mag);
+  background: var(--m-mag-tint);
+}
+
+/* ---------- paski decyzyjne: rowna wysokosc ---------- */
+
+/* Pasek "co dalej" rosl razem z liczba slepych sciezek i rozpychal caly
+   rzad przy kazdym zleceniu inaczej. Teraz niesie jedno zdanie, a rzad
+   ma staly rytm niezaleznie od tego, ile przejsc wychodzi ze statusu. */
+.ge-strips .ge-strip {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+}
+.ge-strips .ge-strip .ge-strip__note { margin-top: auto; }
+
+/* ---------- skad ta liczba ---------- */
+
+/* Kwota bez rozbicia jest liczba bez pochodzenia. Rozbicie stoi pod nia
+   drobnym drukiem — nie konkuruje z wartoscia, ale odpowiada na pytanie
+   zadawane najczesciej. */
+.ge-from { display: flex; flex-direction: column; gap: 1px; padding-top: 4px; }
+.ge-from__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+}
+.ge-from__row--off { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
+.ge-from__note { font-size: 11.5px; color: var(--ge-neutral-600); padding-top: 2px; }
+.ge-from__link {
+  font-size: 12px;
+  padding-top: 3px;
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  text-decoration: none;
+}
+.ge-from__link:hover { text-decoration: underline; }
+
+/* ---------- menu "Wiecej" ---------- */
+
+.ge-menu { position: relative; }
+.ge-menu__list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  min-width: 300px;
+  background: var(--ge-surface);
+  border: 1px solid var(--ge-neutral-900);
+  box-shadow: var(--ge-shadow-md, 0 8px 24px rgb(0 0 0 / 14%));
+}
+.ge-menu__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--ge-divider);
+  background: none;
+  font: inherit;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+.ge-menu__item:last-child { border-bottom: 0; }
+.ge-menu__item:hover:not(:disabled) { background: var(--ge-mod-tint); }
+/* Zablokowane zostaje widoczne z powodem — brak pozycji nie odpowiada
+   na pytanie "dlaczego nie moge". */
+.ge-menu__item:disabled { cursor: default; opacity: 0.75; }
+.ge-menu__label { font-size: 14px; }
+.ge-menu__why { font-size: 12px; color: var(--ge-neutral-600); }
+.ge-menu__item--danger .ge-menu__label { color: var(--m-alert); }
+
+/* ---------- pasek powodu ---------- */
+
+.ge-reasonbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 24px 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--m-alert);
+  background: var(--m-alert-tint);
+  font-size: 13.5px;
+}
+.ge-reasonbar input {
+  flex: 1;
+  height: 30px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-500);
+  background: transparent;
+  font: inherit;
+  color: var(--ge-text);
+}
+
+/* ---------- dziennik ---------- */
+
+.ge-log__who { font-weight: 500; margin-right: 8px; }
+.ge-log__change { display: block; }
+.ge-log__before { color: var(--ge-neutral-600); text-decoration: line-through; }
+
+/* Kwota jako przycisk: klikniecie rozwija slad wyliczenia pod wierszem. */
+.ge-amount {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  border-bottom: 1px dotted var(--ge-neutral-500);
+}
+.ge-amount:hover { border-bottom-color: var(--ge-mod); }
+
+.ge-path__trace {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--ge-neutral-100);
+  border-left: 3px solid var(--ge-mod);
+}
+.ge-path__trace-head {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-bottom: 4px;
+}

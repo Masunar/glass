@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Orders;
 
+use Carbon\Carbon;
 use Tests\TestCase;
 use App\Enum\Section;
 use App\Models\Order;
@@ -110,6 +111,21 @@ class OrderNextStepTest extends TestCase
         return $order->fresh(['lists.items.processes']) ?? $order;
     }
 
+    /**
+     * Oswiadczenie o komplecie rysunkow. W prawdziwym obiegu biuro
+     * sklada je przed przekazaniem na produkcje, wiec testy o dalszych
+     * warunkach musza zaczynac od tego samego miejsca.
+     */
+    private function withDrawings(Order $order): Order
+    {
+        $order->update([
+            'drawings_complete_at' => Carbon::now(),
+            'drawings_complete_by' => null,
+        ]);
+
+        return $order->fresh(['lists.items.processes']) ?? $order;
+    }
+
     private function step(Order $order, string $toCode): ?object
     {
         foreach ($this->steps->forOrder($order) as $step) {
@@ -155,7 +171,7 @@ class OrderNextStepTest extends TestCase
         // a modulu wplat nie ma. Gdyby brak modulu znaczyl "warunek
         // spelniony", zlecenie trafialoby do produkcji bez zaliczki —
         // czyli dokladnie to, przed czym ten mechanizm ma chronic.
-        $order = $this->withList($this->order('ZLECENIE'));
+        $order = $this->withDrawings($this->withList($this->order('ZLECENIE')));
 
         $step = $this->step($order, 'PRODUKCJA');
 
@@ -200,7 +216,9 @@ class OrderNextStepTest extends TestCase
     #[Test]
     public function wstrzymana_lista_zatrzymuje_zlecenie(): void
     {
-        $order = $this->withList($this->order('ZLECENIE'), onHold: true);
+        $order = $this->withDrawings(
+            $this->withList($this->order('ZLECENIE'), onHold: true),
+        );
 
         $step = $this->step($order, 'PRODUKCJA');
 

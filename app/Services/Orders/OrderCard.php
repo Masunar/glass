@@ -33,6 +33,7 @@ final readonly class OrderCard
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
         private OrderValue $value = new OrderValue(),
+        private OrderTabs $tabs = new OrderTabs(),
     ) {
     }
 
@@ -63,6 +64,7 @@ final readonly class OrderCard
 
         return [
             'order' => $this->header($order, $day),
+            'tabs' => $this->tabs->counts($order),
             'money' => $totals->toArray(),
             'credit' => $this->credit($order, (float) $totals->net, $totals->vatRate),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
