@@ -71,4 +71,9 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::put('/{order}/services/{item}', [OrderController::class, 'saveService'])->name('service_update');
     Route::delete('/{order}/items/{item}', [OrderController::class, 'deleteItem'])->name('item_delete');
     Route::put('/{order}/discounts', [OrderController::class, 'saveDiscounts'])->name('discounts');
+    Route::get('/{order}/drawings', [OrderController::class, 'drawings'])->name('drawings');
+    Route::post('/{order}/drawings', [OrderController::class, 'addDrawing'])->name('drawing_add');
+    Route::get('/{order}/drawings/{drawing}', [OrderController::class, 'drawingFile'])->name('drawing_file');
+    Route::delete('/{order}/drawings/{drawing}', [OrderController::class, 'deleteDrawing'])->name('drawing_delete');
+    Route::put('/{order}/drawings-complete', [OrderController::class, 'declareDrawings'])->name('drawings_declare');
 });

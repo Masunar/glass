@@ -741,6 +741,29 @@
       "save": "Zapisz rabat",
       "before": "Przed rabatem",
       "applied": "{{base}} przed rabatem, rabat {{discount}}"
+    },
+    "drawings": {
+      "title": "Rysunki",
+      "count_zero": "Brak rysunków",
+      "count_one": "{{count}} rysunek",
+      "count_few": "{{count}} rysunki",
+      "count_many": "{{count}} rysunków",
+      "count_other": "{{count}} rysunków",
+      "add": "Dodaj rysunek",
+      "formats": "{{list}} · do {{mb}} MB",
+      "item": "Czego dotyczy",
+      "whole_order": "całe zlecenie",
+      "note": "Opis",
+      "note_hint": "opcjonalnie — co przedstawia",
+      "rejected": "Plik odrzucony: zły format albo za duży.",
+      "list": "Wgrane rysunki",
+      "empty": "Do tego zlecenia nie wgrano jeszcze żadnego rysunku.",
+      "declaration": "Komplet rysunków",
+      "declaration_note": "Produkcja rusza na podstawie tego oświadczenia, więc zostanie zapisane, kto i kiedy je złożył. Zlecenie na proste docinki może nie potrzebować żadnego rysunku — o komplecie decydujesz Ty, nie liczba plików.",
+      "declare": "Potwierdzam komplet",
+      "declared_by": "{{who}}, {{when}}",
+      "withdraw": "Cofnij oświadczenie",
+      "withdraw_note": "Dodanie lub usunięcie rysunku cofa oświadczenie — po zmianie kompletu trzeba potwierdzić go jeszcze raz."
     }
   }
 }

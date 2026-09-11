@@ -235,6 +235,9 @@ export default function Page() {
           {t('page.orders.card.tab_panes')}{' '}
           {card.lists.reduce((sum, list) => sum + list.items.length, 0)}
         </Link>
+        <Link to={`/orders/${id}/rysunki`}>
+          {t('page.orders.drawings.title')}
+        </Link>
       </nav>
 
       <div className="ge-card">

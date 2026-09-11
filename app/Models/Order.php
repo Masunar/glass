@@ -43,6 +43,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $shift_reason
  * @property string|null $cancellation_reason
  * @property int|null $created_by
+ * @property int|null $drawings_complete_by
+ * @property Carbon|null $drawings_complete_at
  * @property-read Collection<int, OrderList> $lists
  * @property-read Collection<int, OrderDiscount> $discounts
  * @property-read Contractor|null $contractor
@@ -50,6 +52,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Location|null $pickupLocation
  * @property-read User|null $creator
  * @property-read InvoiceType|null $invoiceType
+ * @property-read Collection<int, OrderDrawing> $drawings
  */
 class Order extends Dateable
 {
@@ -65,6 +68,7 @@ class Order extends Dateable
         'client_deadline', 'production_deadline', 'shifted_deadline',
         'shift_reason', 'shift_approved_by', 'cancellation_reason',
         'created_by', 'measurement_id',
+        'drawings_complete_by', 'drawings_complete_at',
     ];
 
     protected function casts(): array
@@ -79,6 +83,7 @@ class Order extends Dateable
             'client_deadline' => 'date',
             'production_deadline' => 'date',
             'shifted_deadline' => 'date',
+            'drawings_complete_at' => 'datetime',
         ];
     }
 
@@ -132,6 +137,17 @@ class Order extends Dateable
     public function pickupLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'pickup_location_id', 'id');
+    }
+
+    /**
+     * Rysunki zlecenia. Produkcja nie ruszy bez kompletu — a o tym, czy
+     * komplet jest, decyduje człowiek, nie liczba plików.
+     *
+     * @return HasMany<OrderDrawing, $this>
+     */
+    public function drawings(): HasMany
+    {
+        return $this->hasMany(OrderDrawing::class, 'order_id', 'id');
     }
 
     /**

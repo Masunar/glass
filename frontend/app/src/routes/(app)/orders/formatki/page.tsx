@@ -112,6 +112,9 @@ export default function Page() {
         <span className="ge-filters__here">
           {t('page.orders.card.tab_panes')} {panes}
         </span>
+        <Link to={`/orders/${id}/rysunki`}>
+          {t('page.orders.drawings.title')}
+        </Link>
       </nav>
 
       <div className="ge-card">

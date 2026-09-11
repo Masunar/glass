@@ -288,6 +288,29 @@ export type OrderItemsBoard = {
   };
 };
 
+export type OrderDrawingRow = {
+  id: number;
+  name: string;
+  note: string | null;
+  mime: string;
+  is_image: boolean;
+  size_bytes: number;
+  item_id: number | null;
+  item_name: string | null;
+  uploaded_at: string | null;
+  uploaded_by: string | null;
+};
+
+export type OrderDrawingsBoard = {
+  order: { id: number; number: number; status: string | null };
+  drawings: OrderDrawingRow[];
+  /** Komplet deklaruje człowiek — tu jest kto i kiedy. */
+  complete: { declared: boolean; at: string | null; by: string | null };
+  items: { id: number; name: string; list: number }[];
+  accepts: string[];
+  max_kilobytes: number;
+};
+
 export class OrdersApi extends ApiRequest {
   static prefix: string = '/orders';
 
@@ -356,6 +379,49 @@ export class OrdersApi extends ApiRequest {
     discounts: Record<string, string>,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.put(`/${id}/discounts`, { discounts });
+  }
+
+  public static async drawings(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/${id}/drawings`);
+  }
+
+  public static async addDrawing(
+    id: number,
+    file: File,
+    itemId: number | null,
+    note: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    const payload = new FormData();
+
+    payload.append('file', file);
+    payload.append('note', note);
+
+    if (itemId !== null) {
+      payload.append('order_item_id', String(itemId));
+    }
+
+    return await this.post(`/${id}/drawings`, payload);
+  }
+
+  public static async deleteDrawing(
+    id: number,
+    drawingId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/${id}/drawings/${drawingId}`);
+  }
+
+  public static async declareDrawings(
+    id: number,
+    complete: boolean,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/drawings-complete`, { complete });
+  }
+
+  /** Plik idzie przez aplikację, nie z katalogu publicznego. */
+  public static drawingUrl(id: number, drawingId: number): string {
+    return `${this.baseUrl ?? ''}${this.prefix}/${id}/drawings/${drawingId}`;
   }
 
   public static async transition(

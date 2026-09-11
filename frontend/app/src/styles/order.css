@@ -269,3 +269,45 @@
 
 .ge-disc__summary { padding-top: 10px; }
 .ge-disc__value { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
+
+/* ---------- rysunki ---------- */
+
+.ge-upload__meta {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  padding-bottom: 14px;
+}
+
+.ge-draw {
+  display: grid;
+  grid-template-columns: 24px minmax(200px, 1fr) 80px 180px 32px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+}
+.ge-draw:last-of-type { border-bottom: 0; }
+.ge-draw__icon { color: var(--ge-neutral-600); display: grid; place-items: center; }
+.ge-draw__name { display: flex; flex-direction: column; min-width: 0; }
+.ge-draw__name a { color: var(--ge-text); font-size: 14px; }
+.ge-draw__name .ge-quiet { font-size: 12px; }
+.ge-draw__remove {
+  border: 0;
+  background: none;
+  color: var(--ge-neutral-600);
+  cursor: pointer;
+  padding: 2px;
+}
+.ge-draw__remove:hover { color: var(--m-alert); }
+
+/* Oswiadczenie, nie checkbox: widac kto i kiedy, bo produkcja rusza
+   na jego podstawie. */
+.ge-draw__declared {
+  font-size: 14px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--m-mag);
+  background: var(--m-mag-tint);
+}
