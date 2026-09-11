@@ -13,6 +13,7 @@ use App\Services\Orders\OrderCard;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderItemService;
+use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderBoardService;
 
 /**
@@ -26,6 +27,7 @@ class OrderController extends ApiController
         private readonly OrderTransition $transitionService,
         private readonly OrderService $service,
         private readonly OrderItemService $itemService,
+        private readonly OrderDiscountService $discountService,
     ) {
         $this->protect(['board', 'card', 'items'], Permission::ORDERS->value, SubPermission::LIST->value);
         $this->protect(
@@ -34,7 +36,7 @@ class OrderController extends ApiController
             SubPermission::CREATE->value,
         );
         $this->protect(
-            ['transition', 'savePane', 'saveService'],
+            ['transition', 'savePane', 'saveService', 'saveDiscounts'],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
         );
@@ -125,6 +127,26 @@ class OrderController extends ApiController
             }
 
             return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Rabat na zleceniu. Limit roli jest sprawdzany po stronie serwera —
+     * ekran pokazuje go tylko po to, żeby nie trzeba było zgadywać.
+     */
+    public function saveDiscounts(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->input('discounts', []);
+
+            $result = $this->discountService->save($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
         });
     }
 

@@ -157,14 +157,7 @@ export type OrderCard = {
       offer: string | null;
     };
   };
-  money: {
-    net: string;
-    vat_rate: number | null;
-    /** Puste, dopóki zlecenie nie ma typu faktury — stawki nie zgadujemy. */
-    vat: string | null;
-    gross: string | null;
-    excluded_net: string;
-  };
+  money: OrderTotals;
   credit: {
     limit: string;
     payment_days: number;
@@ -240,6 +233,33 @@ export type OrderItemsList = {
   services: OrderPaneRow[];
 };
 
+export type OrderTotals = {
+  /** Suma pozycji przed rabatem. */
+  base: string;
+  /** Rabat łącznie, kwotowo — procenty per sekcja się nie sumują. */
+  discount: string;
+  net: string;
+  excluded_net: string;
+  vat_rate: number | null;
+  vat: string | null;
+  gross: string | null;
+  sections: {
+    section: string;
+    base: string;
+    percent: string;
+    discount: string;
+    net: string;
+  }[];
+};
+
+export type OrderDiscountRow = {
+  section: string;
+  percent: string;
+  /** Ile wolno tej roli w sekcji cenowej kontrahenta. */
+  max_percent: string;
+  price_section: string | null;
+};
+
 export type OrderItemsBoard = {
   order: {
     id: number;
@@ -248,14 +268,8 @@ export type OrderItemsBoard = {
     contractor: string | null;
   };
   lists: OrderItemsList[];
-  totals: {
-    net: string;
-    vat_rate: number | null;
-    gross: string | null;
-    m2: number;
-    mb: number;
-    kg: number;
-  };
+  totals: OrderTotals & { m2: number; mb: number; kg: number };
+  discounts: OrderDiscountRow[];
   catalogue: {
     products: {
       id: number;
@@ -335,6 +349,13 @@ export class OrdersApi extends ApiRequest {
     itemId: number,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.delete(`/${id}/items/${itemId}`);
+  }
+
+  public static async saveDiscounts(
+    id: number,
+    discounts: Record<string, string>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/discounts`, { discounts });
   }
 
   public static async transition(

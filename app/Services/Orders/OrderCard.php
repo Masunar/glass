@@ -32,6 +32,7 @@ final readonly class OrderCard
 {
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
+        private OrderValue $value = new OrderValue(),
     ) {
     }
 
@@ -51,19 +52,19 @@ final readonly class OrderCard
                 'pickupLocation',
                 'creator',
                 'invoiceType',
+                'discounts',
                 'lists.items.pane',
                 'lists.items.processes.process',
             ])
             ->findOrFail($orderId);
 
         $steps = $this->nextStep->forOrder($order);
-        $net = $this->net($order, true);
-        $vatRate = $order->invoiceType?->vat_rate;
+        $totals = $this->value->totals($order);
 
         return [
             'order' => $this->header($order, $day),
-            'money' => $this->money($net, $this->net($order, false), $vatRate),
-            'credit' => $this->credit($order, $net, $vatRate),
+            'money' => $totals->toArray(),
+            'credit' => $this->credit($order, (float) $totals->net, $totals->vatRate),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
             'path' => $this->path($order),
             'lists' => $this->lists($order),
@@ -136,25 +137,6 @@ final readonly class OrderCard
                 'installer' => $order->installer_comment,
                 'offer' => $order->offer_comment,
             ],
-        ];
-    }
-
-    /**
-     * Brutto liczy się wyłącznie wtedy, gdy znany jest typ faktury.
-     * Domyślne 23 % byłoby zgadywaniem stawki na dokumencie księgowym.
-     *
-     * @return array<string, mixed>
-     */
-    private function money(float $net, float $excluded, ?int $vatRate): array
-    {
-        $vat = $vatRate === null ? null : $net * $vatRate / 100;
-
-        return [
-            'net' => $this->amount($net),
-            'vat_rate' => $vatRate,
-            'vat' => $vat === null ? null : $this->amount($vat),
-            'gross' => $vat === null ? null : $this->amount($net + $vat),
-            'excluded_net' => $this->amount($excluded),
         ];
     }
 
@@ -339,29 +321,6 @@ final readonly class OrderCard
                 yield $list;
             }
         }
-    }
-
-    private function net(Order $order, bool $included): float
-    {
-        $total = 0.0;
-
-        /** @var OrderList $list */
-        foreach ($order->lists as $list) {
-            if ((bool) $list->is_included !== $included) {
-                continue;
-            }
-
-            /** @var OrderItem $item */
-            foreach ($list->items as $item) {
-                $total += (float) $item->amount;
-
-                foreach ($item->processes as $entry) {
-                    $total += (float) $entry->amount;
-                }
-            }
-        }
-
-        return $total;
     }
 
     private function amount(float $value): string

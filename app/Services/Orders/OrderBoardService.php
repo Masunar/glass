@@ -7,8 +7,6 @@ namespace App\Services\Orders;
 use Carbon\Carbon;
 use App\Models\Order;
 use App\Models\Status;
-use App\Models\OrderList;
-use App\Models\OrderItem;
 use App\Enum\StatusDomain;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,6 +28,7 @@ final readonly class OrderBoardService
 {
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
+        private OrderValue $value = new OrderValue(),
     ) {
     }
 
@@ -52,6 +51,8 @@ final readonly class OrderBoardService
                 'status',
                 'pickupLocation',
                 'creator',
+                'invoiceType',
+                'discounts',
                 'lists.items.processes',
             ])
             ->when(
@@ -178,7 +179,7 @@ final readonly class OrderBoardService
             'is_shifted' => $order->shifted_deadline !== null,
             'delivery_method' => $order->delivery_method->value,
             'delivery_place' => $order->pickupLocation->name ?? $order->delivery_address,
-            'amount' => $this->total($order),
+            'amount' => $this->value->net($order),
             'owner_initials' => $this->initials($order),
             'is_on_hold' => (bool) $order->is_on_hold,
             'hold_reason' => $order->hold_reason,
@@ -206,29 +207,6 @@ final readonly class OrderBoardService
         }
 
         return null;
-    }
-
-    private function total(Order $order): string
-    {
-        $total = 0.0;
-
-        /** @var OrderList $list */
-        foreach ($order->lists as $list) {
-            if (!$list->is_included) {
-                continue;
-            }
-
-            /** @var OrderItem $item */
-            foreach ($list->items as $item) {
-                $total += (float) $item->amount;
-
-                foreach ($item->processes as $process) {
-                    $total += (float) $process->amount;
-                }
-            }
-        }
-
-        return number_format($total, 2, '.', '');
     }
 
     private function initials(Order $order): ?string

@@ -732,6 +732,15 @@
         "processes": "Procesy",
         "area": "m² / mb"
       }
+    },
+    "discount": {
+      "title": "Rabat",
+      "level": "czwarty poziom ceny",
+      "limit": "do {{percent}} % · {{section}}",
+      "none_allowed": "Twoja rola nie może tu obniżyć ceny",
+      "save": "Zapisz rabat",
+      "before": "Przed rabatem",
+      "applied": "{{base}} przed rabatem, rabat {{discount}}"
     }
   }
 }
