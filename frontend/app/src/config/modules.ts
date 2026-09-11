@@ -64,7 +64,23 @@ export const appModules: AppModule[] = [
       { labelKey: 'page.menu.offers' },
     ],
   },
-  { key: 'prod', code: 'PROD', labelKey: 'page.module.prod', links: [] },
+  {
+    key: 'prod',
+    code: 'PROD',
+    labelKey: 'page.module.prod',
+    links: [
+      {
+        labelKey: 'page.menu.production',
+        path: appRoutes.production.path,
+        permission: {
+          permission: Permission.PRODUCTION,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      { labelKey: 'page.menu.tempering' },
+      { labelKey: 'page.menu.workload' },
+    ],
+  },
   { key: 'mag', code: 'MAG', labelKey: 'page.module.mag', links: [] },
   { key: 'ksie', code: 'KSIĘ', labelKey: 'page.module.ksie', links: [] },
   { key: 'rap', code: 'RAP', labelKey: 'page.module.rap', links: [] },
