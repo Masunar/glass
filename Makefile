@@ -74,6 +74,13 @@ app-init:
 # Run setup-dev command
 frontend-install:
 	docker compose -f compose.yml --env-file docker/.docker.env exec -it app bash -c "composer install-frontend"
+# Kontrola frontu dokladnie taka, jaka robi CI. W kontenerze, bo lokalny
+# node bywa starszy niz wymagany przez react-router.
+frontend-check:
+	docker compose -f compose.yml --env-file docker/.docker.env exec -it app bash -c "cd frontend && npm run typecheck && npm run lint && npm run build"
+# Pelna kontrola typow, razem z dlugiem w salvon/
+frontend-typecheck-all:
+	docker compose -f compose.yml --env-file docker/.docker.env exec -it app bash -c "cd frontend && npm run typecheck:all"
 # Run npm dev command
 frontend-dev:
 	docker compose -f compose.yml --env-file docker/.docker.env exec -it app bash -c "cd frontend && npm run dev"

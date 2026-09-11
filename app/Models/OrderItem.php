@@ -56,21 +56,25 @@ class OrderItem extends Dateable
         ];
     }
 
+    /** @return BelongsTo<OrderList, $this> */
     public function list(): BelongsTo
     {
         return $this->belongsTo(OrderList::class, 'order_list_id', 'id');
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
 
+    /** @return HasOne<OrderPane, $this> */
     public function pane(): HasOne
     {
         return $this->hasOne(OrderPane::class, 'order_item_id', 'id');
     }
 
+    /** @return HasMany<OrderItemProcess, $this> */
     public function processes(): HasMany
     {
         return $this->hasMany(OrderItemProcess::class, 'order_item_id', 'id');

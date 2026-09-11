@@ -463,14 +463,17 @@ final readonly class OrderItemService
             'price_path' => $item->price_path ?? [],
             'width_mm' => $pane?->width_mm,
             'height_mm' => $pane?->height_mm,
-            'is_irregular_shape' => (bool) ($pane?->is_irregular_shape ?? false),
-            'is_tempered' => (bool) ($pane?->is_tempered ?? false),
-            'needs_mark' => (bool) ($pane?->needs_mark ?? false),
+            'is_irregular_shape' => (bool) ($pane->is_irregular_shape ?? false),
+            'is_tempered' => (bool) ($pane->is_tempered ?? false),
+            'needs_mark' => (bool) ($pane->needs_mark ?? false),
             'm2' => $spec === null ? null : round($spec->squareMeters(), 3),
             'mb' => $spec === null ? null : round($spec->runningMeters(), 2),
             'kg' => $spec === null || $thickness === null
                 ? null
-                : $item->product?->glass?->weightOfPane(
+                // Do tego miejsca dochodzimy tylko przy znanej grubosci,
+                // a ta bierze sie z tego samego produktu i tego samego
+                // szkla — wiec oba na pewno istnieja.
+                : $item->product->glass->weightOfPane(
                     $spec->widthMm,
                     $spec->heightMm,
                     $spec->quantity,
@@ -494,7 +497,7 @@ final readonly class OrderItemService
                 'name' => $product->name,
                 'group' => $product->group?->name,
                 'thickness_mm' => $product->glass?->thickness_mm,
-                'is_tempered_by_default' => (bool) ($product->glass?->is_tempered_by_default ?? false),
+                'is_tempered_by_default' => (bool) ($product->glass->is_tempered_by_default ?? false),
             ];
         }
 
