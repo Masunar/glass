@@ -9,7 +9,6 @@ use App\Enum\Section;
 use App\Models\Product;
 use App\Models\ProductGlass;
 use App\Models\PriceListItem;
-use Database\Seeders\Core\GlassCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -27,13 +26,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class GlassCatalogTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new GlassCatalogSeeder())->run();
-    }
 
     public function test_waga_metra_kwadratowego_to_dwa_i_pol_raza_grubosc(): void
     {

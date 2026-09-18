@@ -24,15 +24,8 @@ use App\Models\ProductService;
 use App\Models\PurchasePrice;
 use App\Enum\PurchasePriceSource;
 use App\Services\PriceListService;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
 use App\Services\Orders\OrderItemService;
-use Database\Seeders\Core\ProcessSeeder;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
-use Database\Seeders\Core\GlobalParameterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -53,14 +46,6 @@ class OrderItemTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
-        (new ProcessSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
-        (new GlobalParameterSeeder())->run();
 
         Order::query()->delete();
 
@@ -508,7 +493,6 @@ class OrderItemTest extends TestCase
         $this->assertNull($board['lists'][0]['glass'][0]['min_billable_m2']);
         $this->assertSame([], $result['errors']);
     }
-
 
     #[Test]
     public function proces_liczy_sie_od_swojej_jednostki(): void

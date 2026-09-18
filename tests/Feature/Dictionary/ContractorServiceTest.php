@@ -11,8 +11,6 @@ use App\Models\Contractor;
 use App\Models\PriceSection;
 use App\Enum\ContractorType;
 use App\Services\ContractorService;
-use Database\Seeders\Core\RoleSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -31,9 +29,6 @@ class ContractorServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new PriceSectionSeeder())->run();
 
         $this->service = new ContractorService();
     }

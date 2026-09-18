@@ -25,18 +25,11 @@ use App\Models\OrderItemProcess;
 use App\Enum\ProductionStatus;
 use App\Enum\PurchasePriceSource;
 use App\Services\PriceListService;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
 use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderSchedule;
 use App\Services\Production\ProductionPlan;
 use App\Services\Production\TaskExecution;
-use Database\Seeders\Core\ProcessSeeder;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
-use Database\Seeders\Core\GlobalParameterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -61,14 +54,6 @@ class OrderProcessChoiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
-        (new ProcessSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
-        (new GlobalParameterSeeder())->run();
 
         Order::query()->delete();
 

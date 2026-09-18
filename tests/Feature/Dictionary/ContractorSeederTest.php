@@ -7,12 +7,8 @@ namespace Tests\Feature\Dictionary;
 use Tests\TestCase;
 use App\Models\Contractor;
 use App\Services\ContractorService;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use Database\Seeders\Dev\ContractorSeeder;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -31,10 +27,6 @@ class ContractorSeederTest extends TestCase
 
         Contractor::query()->forceDelete();
 
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
         (new ContractorSeeder())->run();
     }
 

@@ -10,7 +10,6 @@ use App\Enum\MinPriceCheck;
 use App\Enum\SurchargeMode;
 use App\DTO\Pricing\PricingParameters;
 use App\Services\GlobalParameterService;
-use Database\Seeders\Core\GlobalParameterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -21,13 +20,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 class PricingParametersTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new GlobalParameterSeeder())->run();
-    }
 
     public function test_parametry_czytaja_sie_z_bazy(): void
     {

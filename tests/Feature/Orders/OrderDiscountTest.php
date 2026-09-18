@@ -25,13 +25,8 @@ use App\Models\ContractorPriceSection;
 use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Orders\OrderValue;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\ProcessSeeder;
 use App\Services\Orders\OrderDiscountService;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\GlassCatalogSeeder;
 use Database\Seeders\Core\PriceSectionSeeder;
-use Database\Seeders\Core\GlobalParameterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -51,14 +46,6 @@ class OrderDiscountTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
-        (new ProcessSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
-        (new GlobalParameterSeeder())->run();
 
         Order::query()->delete();
 

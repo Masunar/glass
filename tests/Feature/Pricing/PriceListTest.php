@@ -15,10 +15,7 @@ use App\Models\PurchasePrice;
 use App\Enum\PurchasePriceSource;
 use App\Services\PriceListService;
 use App\Enum\PriceUnavailableReason;
-use Database\Seeders\Core\RoleSeeder;
 use App\Services\Pricing\PriceResolver;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -40,10 +37,6 @@ class PriceListTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
 
         $this->service = new PriceListService();
         $this->resolver = new PriceResolver();

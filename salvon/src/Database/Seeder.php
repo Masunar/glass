@@ -53,15 +53,23 @@ abstract class Seeder extends LaravelSeeder
             return;
         }
 
+        // Zegar wraca na miejsce takze wtedy, gdy gałąź testowa konczy
+        // sie wczesniej. Bez `finally` sianie danych testowych zostawialo
+        // zamrozony zegar na caly proces, a testy liczyly czas od 2024
+        // roku — objaw dowolnie odlegly od przyczyny.
         Carbon::setTestNow(Carbon::parse(self::DEV_NOW));
-        if (Env::isTest()) {
-            $this->testSeeders();
-            return;
+
+        try {
+            if (Env::isTest()) {
+                $this->testSeeders();
+
+                return;
+            }
+
+            $this->devSeeders();
+        } finally {
+            Carbon::setTestNow();
         }
-
-        $this->devSeeders();
-
-        Carbon::setTestNow();
 
         $this->postScript();
     }

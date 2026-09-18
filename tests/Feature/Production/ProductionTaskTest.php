@@ -21,10 +21,6 @@ use App\Enum\ProductionStatus;
 use App\Models\ProductionTask;
 use App\Models\OrderItemProcess;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\RoleSeeder;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\ProcessSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use App\Services\Production\ProductionPlan;
 use App\Services\Production\ProductionQueue;
 use App\Services\Production\TaskExecution;
@@ -54,11 +50,6 @@ class ProductionTaskTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
-        (new ProcessSeeder())->run();
 
         Order::query()->delete();
 

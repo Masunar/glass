@@ -20,12 +20,7 @@ use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use App\Models\OrderItemProcess;
 use App\Services\Orders\OrderCard;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\ProcessSeeder;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\DictionarySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -45,12 +40,6 @@ class OrderCardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
-        (new ProcessSeeder())->run();
-        (new DictionarySeeder())->run();
 
         Order::query()->delete();
 

@@ -16,11 +16,8 @@ use App\Models\Contractor;
 use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use App\Models\StatusTransition;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
 use App\Services\Orders\OrderTransition;
-use Database\Seeders\Core\LocationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -40,10 +37,6 @@ class OrderTransitionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
 
         Order::query()->delete();
 

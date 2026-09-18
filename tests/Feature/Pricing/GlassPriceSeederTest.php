@@ -9,12 +9,9 @@ use App\Enum\Section;
 use App\Models\Product;
 use App\Models\PriceSection;
 use App\Enum\PriceUnavailableReason;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use Database\Seeders\Dev\GlassPriceSeeder;
 use App\Services\Pricing\PriceResolver;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -28,15 +25,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 class GlassPriceSeederTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
-    }
 
     #[Test]
     public function float_dostaje_cene_z_udokumentowanego_wspolczynnika(): void
