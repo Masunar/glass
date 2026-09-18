@@ -101,6 +101,7 @@ export default function PaneDrawer({
   const [steps, setSteps] = useState<Step[]>([]);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<PanePreview | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -251,15 +252,18 @@ export default function PaneDrawer({
 
     const timer = setTimeout(() => {
       void (async () => {
-        const { content } = await OrdersApi.previewPane(
+        const { content, response } = await OrdersApi.previewPane(
           orderId,
           payload(form.getValues()),
         );
         const data: PanePreview | undefined = content?.data;
 
-        if (data) {
-          setPreview(data);
-        }
+        // Nieudany podglad zostawial na ekranie poprzedni wynik albo
+        // nie zostawial nic — i jedno, i drugie wyglada dokladnie tak
+        // samo jak „ta zmiana nie wplywa na cene". Awaria ma byc
+        // widoczna, bo inaczej szuka sie jej w wycenie zamiast w sieci.
+        setFailed(!response.success || data === undefined);
+        setPreview(data ?? null);
       })();
     }, 350);
 
@@ -312,10 +316,21 @@ export default function PaneDrawer({
       title={t(item ? 'page.orders.panes.edit' : 'page.orders.panes.add')}
       foot={
         <>
-          <span className="ge-drawer__foot-note">
-            {preview?.ready && preview.total !== null
-              ? t('page.orders.panes.foot_total', { amount: preview.total })
-              : t('page.orders.panes.price_note')}
+          <span
+            className={
+              failed
+                ? 'ge-drawer__foot-note ge-drawer__foot-note--warn'
+                : 'ge-drawer__foot-note'
+            }
+          >
+            {/* Trzy stany, nie dwa: policzone, jeszcze nie ma z czego
+                liczyc, i nie udalo sie policzyc. Sklejone w jeden
+                komunikat nie daja sie odroznic. */}
+            {failed
+              ? t('page.orders.panes.foot_failed')
+              : preview?.ready && preview.total !== null
+                ? t('page.orders.panes.foot_total', { amount: preview.total })
+                : t('page.orders.panes.foot_waiting')}
           </span>
           <div className="ge-drawer__foot-end">
             <Button variant="text" onClick={onClose}>

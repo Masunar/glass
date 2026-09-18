@@ -112,6 +112,10 @@
   line-height: 1.4;
   color: var(--ge-neutral-700);
 }
+/* Awaria podgladu ma byc widoczna, a nie wygladac jak zwykla
+   podpowiedz — inaczej szuka sie bledu w wycenie zamiast w sieci. */
+.ge-drawer__foot-note--warn { color: var(--m-alert); }
+
 /* Przyciski nie zwezaja sie pod nota - to one koncza prace w panelu. */
 .ge-drawer__foot-end {
   flex: none;

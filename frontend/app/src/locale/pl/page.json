@@ -790,6 +790,8 @@
       "calc_material": "Materiał",
       "calc_total": "Razem",
       "foot_total": "Razem {{amount}} zł netto — liczone na bieżąco, zapis potwierdzi tę samą kwotę",
+        "foot_waiting": "Uzupełnij materiał i wymiary — wtedy policzę na żywo.",
+        "foot_failed": "Nie udało się policzyć podglądu — kwota poniżej może być nieaktualna.",
       "why": {
         "needs_choice": "wybierz pozycję",
         "no_price_list_item": "brak pozycji w cenniku",
