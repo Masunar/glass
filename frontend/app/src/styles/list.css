@@ -366,12 +366,16 @@
 
 /* ---------- pasek segmentowy ---------- */
 
-/* Zakladki jako segmenty w jednej ramce, a nie osobne napisy z podkresleniem.
-   Roznica jest praktyczna, nie estetyczna: segment ma wlasna szerokosc, wiec
-   licznik moze stanac przy jego prawej krawedzi i kolumna liczb czyta sie
-   w pionie. Przy napisach licznik plynal razem z dlugoscia etykiety.
+/* Zakladki jako segmenty w jednej ramce, a nie osobne napisy
+   z podkresleniem. Roznica jest praktyczna: segment ma wlasna szerokosc,
+   wiec licznik moze stanac przy jego prawej krawedzi i kolumna liczb
+   czyta sie w pionie. Przy napisach licznik plynal razem z dlugoscia
+   etykiety i dwoch liczb nie dalo sie porownac wzrokiem.
 
-   Zero zaokraglen — jak wszystko w tym designie. */
+   Szyna jest szara, aktywny segment bialy — to on ma wychodzic do
+   przodu. Akcent wchodzi tylko w dwoch miejscach: pasek przy krawedzi
+   i licznik. Wypelnienie calego segmentu akcentem bylo za ciezkie:
+   w pasku szesciu zakladek jeden prostokat koloru przykrywa reszte. */
 .ge-segbar {
   display: flex;
   align-items: center;
@@ -381,8 +385,8 @@
 }
 .ge-seg {
   display: flex;
-  border: 1px solid var(--ge-divider);
-  background: var(--ge-surface);
+  border: 1px solid var(--ge-neutral-300);
+  background: var(--ge-neutral-100);
 }
 .ge-seg__item {
   display: flex;
@@ -390,8 +394,7 @@
   gap: 10px;
   padding: 9px 16px;
   border: 0;
-  border-right: 1px solid var(--ge-divider);
-  border-bottom: 3px solid transparent;
+  border-right: 1px solid var(--ge-neutral-300);
   background: transparent;
   font: inherit;
   font-size: 14px;
@@ -401,43 +404,46 @@
   white-space: nowrap;
 }
 .ge-seg__item:last-child { border-right: 0; }
-.ge-seg__item:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-seg__item:hover { color: var(--ge-text); background: var(--ge-neutral-200); }
 
-/* Zakladka pusta: sama etykieta, ciszej. Nic nie trzeba czytac, zeby
-   wiedziec, ze nie ma tam nic — brak licznika jest informacja. */
+/* Zakladka pusta: sama etykieta, ciszej. Brak licznika jest informacja
+   — zero trzeba przeczytac, zeby dowiedziec sie tego samego. */
 .ge-seg__item--empty { color: var(--ge-neutral-500); }
 
 .ge-seg__count {
   padding: 1px 7px;
+  background: var(--ge-neutral-200);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--ge-neutral-600);
+  color: var(--ge-neutral-700);
 }
 
-/* Wariant z podkresleniem — zakladki wewnatrz zlecenia. Segment prowadzi
-   pod wlasny adres, wiec aktywny jest oznaczony akcentem przy krawedzi,
-   a nie wypelnieniem: to nadal nawigacja, nie filtr. */
-.ge-seg--line .ge-seg__item.is-active {
+.ge-seg__item.is-active {
+  background: var(--ge-surface);
   color: var(--ge-text);
-  font-weight: 500;
-  border-bottom-color: var(--ge-mod);
+  font-weight: 600;
+}
+.ge-seg__item.is-active:hover { background: var(--ge-surface); }
+
+/* Wariant wypelniony — filtry listy zlecen. Filtr zmienia to, co widac
+   pod spodem, wiec pasek stoi przy krawedzi wiodacej, a licznik jest
+   pelny: mowi, ile ma biezacy filtr. */
+.ge-seg--solid .ge-seg__item.is-active {
+  box-shadow: inset 3px 0 0 var(--ge-mod);
+}
+.ge-seg--solid .ge-seg__item.is-active .ge-seg__count {
+  background: var(--ge-mod);
+  color: var(--ge-surface);
+}
+
+/* Wariant z podkresleniem — zakladki wewnatrz zlecenia. To nawigacja
+   pod osobne adresy, nie filtr, wiec akcent lezy pod etykieta, a licznik
+   jest tylko podbarwiony: nie mowi „tyle wybrales", tylko „tyle tam
+   jest". */
+.ge-seg--line .ge-seg__item.is-active {
+  box-shadow: inset 0 -3px 0 var(--ge-mod);
 }
 .ge-seg--line .ge-seg__item.is-active .ge-seg__count {
   background: var(--ge-mod-tint);
   color: color-mix(in oklab, var(--ge-mod) 70%, black);
-}
-
-/* Wariant wypelniony — filtry listy zlecen. Filtr zmienia to, co widac
-   pod spodem, wiec ma byc widac na pierwszy rzut oka, ktory jest wlaczony;
-   pole w akcencie mowi, ile ma biezacy filtr. */
-.ge-seg--solid .ge-seg__item.is-active {
-  background: var(--ge-mod);
-  border-right-color: var(--ge-mod);
-  color: #fff;
-  font-weight: 500;
-}
-.ge-seg--solid .ge-seg__item.is-active:hover { color: #fff; }
-.ge-seg--solid .ge-seg__item.is-active .ge-seg__count {
-  background: color-mix(in srgb, #fff 26%, transparent);
-  color: #fff;
 }
