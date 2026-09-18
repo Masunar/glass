@@ -579,8 +579,16 @@ export default function PaneDrawer({
                 {material.length === 0 ? (
                   <div className="ge-calc__row ge-calc__row--off">
                     <span>{t('page.orders.panes.calc_material')}</span>
+                    {/* Trzy rozne przyczyny wymagaja trzech roznych
+                        ruchow: przypisania sekcji cenowej, wypelnienia
+                        komorki cennika albo wpisania ceny zakupu.
+                        Jedno „brak ceny" kazalo ich szukac po kolei. */}
                     <span className="ge-calc__formula">
-                      {t('page.orders.panes.no_price')}
+                      {preview.unavailable
+                        ? t(
+                            `page.orders.panes.material_why.${preview.unavailable}`,
+                          )
+                        : t('page.orders.panes.no_price')}
                     </span>
                     <span className="ge-calc__amount">—</span>
                   </div>

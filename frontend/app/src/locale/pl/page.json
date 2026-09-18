@@ -714,6 +714,11 @@
       "add_service": "Dodaj usługę",
       "no_glass": "Ta lista nie ma jeszcze żadnej formatki.",
       "no_price": "brak ceny w cenniku",
+        "material_why": {
+          "no_price_section": "brak domyślnej sekcji cenowej dla szkła",
+          "no_price_list_item": "brak pozycji cennika dla tego szkła",
+          "no_price": "brak ceny zakupu, z której liczy się narzut"
+        },
         "glass_missing": "bez ceny szkła",
       "services": "Usługi",
       "total_net": "Razem netto",
