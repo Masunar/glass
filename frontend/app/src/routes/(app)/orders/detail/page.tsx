@@ -245,6 +245,28 @@ export default function Page() {
                 })
               : (order.deadline.client ?? t('page.orders.no_deadline'))
           }
+          // Szacowany czas to suma dni wpisanych przy etapach
+          // najdluzszej formatki. Daty z niego nie wyprowadzamy: dni
+          // mowia, ile pracy jest w srodku, nie kiedy hala ja zacznie.
+          text={
+            <span className="ge-from">
+              <span className="ge-from__row">
+                <span>{t('page.orders.card.estimated')}</span>
+                <span>
+                  {order.estimated_days === null
+                    ? '—'
+                    : t('page.orders.panes.days_value', {
+                        count: order.estimated_days,
+                      })}
+                </span>
+              </span>
+              <span className="ge-from__note">
+                {order.estimated_days === null
+                  ? t('page.orders.card.estimated_unknown')
+                  : t('page.orders.card.estimated_note')}
+              </span>
+            </span>
+          }
         />
 
         <Strip

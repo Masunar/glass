@@ -13,6 +13,7 @@ use App\Models\OrderItem;
 use App\Models\OrderPane;
 use App\Support\Normalize;
 use App\Services\AuditTrail;
+use App\Models\ProductService;
 use App\Models\OrderItemProcess;
 use App\DTO\Pricing\PaneSpecification;
 use Illuminate\Support\Facades\DB;
@@ -40,6 +41,7 @@ final readonly class OrderItemService
         private OrderValue $value = new OrderValue(),
         private OrderDiscountService $discounts = new OrderDiscountService(),
         private OrderTabs $tabs = new OrderTabs(),
+        private OrderSchedule $schedule = new OrderSchedule(),
         private AuditTrail $audit = new AuditTrail(),
     ) {
     }
@@ -75,6 +77,7 @@ final readonly class OrderItemService
             $glass = [];
             $services = [];
             $listNet = 0.0;
+            $listDays = null;
 
             /** @var OrderItem $item */
             foreach ($list->items->sortBy('position') as $item) {
@@ -83,6 +86,10 @@ final readonly class OrderItemService
 
                 if ($item->section === Section::GLASS) {
                     $glass[] = $row;
+
+                    if ($row['days'] > 0 && ($listDays === null || $row['days'] > $listDays)) {
+                        $listDays = (int) $row['days'];
+                    }
 
                     if ($list->is_included) {
                         $squareMeters += (float) $row['m2'];
@@ -99,6 +106,7 @@ final readonly class OrderItemService
             $lists[] = [
                 'id' => (int) $list->getKey(),
                 'number' => (int) $list->number,
+                'days' => $listDays,
                 'name' => $list->name,
                 'role' => $list->role->value,
                 'is_included' => (bool) $list->is_included,
@@ -125,6 +133,9 @@ final readonly class OrderItemService
                 'm2' => round($squareMeters, 2),
                 'mb' => round($runningMeters, 2),
                 'kg' => round($weight, 2),
+                // Formatki ida przez hale rownolegle, wiec zlecenie trwa
+                // tyle, ile najdluzsza z nich.
+                'days' => $this->schedule->days($order),
             ],
             'discounts' => $this->discounts->board($order),
             'catalogue' => [
@@ -167,7 +178,7 @@ final readonly class OrderItemService
             return ['errors' => ['product_id' => ['Taki materiał nie jest w cenniku szkła.']], 'id' => null];
         }
 
-        $processIds = $this->processIds($input['processes'] ?? []);
+        $selections = $this->selections($input['processes'] ?? []);
 
         $pane = new PaneSpecification(
             widthMm: (int) $input['width_mm'],
@@ -177,7 +188,7 @@ final readonly class OrderItemService
             isTempered: (bool) ($input['is_tempered'] ?? false),
         );
 
-        $price = $this->pricing->pane($order, $product, $pane, $processIds);
+        $price = $this->pricing->pane($order, $product, $pane, $selections);
 
         $item = DB::transaction(function () use (
             $list,
@@ -231,6 +242,12 @@ final readonly class OrderItemService
                 OrderItemProcess::query()->create([
                     'order_item_id' => (int) $item->getKey(),
                     'process_id' => $process['process_id'],
+                    'product_id' => $process['product_id'],
+                    // Parametr to nazwa wybranej pozycji cennikowej —
+                    // ta sama wartosc, ktora widzi operator na hali.
+                    'parameter' => $process['parameter'],
+                    'days' => $process['days'],
+                    'comment' => $process['comment'],
                     'unit_net_price' => $process['unit_net_price'],
                     'amount' => $process['amount'],
                     'position' => $position += 10,
@@ -366,12 +383,21 @@ final readonly class OrderItemService
             'width_mm' => ['required', 'integer', 'min:1', 'max:' . self::MAX_MM],
             'height_mm' => ['required', 'integer', 'min:1', 'max:' . self::MAX_MM],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            // Etap przychodzi jako obiekt z wyborem pozycji, dniami
+            // i cena albo — w starszej postaci — jako samo id procesu.
+            // Ksztalt rozstrzyga `selections()`; tutaj pilnujemy tylko
+            // tego, co da sie sprawdzic bez wiedzy o marszrucie.
             'processes' => ['nullable', 'array'],
-            'processes.*' => ['integer'],
+            'processes.*.process_id' => ['required_with:processes.*.product_id', 'integer'],
+            'processes.*.product_id' => ['nullable', 'integer'],
+            'processes.*.days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'processes.*.unit_net_price' => ['nullable', 'numeric', 'min:0'],
+            'processes.*.comment' => ['nullable', 'string', 'max:300'],
         ], [
             'product_id.required' => 'Wskaż materiał.',
             'width_mm.required' => 'Podaj szerokość w milimetrach.',
             'height_mm.required' => 'Podaj wysokość w milimetrach.',
+            'processes.*.days.max' => 'Etap trwający ponad rok to nie etap.',
             'width_mm.max' => 'Szerokość powyżej ' . self::MAX_MM . ' mm nie przejdzie przez halę.',
             'height_mm.max' => 'Wysokość powyżej ' . self::MAX_MM . ' mm nie przejdzie przez halę.',
         ]);
@@ -417,17 +443,25 @@ final readonly class OrderItemService
     {
         $processes = [];
         $processAmount = 0.0;
+        $days = 0;
 
         foreach ($item->processes->sortBy('position') as $entry) {
             $processes[] = [
                 'process_id' => (int) $entry->process_id,
                 'code' => $entry->process?->code,
                 'name' => $entry->process?->name,
+                'product_id' => $entry->product_id,
+                // Nazwa wybranej pozycji — „Faza 15mm". To ona odroznia
+                // dwa fazowania na tej samej szybie.
+                'parameter' => $entry->parameter,
+                'days' => $entry->days,
+                'comment' => $entry->comment,
                 'unit_net_price' => $entry->unit_net_price,
                 'amount' => $entry->amount,
             ];
 
             $processAmount += (float) $entry->amount;
+            $days += (int) $entry->days;
         }
 
         $pane = $item->pane;
@@ -456,6 +490,9 @@ final readonly class OrderItemService
             'amount' => $item->amount,
             'total' => $this->money((float) $item->amount + $processAmount),
             'processes' => $processes,
+            // Dni pozycji to suma jej etapow — tak samo liczyl to stary
+            // system: ciecie 2 + poler 3 + faza 6 + CNC 12 = 23.
+            'days' => $days,
             'price_path' => $item->price_path ?? [],
             'width_mm' => $pane?->width_mm,
             'height_mm' => $pane?->height_mm,
@@ -513,12 +550,51 @@ final readonly class OrderItemService
             ->orderBy('default_order')
             ->get();
 
+        /** @var iterable<ProductService> $services */
+        $services = ProductService::query()
+            ->with('product')
+            ->whereNotNull('process_id')
+            ->get();
+
+        /** @var array<int, list<array<string, mixed>>> $byProcess */
+        $byProcess = [];
+
+        foreach ($services as $service) {
+            $product = $service->product;
+
+            if (!$product instanceof Product || !$product->is_active) {
+                continue;
+            }
+
+            $byProcess[(int) $service->process_id][] = [
+                'product_id' => (int) $product->getKey(),
+                'name' => $product->name,
+                // Grubosc szkla zawezajaca liste. Ekran filtruje po niej
+                // sam, bo po zmianie materialu lista ma sie przestawic
+                // bez ponownego pytania serwera.
+                'glass_thickness_mm' => $service->glass_thickness_mm,
+                'unit' => $product->unit->value,
+            ];
+        }
+
         foreach ($processes as $process) {
+            $id = (int) $process->getKey();
+            $items = $byProcess[$id] ?? [];
+
+            usort($items, static fn(array $a, array $b): int => [
+                $a['glass_thickness_mm'] ?? 0.0, $a['name'],
+            ] <=> [
+                $b['glass_thickness_mm'] ?? 0.0, $b['name'],
+            ]);
+
             $rows[] = [
-                'id' => (int) $process->getKey(),
+                'id' => $id,
                 'code' => $process->code,
                 'name' => $process->name,
                 'is_subcontracted' => (bool) $process->is_subcontracted,
+                // Czas trwania ze slownika — punkt wyjscia, nie wyrok.
+                'duration_days' => $process->duration_days,
+                'items' => $items,
             ];
         }
 
@@ -550,23 +626,58 @@ final readonly class OrderItemService
      * @param mixed $processes
      * @return list<int>
      */
-    private function processIds(mixed $processes): array
+    /**
+     * Wybrane procesy razem z tym, co przy nich wpisano.
+     *
+     * Ten sam proces może wystąpić kilka razy — na jednej szybie bywa
+     * faza 15 mm i faza 25 mm, i są to dwie różne prace o różnej cenie.
+     * Dlatego nie odsiewamy powtórzeń po `process_id`, tylko po parze
+     * proces + wybrana pozycja cennikowa.
+     *
+     * Przyjmujemy też starą postać — samą listę identyfikatorów — bo
+     * tak wołają istniejące testy i tak wygląda zapis bez wyboru.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function selections(mixed $processes): array
     {
         if (!is_array($processes)) {
             return [];
         }
 
-        $ids = [];
+        $rows = [];
+        $seen = [];
 
         foreach ($processes as $value) {
-            $id = (int) $value;
+            $row = is_array($value) ? $value : ['process_id' => $value];
+            $processId = (int) ($row['process_id'] ?? 0);
 
-            if ($id > 0 && !in_array($id, $ids, true)) {
-                $ids[] = $id;
+            if ($processId <= 0) {
+                continue;
             }
+
+            $productId = isset($row['product_id']) && is_numeric($row['product_id'])
+                ? (int) $row['product_id']
+                : null;
+
+            $key = $processId . ':' . ($productId ?? '');
+
+            if (in_array($key, $seen, true)) {
+                continue;
+            }
+
+            $seen[] = $key;
+
+            $rows[] = [
+                'process_id' => $processId,
+                'product_id' => $productId,
+                'days' => $row['days'] ?? null,
+                'comment' => $row['comment'] ?? null,
+                'unit_net_price' => $row['unit_net_price'] ?? null,
+            ];
         }
 
-        return $ids;
+        return $rows;
     }
 
     private function nextPosition(OrderList $list): int

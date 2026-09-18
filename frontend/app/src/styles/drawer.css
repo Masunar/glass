@@ -332,3 +332,40 @@
   outline: 2px solid var(--ge-mod);
   outline-offset: 2px;
 }
+
+/* ---------- etap na formatce ---------- */
+
+/* Kazdy etap to osobny blok, bo niesie cztery decyzje: ktora pozycja
+   cennikowa, ile dni, za ile i z jaka uwaga. Chip samym zaznaczeniem
+   tego nie udzwignie. */
+.ge-step {
+  border-left: 3px solid var(--ge-divider);
+  padding: 8px 0 8px 10px;
+  margin-top: 10px;
+}
+.ge-step__head { display: flex; align-items: center; gap: 8px; }
+.ge-step__name {
+  flex: 1;
+  font-family: var(--ge-font-heading);
+  font-size: 14px;
+}
+.ge-step__add,
+.ge-step__drop {
+  border: 0;
+  background: none;
+  color: var(--ge-neutral-600);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.ge-step__add:hover { color: var(--ge-text); }
+.ge-step__drop:hover { color: var(--m-alert); }
+.ge-step__row { display: flex; gap: 12px; padding-top: 6px; }
+.ge-step__row .ge-uf { flex: 1; }
+.ge-step .ge-uf { padding-top: 6px; }
+/* Pole czekajace na wybor ma byc widoczne, a nie ciche. */
+.ge-step select.is-empty {
+  border-bottom-color: var(--m-alert);
+  color: var(--m-alert);
+}

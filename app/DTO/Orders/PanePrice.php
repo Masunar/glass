@@ -19,6 +19,10 @@ final readonly class PanePrice
      *     process_id: int,
      *     code: string,
      *     label: string,
+     *     product_id: int|null,
+     *     parameter: string|null,
+     *     days: int|null,
+     *     comment: string|null,
      *     unit_net_price: string,
      *     amount: string,
      *     unavailable: string|null
