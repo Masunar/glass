@@ -367,6 +367,7 @@ function ListBlock({
           <span className="r">{t('page.orders.panes.column.count')}</span>
           <span>{t('page.orders.panes.column.processes')}</span>
           <span className="r">{t('page.orders.panes.column.area')}</span>
+          <span className="r">{t('page.orders.panes.column.unit_price')}</span>
           <span className="r">{t('page.orders.card.column.amount')}</span>
           <span />
         </div>
@@ -391,6 +392,18 @@ function ListBlock({
             <span className="r ge-quiet">
               {decimal(row.m2, 2)} / {decimal(row.mb, 2)}
             </span>
+            {/* Cena materialu za m2 stoi obok kwoty, bo to z niej ta
+                kwota wyrasta. Brak pozycji w cenniku widac tutaj, a nie
+                dopiero po tym, ze suma wyszla mniejsza, niz powinna. */}
+            <span className="r ge-quiet">
+              {row.unit_net_price === null ? (
+                <span className="ge-note ge-note--warn">
+                  {t('page.orders.panes.no_price')}
+                </span>
+              ) : (
+                money(row.unit_net_price)
+              )}
+            </span>
             <span className="r ge-dim">
               {/* Kwota bez sladu to liczba bez pochodzenia — a tu naklada
                   sie cennik, minimalna powierzchnia, doplaty i procesy. */}
@@ -402,9 +415,9 @@ function ListBlock({
               >
                 {money(row.total)}
               </button>
-              {Number(row.total) === 0 && (
+              {row.unit_net_price === null && (
                 <div className="ge-note ge-note--warn">
-                  {t('page.orders.panes.no_price')}
+                  {t('page.orders.panes.glass_missing')}
                 </div>
               )}
             </span>

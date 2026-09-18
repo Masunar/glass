@@ -374,3 +374,42 @@
   border-bottom-color: var(--m-alert);
   color: var(--m-alert);
 }
+
+/* ---------- podglad wyceny w panelu ---------- */
+
+/* Kwota bez pokazanego mnozenia to liczba bez pochodzenia. Przy
+   procesach jednostka bywa rozna — ciecie od metra biezacego, hartownia
+   od kwadratowego, CNC od sztuki — wiec formula stoi przy kazdym
+   wierszu, a nie raz na dole. */
+.ge-calc {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ge-divider);
+}
+.ge-calc__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.2fr) 90px;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 12.5px;
+}
+.ge-calc__formula {
+  color: var(--ge-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+.ge-calc__amount {
+  text-align: right;
+  font-family: var(--ge-font-heading);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+/* Niewyceniony etap nie udaje, ze kosztuje zero. */
+.ge-calc__row--off .ge-calc__formula,
+.ge-calc__row--off .ge-calc__amount { color: var(--m-alert); }
+.ge-calc__row--total {
+  border-top: 1px solid var(--ge-divider);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+.ge-calc__row--total .ge-calc__amount { font-size: 15px; color: var(--ge-text); }

@@ -509,6 +509,179 @@ class OrderItemTest extends TestCase
         $this->assertSame([], $result['errors']);
     }
 
+
+    #[Test]
+    public function proces_liczy_sie_od_swojej_jednostki(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        // CNC rozlicza sie od sztuki. Szyba 1500 × 1000 ma 5 mb obwodu,
+        // wiec liczona od metra biezacego wystawilaby 750 zamiast 150.
+        $cnc = $this->serviceProduct('R', 'CNC 60min', null, '150.00', Unit::PIECE);
+
+        /** @var Process $process */
+        $process = Process::findByCode('R');
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 1500,
+            'height_mm' => 1000,
+            'processes' => [['process_id' => $process->id, 'product_id' => $cnc->id]],
+        ]));
+
+        $this->assertSame([], $result['errors']);
+
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->with('processes')->findOrFail($result['id']);
+
+        $this->assertSame('150.00', $item->processes[0]->amount);
+    }
+
+    #[Test]
+    public function proces_od_metra_kwadratowego_liczy_powierzchnie(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        // Hartowanie od m2: 1,5 m2 × 40,00 = 60,00.
+        $tempering = $this->serviceProduct('H', 'Hartowanie', null, '40.00', Unit::SQUARE_METER);
+
+        /** @var Process $process */
+        $process = Process::findByCode('H');
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 1500,
+            'height_mm' => 1000,
+            'processes' => [['process_id' => $process->id, 'product_id' => $tempering->id]],
+        ]));
+
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->with('processes')->findOrFail($result['id']);
+
+        $this->assertSame('60.00', $item->processes[0]->amount);
+    }
+
+    #[Test]
+    public function podglad_liczy_to_samo_co_zapis(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+        $this->priceCutting('12.00');
+
+        /** @var Process $cutting */
+        $cutting = Process::findByCode('C');
+
+        $input = $this->pane(['processes' => [['process_id' => $cutting->id]]]);
+
+        $preview = $this->service->preview((int) $order->getKey(), $input);
+        $saved = $this->service->savePane((int) $order->getKey(), $input);
+
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->with('processes')->findOrFail($saved['id']);
+        $total = (float) $item->amount + (float) $item->processes[0]->amount;
+
+        // Podglad idzie ta sama droga co zapis. Gdyby liczyl po swojemu,
+        // pokazywalby kwote, ktorej zapis nie potwierdzi.
+        $this->assertTrue($preview['ready']);
+        $this->assertSame(number_format($total, 2, '.', ''), $preview['total']);
+        $this->assertSame('mb', $preview['processes'][0]['unit_label']);
+    }
+
+    #[Test]
+    public function brak_ceny_szkla_nie_kasuje_ceny_procesow(): void
+    {
+        // Celowo bez priceGlass() — material nie ma pozycji w cenniku.
+        $order = $this->order();
+        $this->priceCutting('12.00');
+
+        /** @var Process $cutting */
+        $cutting = Process::findByCode('C');
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'processes' => [['process_id' => $cutting->id]],
+        ]));
+
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->with('processes')->findOrFail($result['id']);
+
+        // Szlif kosztuje tyle samo niezaleznie od tego, czy ktos wypelnil
+        // macierz cennika szkla. Zerowanie procesow chowalo jedyna kwote,
+        // ktora byla znana, i pokazywalo formatke za 0,00.
+        $this->assertSame('0.00', $item->amount);
+        $this->assertNull($item->unit_net_price);
+        $this->assertNotSame('0.00', $item->processes[0]->amount);
+    }
+
+    #[Test]
+    public function podglad_bez_materialu_nie_zgaduje(): void
+    {
+        $order = $this->order();
+
+        $preview = $this->service->preview((int) $order->getKey(), [
+            'width_mm' => 1000,
+            'height_mm' => 1000,
+        ]);
+
+        // Brak materialu to nie kwota zero, tylko brak odpowiedzi.
+        $this->assertFalse($preview['ready']);
+        $this->assertNull($preview['total']);
+    }
+
+    /**
+     * Pozycja cennikowa procesu o zadanej jednostce. Jednostka jest tu
+     * istotą rzeczy: cięcie rozlicza się od metra bieżącego, hartowanie
+     * od kwadratowego, a CNC od sztuki.
+     */
+    private function serviceProduct(
+        string $code,
+        string $name,
+        ?float $thickness,
+        string $purchaseNet,
+        Unit $unit,
+    ): Product {
+        /** @var Process $process */
+        $process = Process::findByCode($code);
+
+        /** @var ProductGroup $group */
+        $group = ProductGroup::query()->firstOrCreate(
+            ['section' => Section::SERVICES->value, 'name' => 'Obróbka'],
+            ['section' => Section::SERVICES->value, 'name' => 'Obróbka', 'position' => 20],
+        );
+
+        /** @var Product $product */
+        $product = Product::query()->create([
+            'product_group_id' => $group->id,
+            'section' => Section::SERVICES->value,
+            'name' => $name,
+            'unit' => $unit->value,
+            'vat_rate' => 23,
+        ]);
+
+        ProductService::query()->create([
+            'product_id' => $product->id,
+            'process_id' => $process->id,
+            'glass_thickness_mm' => $thickness,
+        ]);
+
+        PurchasePrice::query()->create([
+            'product_id' => $product->id,
+            'net_price' => $purchaseNet,
+            'source' => PurchasePriceSource::MANUAL->value,
+            'valid_from' => now()->subDay(),
+        ]);
+
+        (new PriceListService())->update([[
+            'product_id' => $product->id,
+            'price_section_id' => $this->section(
+                'Detaliczny podstawowy',
+                Section::SERVICES->value,
+            )->id,
+            'coefficient' => '1.0',
+        ]]);
+
+        return $product;
+    }
+
     private function priceCutting(string $purchaseNet): void
     {
         /** @var Process $cutting */

@@ -146,6 +146,90 @@ final readonly class OrderItemService
         ];
     }
 
+
+    /**
+     * Wycena formatki **bez zapisu** — podgląd na żywo w panelu.
+     *
+     * Ta sama droga, którą idzie zapis: `OrderPricing::pane`. Gdyby
+     * podgląd liczył po swojemu, pokazywałby kwotę, której zapis nie
+     * potwierdzi — a wtedy przestałby być podglądem i stałby się drugą
+     * wyceną obok właściwej.
+     *
+     * Nic nie zapisuje i niczego nie waliduje poza tym, co potrzebne do
+     * policzenia: człowiek w trakcie wpisywania ma niekompletny
+     * formularz i nie chce dostawać za to czerwonych pól.
+     *
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    public function preview(int $orderId, array $input): array
+    {
+        /** @var Order $order */
+        $order = Order::query()->with('contractor')->findOrFail($orderId);
+
+        /** @var Product|null $product */
+        $product = Product::query()
+            ->with('glass')
+            ->where('section', Section::GLASS->value)
+            ->where('is_active', true)
+            ->find($this->id($input['product_id'] ?? null));
+
+        $width = (int) ($input['width_mm'] ?? 0);
+        $height = (int) ($input['height_mm'] ?? 0);
+
+        if ($product === null || $width <= 0 || $height <= 0) {
+            return ['ready' => false, 'glass_net' => null, 'total' => null, 'processes' => [], 'steps' => []];
+        }
+
+        $minBillable = isset($input['min_billable_m2']) && is_numeric($input['min_billable_m2'])
+            ? (float) $input['min_billable_m2']
+            : null;
+
+        $pane = new PaneSpecification(
+            widthMm: $width,
+            heightMm: $height,
+            quantity: max(1, (int) ($input['quantity'] ?? 1)),
+            isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
+            isTempered: (bool) ($input['is_tempered'] ?? false),
+            minBillableM2: $minBillable,
+        );
+
+        $price = $this->pricing->pane(
+            $order,
+            $product,
+            $pane,
+            $this->selections($input['processes'] ?? []),
+        );
+
+        $processes = [];
+
+        foreach ($price->processes as $process) {
+            $processes[] = [
+                'process_id' => $process['process_id'],
+                'label' => $process['label'],
+                'parameter' => $process['parameter'],
+                'unit_net_price' => $process['unit_net_price'],
+                'unit_label' => $process['unit_label'],
+                'units' => $process['units'],
+                'amount' => $process['amount'],
+                'unavailable' => $process['unavailable'],
+            ];
+        }
+
+        return [
+            'ready' => true,
+            'glass_net' => $price->glassNet,
+            'net_price_per_square_meter' => $price->netPricePerSquareMeter,
+            'total' => $price->total(),
+            'm2' => round($pane->squareMeters(), 3),
+            'mb' => round($pane->runningMeters(), 2),
+            'kg' => round($price->weightKg, 2),
+            'processes' => $processes,
+            'steps' => $price->steps,
+            'unavailable' => $price->unavailableReason,
+        ];
+    }
+
     /**
      * @param array<string, mixed> $input
      * @return array{errors: array<string, list<string>>, id: int|null}

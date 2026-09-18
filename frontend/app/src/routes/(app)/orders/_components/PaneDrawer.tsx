@@ -11,6 +11,7 @@ import type {
   OrderItemsBoard,
   OrderPaneRow,
   OrderProcessItem,
+  PanePreview,
 } from '@app/api/OrdersApi';
 import { OrdersApi } from '@app/api/OrdersApi';
 import Drawer, { DrawerColumn } from '@app/components/drawer/Drawer';
@@ -99,6 +100,7 @@ export default function PaneDrawer({
   const form = useForm();
   const [steps, setSteps] = useState<Step[]>([]);
   const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState<PanePreview | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -219,29 +221,57 @@ export default function PaneDrawer({
     0,
   );
 
+  /**
+   * Ładunek formularza — jedno miejsce dla zapisu i dla podglądu.
+   * Gdyby podgląd budował go po swojemu, prędzej czy później pokazałby
+   * kwotę, której zapis nie potwierdzi.
+   */
+  const payload = (data: any) => ({
+    ...data,
+    min_billable_m2: data.min_billable_m2 === '' ? null : data.min_billable_m2,
+    note: data.note === '' ? null : data.note,
+    production_note: data.production_note === '' ? null : data.production_note,
+    processes: steps.map((step) => ({
+      process_id: step.process_id,
+      product_id: step.product_id === '' ? null : Number(step.product_id),
+      days: step.days === '' ? null : Number(step.days),
+      unit_net_price: step.unit_net_price === '' ? null : step.unit_net_price,
+      comment: step.comment === '' ? null : step.comment,
+    })),
+  });
+
+  const watched = form.watch();
+
+  // Podglad na zywo. Opozniony, bo inaczej kazde wcisniecie klawisza
+  // w polu szerokosci to osobne zapytanie.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        const { content } = await OrdersApi.previewPane(
+          orderId,
+          payload(form.getValues()),
+        );
+        const data: PanePreview | undefined = content?.data;
+
+        if (data) {
+          setPreview(data);
+        }
+      })();
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [open, JSON.stringify(watched), JSON.stringify(steps)]);
+
   const submit = async (data: any) => {
     setSaving(true);
 
     const { content, response } = await OrdersApi.savePane(
       orderId,
-      {
-        ...data,
-        min_billable_m2:
-          data.min_billable_m2 === '' ? null : data.min_billable_m2,
-        note: data.note === '' ? null : data.note,
-        production_note:
-          data.production_note === '' ? null : data.production_note,
-        // Puste pole znaczy „nie podano" — wiec null, nie pusty napis.
-        // Serwer czyta z tego „wez ze slownika" albo „wez z cennika".
-        processes: steps.map((step) => ({
-          process_id: step.process_id,
-          product_id: step.product_id === '' ? null : Number(step.product_id),
-          days: step.days === '' ? null : Number(step.days),
-          unit_net_price:
-            step.unit_net_price === '' ? null : step.unit_net_price,
-          comment: step.comment === '' ? null : step.comment,
-        })),
-      },
+      payload(data),
       item?.id,
     );
 
@@ -272,7 +302,9 @@ export default function PaneDrawer({
       foot={
         <>
           <span className="ge-drawer__foot-note">
-            {t('page.orders.panes.price_note')}
+            {preview?.ready && preview.total !== null
+              ? t('page.orders.panes.foot_total', { amount: preview.total })
+              : t('page.orders.panes.price_note')}
           </span>
           <div className="ge-drawer__foot-end">
             <Button variant="text" onClick={onClose}>
@@ -504,6 +536,57 @@ export default function PaneDrawer({
               <FieldNote>
                 {t('page.orders.panes.step_total_days', { count: totalDays })}
               </FieldNote>
+            )}
+
+            {/* Podsumowanie z formula przy kazdej pozycji. Kwota bez
+                pokazanego mnozenia to liczba bez pochodzenia — a przy
+                procesach jednostka bywa rozna: ciecie idzie od metra
+                biezacego, hartownia od metra kwadratowego, CNC od sztuki. */}
+            {preview?.ready && (
+              <div className="ge-calc">
+                <div className="ge-calc__row">
+                  <span>{t('page.orders.panes.calc_material')}</span>
+                  <span className="ge-calc__formula">
+                    {preview.m2} m² ×{' '}
+                    {preview.net_price_per_square_meter ?? '—'} zł/m²
+                  </span>
+                  <span className="ge-calc__amount">
+                    {preview.glass_net ?? '—'}
+                  </span>
+                </div>
+
+                {preview.processes.map((row, index) => (
+                  <div
+                    className={
+                      row.unavailable === null
+                        ? 'ge-calc__row'
+                        : 'ge-calc__row ge-calc__row--off'
+                    }
+                    key={`${row.process_id}-${index}`}
+                  >
+                    <span>
+                      {row.label}
+                      {row.parameter && (
+                        <span className="ge-quiet"> · {row.parameter}</span>
+                      )}
+                    </span>
+                    <span className="ge-calc__formula">
+                      {row.unavailable === null
+                        ? `${row.units} ${row.unit_label} × ${row.unit_net_price} zł/${row.unit_label}`
+                        : t(`page.orders.panes.why.${row.unavailable}`)}
+                    </span>
+                    <span className="ge-calc__amount">{row.amount}</span>
+                  </div>
+                ))}
+
+                <div className="ge-calc__row ge-calc__row--total">
+                  <span>{t('page.orders.panes.calc_total')}</span>
+                  <span className="ge-calc__formula" />
+                  <span className="ge-calc__amount">
+                    {preview.total ?? '—'}
+                  </span>
+                </div>
+              </div>
             )}
             <FieldNote>{t('page.orders.panes.processes_note')}</FieldNote>
           </Fieldset>
