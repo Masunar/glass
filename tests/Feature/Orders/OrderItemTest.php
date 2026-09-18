@@ -12,6 +12,7 @@ use App\Models\Status;
 use App\Models\Process;
 use App\Models\Product;
 use App\Models\OrderList;
+use App\Models\OrderPane;
 use App\Models\OrderItem;
 use App\Enum\StatusDomain;
 use App\Models\Contractor;
@@ -377,6 +378,137 @@ class OrderItemTest extends TestCase
      * Współczynnik 1,0, żeby cena sprzedaży równała się cenie zakupu
      * i test mówił o wycenie formatki, a nie o marży.
      */
+
+    #[Test]
+    public function minimalna_powierzchnia_bierze_sie_z_parametrow(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        // 0,2 m² przy parametrze 0,4 dla hartowanej: rozliczamy 0,4.
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 500,
+            'height_mm' => 400,
+            'is_tempered' => true,
+        ]));
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(
+            '83.20',
+            OrderItem::query()->findOrFail($result['id'])->amount,
+        );
+    }
+
+    #[Test]
+    public function wpisana_minimalna_powierzchnia_nadpisuje_parametr(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 500,
+            'height_mm' => 400,
+            'is_tempered' => true,
+            'min_billable_m2' => '1.0',
+        ]));
+
+        // Wyjatek przy formatce wygrywa z parametrem globalnym.
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(
+            '208.00',
+            OrderItem::query()->findOrFail($result['id'])->amount,
+        );
+    }
+
+    #[Test]
+    public function zero_jest_prawidlowa_minimalna_powierzchnia(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        // „Rozlicz doslownie tyle, ile jest" to poprawna odpowiedz,
+        // a nie brak wpisu. Sprawdzamy sama zapisana wartosc i to, ze
+        // kwota zeszla ponizej tej z parametru — bez wiazania testu
+        // z doplata za formatke tansza niz prog.
+        $withParameter = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 500,
+            'height_mm' => 400,
+            'is_tempered' => true,
+        ]));
+
+        $zeroed = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'width_mm' => 500,
+            'height_mm' => 400,
+            'is_tempered' => true,
+            'min_billable_m2' => '0',
+        ]));
+
+        $this->assertSame(
+            0.0,
+            OrderPane::query()->findOrFail($zeroed['id'])->min_billable_m2,
+        );
+        $this->assertLessThan(
+            (float) OrderItem::query()->findOrFail($withParameter['id'])->amount,
+            (float) OrderItem::query()->findOrFail($zeroed['id'])->amount,
+        );
+    }
+
+    #[Test]
+    public function pilne_i_dwa_komentarze_zapisuja_sie_na_pozycji(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane([
+            'is_urgent' => true,
+            'note' => 'klient prosi o zdjęcie przed wysyłką',
+            'production_note' => 'narożniki lekko stępione',
+        ]));
+
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->findOrFail($result['id']);
+
+        // Dwa komentarze o dwoch odbiorcach: uwaga handlowa moze trafic
+        // na oferte, instrukcja technologiczna idzie na hale.
+        $this->assertTrue($item->is_urgent);
+        $this->assertSame('klient prosi o zdjęcie przed wysyłką', $item->note);
+        $this->assertSame('narożniki lekko stępione', $item->production_note);
+    }
+
+    #[Test]
+    public function komentarz_produkcyjny_pozycji_jedzie_na_hale(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $this->service->savePane((int) $order->getKey(), $this->pane([
+            'is_urgent' => true,
+            'production_note' => 'okrąg fi 1800',
+        ]));
+
+        $board = $this->service->board((int) $order->getKey());
+        $row = $board['lists'][0]['glass'][0];
+
+        $this->assertTrue($row['is_urgent']);
+        $this->assertSame('okrąg fi 1800', $row['production_note']);
+    }
+
+    #[Test]
+    public function pusta_minimalna_powierzchnia_nie_utrwala_sie_jako_zero(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $result = $this->service->savePane((int) $order->getKey(), $this->pane());
+
+        $board = $this->service->board((int) $order->getKey());
+
+        // `null` znaczy „z parametrow wyceny". Zapisane zero byloby
+        // zamrozeniem dzisiejszej wartosci na zawsze.
+        $this->assertNull($board['lists'][0]['glass'][0]['min_billable_m2']);
+        $this->assertSame([], $result['errors']);
+    }
+
     private function priceCutting(string $purchaseNet): void
     {
         /** @var Process $cutting */

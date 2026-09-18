@@ -180,12 +180,17 @@ final readonly class OrderItemService
 
         $selections = $this->selections($input['processes'] ?? []);
 
+        $minBillable = isset($input['min_billable_m2']) && is_numeric($input['min_billable_m2'])
+            ? (float) $input['min_billable_m2']
+            : null;
+
         $pane = new PaneSpecification(
             widthMm: (int) $input['width_mm'],
             heightMm: (int) $input['height_mm'],
             quantity: (int) ($input['quantity'] ?? 1),
             isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
             isTempered: (bool) ($input['is_tempered'] ?? false),
+            minBillableM2: $minBillable,
         );
 
         $price = $this->pricing->pane($order, $product, $pane, $selections);
@@ -217,6 +222,11 @@ final readonly class OrderItemService
                 'position' => $item->exists
                     ? $item->position
                     : $this->nextPosition($list),
+                'is_urgent' => (bool) ($input['is_urgent'] ?? false),
+                // Dwa komentarze o dwoch odbiorcach: uwaga handlowa moze
+                // trafic na oferte, instrukcja technologiczna idzie na hale.
+                'note' => Normalize::text($input['note'] ?? null),
+                'production_note' => Normalize::text($input['production_note'] ?? null),
             ]);
             $item->save();
 
@@ -228,6 +238,7 @@ final readonly class OrderItemService
                     'is_irregular_shape' => $pane->isIrregularShape,
                     'is_tempered' => $pane->isTempered,
                     'needs_mark' => (bool) ($input['needs_mark'] ?? false),
+                    'min_billable_m2' => $pane->minBillableM2,
                 ],
             );
 
@@ -292,6 +303,9 @@ final readonly class OrderItemService
             'quantity' => ['required', 'numeric', 'min:0.001', 'max:99999'],
             'unit_net_price' => ['required', 'numeric', 'min:0', 'max:9999999'],
             'product_id' => ['nullable', 'integer'],
+            'is_urgent' => ['nullable', 'boolean'],
+            'note' => ['nullable', 'string', 'max:300'],
+            'production_note' => ['nullable', 'string', 'max:300'],
         ], [
             'name.required' => 'Podaj nazwę usługi.',
             'quantity.required' => 'Podaj ilość.',
@@ -325,6 +339,9 @@ final readonly class OrderItemService
             'unit_net_price' => $this->money($unit),
             'amount' => $this->money($quantity * $unit),
             'position' => $item->exists ? $item->position : $this->nextPosition($list),
+            'is_urgent' => (bool) ($input['is_urgent'] ?? false),
+            'note' => Normalize::text($input['note'] ?? null),
+            'production_note' => Normalize::text($input['production_note'] ?? null),
         ]);
         $item->save();
 
@@ -387,6 +404,12 @@ final readonly class OrderItemService
             // i cena albo — w starszej postaci — jako samo id procesu.
             // Ksztalt rozstrzyga `selections()`; tutaj pilnujemy tylko
             // tego, co da sie sprawdzic bez wiedzy o marszrucie.
+            'is_urgent' => ['nullable', 'boolean'],
+            'note' => ['nullable', 'string', 'max:300'],
+            'production_note' => ['nullable', 'string', 'max:300'],
+            // Puste znaczy „z parametrow wyceny". Zero jest prawidlowe:
+            // rozlicz doslownie tyle, ile jest.
+            'min_billable_m2' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'processes' => ['nullable', 'array'],
             'processes.*.process_id' => ['required_with:processes.*.product_id', 'integer'],
             'processes.*.product_id' => ['nullable', 'integer'],
@@ -502,6 +525,11 @@ final readonly class OrderItemService
             'is_irregular_shape' => (bool) ($pane->is_irregular_shape ?? false),
             'is_tempered' => (bool) ($pane->is_tempered ?? false),
             'needs_mark' => (bool) ($pane->needs_mark ?? false),
+            'is_urgent' => (bool) $item->is_urgent,
+            'note' => $item->note,
+            'production_note' => $item->production_note,
+            // `null` znaczy „z parametrow wyceny", nie zero.
+            'min_billable_m2' => $pane?->min_billable_m2,
             'm2' => $spec === null ? null : round($spec->squareMeters(), 3),
             'mb' => $spec === null ? null : round($spec->runningMeters(), 2),
             'kg' => $spec === null || $thickness === null

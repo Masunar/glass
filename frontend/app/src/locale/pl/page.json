@@ -775,7 +775,16 @@
       "days_value_many": "{{count}} dni",
       "days_value_other": "{{count}} dni",
       "days_note": "najdłuższa formatka — formatki idą przez halę równolegle",
-      "days_unknown": "żaden etap nie ma wpisanych dni"
+      "days_unknown": "żaden etap nie ma wpisanych dni",
+      "urgent": "Pilne",
+      "min_billable": "Min. powierzchnia rozliczeniowa (m²)",
+      "min_billable_hint": "z parametrów wyceny",
+      "min_billable_note": "Puste pole znaczy „obowiązuje wartość ze słownika\" — inna dla hartowanej, inna dla zwykłej. Wpisz tylko wtedy, gdy ta jedna formatka ma być wyjątkiem.",
+      "note": "Uwaga do pozycji",
+      "note_hint": "dla handlowca — może trafić na ofertę",
+      "production_note": "Komentarz dla produkcji",
+      "production_note_hint": "instrukcja dla operatora przy tej formatce",
+      "notes_section": "Uwagi"
     },
     "discount": {
       "title": "Rabat",

@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $is_irregular_shape
  * @property bool $is_tempered
  * @property bool $needs_mark
+ * @property float|null $min_billable_m2
  */
 class OrderPane extends Model
 {
@@ -33,6 +34,7 @@ class OrderPane extends Model
     protected $fillable = [
         'order_item_id', 'width_mm', 'height_mm',
         'is_irregular_shape', 'is_tempered', 'needs_mark', 'pane_template_id',
+        'min_billable_m2',
     ];
 
     protected function casts(): array
@@ -43,6 +45,7 @@ class OrderPane extends Model
             'is_irregular_shape' => 'boolean',
             'is_tempered' => 'boolean',
             'needs_mark' => 'boolean',
+            'min_billable_m2' => 'float',
         ];
     }
 

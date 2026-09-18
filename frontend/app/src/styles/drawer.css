@@ -38,7 +38,12 @@
 /* Panel wąski — formularze o jednej kolumnie. 340 px z projektu było
    za ciasne: etykiety i noty łamały się na trzy wiersze, a stopka
    ściskała przyciski. */
+/* Waski panel dla formularzy o jednej kolumnie pol. */
 .ge-drawer--narrow { width: clamp(480px, 34vw, 560px); }
+/* Formatka niesie przy kazdym etapie cztery decyzje w jednym rzedzie —
+   pozycja cennikowa, dni, cena, uwaga — wiec waski panel obcinal
+   i nazwy pozycji, i naglowki kolumn. Poltora raza szerszy. */
+.ge-drawer--wide-form { width: clamp(720px, 50vw, 840px); }
 
 @media (prefers-reduced-motion: reduce) {
   .ge-drawer,

@@ -47,9 +47,12 @@ final readonly class PaneCalculator
         $steps = [];
 
         $rawSquareMeters = round($pane->squareMeters(), 4);
-        $minimum = $pane->isTempered
+        // Wyjatek wpisany przy formatce wygrywa z parametrem globalnym.
+        // Zero jest prawidlowa odpowiedzia — „rozlicz doslownie tyle, ile
+        // jest" — wiec nie traktujemy go jak braku.
+        $minimum = $pane->minBillableM2 ?? ($pane->isTempered
             ? $parameters->minBillableTemperedM2
-            : $parameters->minBillableUntemperedM2;
+            : $parameters->minBillableUntemperedM2);
 
         $billable = max($rawSquareMeters, $minimum);
 

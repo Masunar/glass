@@ -17,6 +17,12 @@ final readonly class PaneSpecification
         public int $quantity = 1,
         public bool $isIrregularShape = false,
         public bool $isTempered = false,
+        /**
+         * Nadpisanie minimalnej powierzchni rozliczeniowej dla tej
+         * formatki. `null` znaczy „z parametrów wyceny" — a te mają
+         * osobną wartość dla hartowanej i niehartowanej.
+         */
+        public ?float $minBillableM2 = null,
     ) {}
 
     /** Powierzchnia pojedynczej formatki — podstawa sprawdzenia gabarytu. */

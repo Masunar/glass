@@ -167,6 +167,10 @@ final readonly class ProductionQueue
             'parameter' => $task->parameter,
             'comment' => $order->production_comment,
             'list_comment' => $item->list->comment,
+            // Instrukcja przy tej jednej formatce — najkonkretniejsza
+            // z trzech, wiec operator ma ja widziec razem z pozostalymi.
+            'item_note' => $item->production_note,
+            'is_urgent' => (bool) $item->is_urgent,
             'drawings' => OrderDrawing::query()->where('order_id', $task->order_id)->count(),
             'status' => $task->status->value,
             'issue_type' => $task->issue_type?->value,

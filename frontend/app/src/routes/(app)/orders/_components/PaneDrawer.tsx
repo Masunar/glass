@@ -35,6 +35,10 @@ const empty = {
   is_irregular_shape: false,
   is_tempered: false,
   needs_mark: false,
+  is_urgent: false,
+  min_billable_m2: '',
+  note: '',
+  production_note: '',
 };
 
 /** Etap na formatce — wybrana pozycja cennikowa, dni, cena, uwaga. */
@@ -102,14 +106,16 @@ export default function PaneDrawer({
     }
 
     setSteps(
-      item?.processes.map((entry) => ({
-        key: nextKey(),
-        process_id: entry.process_id,
-        product_id: entry.product_id === null ? '' : String(entry.product_id),
-        days: entry.days === null ? '' : String(entry.days),
-        unit_net_price: entry.unit_net_price,
-        comment: entry.comment ?? '',
-      })) ?? [],
+      inRouteOrder(
+        item?.processes.map((entry) => ({
+          key: nextKey(),
+          process_id: entry.process_id,
+          product_id: entry.product_id === null ? '' : String(entry.product_id),
+          days: entry.days === null ? '' : String(entry.days),
+          unit_net_price: entry.unit_net_price,
+          comment: entry.comment ?? '',
+        })) ?? [],
+      ),
     );
 
     form.reset({
@@ -122,6 +128,16 @@ export default function PaneDrawer({
       is_irregular_shape: item?.is_irregular_shape ?? false,
       is_tempered: item?.is_tempered ?? false,
       needs_mark: item?.needs_mark ?? false,
+      is_urgent: item?.is_urgent ?? false,
+      // Puste pole znaczy „z parametrow wyceny" — podstawiamy tylko
+      // wpisany wyjatek, nie wartosc globalna, zeby jej przypadkiem
+      // nie utrwalic przy zapisie.
+      min_billable_m2:
+        item?.min_billable_m2 === null || item?.min_billable_m2 === undefined
+          ? ''
+          : String(item.min_billable_m2),
+      note: item?.note ?? '',
+      production_note: item?.production_note ?? '',
     });
   }, [open, item?.id]);
 
@@ -138,21 +154,23 @@ export default function PaneDrawer({
     );
     const only = candidates(process?.items ?? [], thickness);
 
-    setSteps((current) => [
-      ...current,
-      {
-        key: nextKey(),
-        process_id: processId,
-        product_id: only.length === 1 ? String(only[0].product_id) : '',
-        days:
-          process?.duration_days === null ||
-          process?.duration_days === undefined
-            ? ''
-            : String(process.duration_days),
-        unit_net_price: '',
-        comment: '',
-      },
-    ]);
+    setSteps((current) =>
+      inRouteOrder([
+        ...current,
+        {
+          key: nextKey(),
+          process_id: processId,
+          product_id: only.length === 1 ? String(only[0].product_id) : '',
+          days:
+            process?.duration_days === null ||
+            process?.duration_days === undefined
+              ? ''
+              : String(process.duration_days),
+          unit_net_price: '',
+          comment: '',
+        },
+      ]),
+    );
   };
 
   const toggle = (processId: number) => {
@@ -167,6 +185,25 @@ export default function PaneDrawer({
     }
 
     add(processId);
+  };
+
+  /**
+   * Etapy trzymane w kolejności marszruty, a te same procesy obok
+   * siebie. Dołożony szlif ma stanąć przy szlifie, a nie na końcu za
+   * hartownią — inaczej lista przestaje przypominać drogę, którą szyba
+   * naprawdę przejdzie.
+   *
+   * Sortowanie jest stabilne, więc kolejność dwóch faz między sobą
+   * zostaje taka, w jakiej je dołożono.
+   */
+  const inRouteOrder = (rows: Step[]): Step[] => {
+    const rank = (id: number) => {
+      const index = board.catalogue.processes.findIndex((row) => row.id === id);
+
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
+
+    return [...rows].sort((a, b) => rank(a.process_id) - rank(b.process_id));
   };
 
   const patch = (key: string, change: Partial<Step>) =>
@@ -189,6 +226,11 @@ export default function PaneDrawer({
       orderId,
       {
         ...data,
+        min_billable_m2:
+          data.min_billable_m2 === '' ? null : data.min_billable_m2,
+        note: data.note === '' ? null : data.note,
+        production_note:
+          data.production_note === '' ? null : data.production_note,
         // Puste pole znaczy „nie podano" — wiec null, nie pusty napis.
         // Serwer czyta z tego „wez ze slownika" albo „wez z cennika".
         processes: steps.map((step) => ({
@@ -224,6 +266,7 @@ export default function PaneDrawer({
       open={open}
       onClose={onClose}
       narrow
+      wideForm
       kicker={t('page.orders.panes.title')}
       title={t(item ? 'page.orders.panes.edit' : 'page.orders.panes.add')}
       foot={
@@ -313,9 +356,20 @@ export default function PaneDrawer({
                 label={t('page.orders.panes.irregular')}
               />
               <Toggle name="needs_mark" label={t('page.orders.panes.mark')} />
+              <Toggle name="is_urgent" label={t('page.orders.panes.urgent')} />
             </FieldRow>
 
             <FieldNote>{t('page.orders.panes.size_note')}</FieldNote>
+
+            {/* Nadpisanie parametru wyceny dla tej jednej formatki.
+                Puste pole nie znaczy zero — znaczy „obowiazuje wartosc
+                ze slownika", ktora zalezy od hartowania. */}
+            <Field
+              name="min_billable_m2"
+              label={t('page.orders.panes.min_billable')}
+              placeholder={t('page.orders.panes.min_billable_hint')}
+            />
+            <FieldNote>{t('page.orders.panes.min_billable_note')}</FieldNote>
           </Fieldset>
 
           <Fieldset
@@ -452,6 +506,22 @@ export default function PaneDrawer({
               </FieldNote>
             )}
             <FieldNote>{t('page.orders.panes.processes_note')}</FieldNote>
+          </Fieldset>
+
+          <Fieldset tone="contact" label={t('page.orders.panes.notes_section')}>
+            {/* Dwa komentarze, bo maja dwoch odbiorcow. Scalone w jeden
+                znaczylyby, ze instrukcja technologiczna trafia na oferte
+                albo uwaga handlowa na hale. */}
+            <Field
+              name="note"
+              label={t('page.orders.panes.note')}
+              placeholder={t('page.orders.panes.note_hint')}
+            />
+            <Field
+              name="production_note"
+              label={t('page.orders.panes.production_note')}
+              placeholder={t('page.orders.panes.production_note_hint')}
+            />
           </Fieldset>
 
           {item && item.price_path.length > 0 && (

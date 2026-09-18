@@ -240,6 +240,13 @@ export type OrderPaneRow = {
   is_irregular_shape: boolean;
   is_tempered: boolean;
   needs_mark: boolean;
+  is_urgent: boolean;
+  /** Uwaga handlowa — może trafić na ofertę. */
+  note: string | null;
+  /** Instrukcja technologiczna — idzie na kartę operatora. */
+  production_note: string | null;
+  /** `null` = z parametrów wyceny, nie zero. */
+  min_billable_m2: number | null;
   m2: number | null;
   mb: number | null;
   kg: number | null;
