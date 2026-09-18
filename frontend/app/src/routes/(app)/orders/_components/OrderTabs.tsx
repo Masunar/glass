@@ -57,21 +57,51 @@ export default function OrderTabs({
     },
   ];
 
+  /**
+   * Licznik pokazuje się tylko wtedy, gdy jest co liczyć. Zakładka pusta
+   * zostaje samą etykietą, przygaszoną — brak licznika jest informacją
+   * i nie trzeba czytać liczby, żeby wiedzieć, że nie ma tam nic.
+   */
+  const label = (tab: { label: string; count?: number }) => {
+    const empty = tab.count !== undefined && tab.count === 0;
+
+    return (
+      <>
+        <span>{tab.label}</span>
+        {empty || tab.count === undefined ? null : (
+          <span className="ge-seg__count">{tab.count}</span>
+        )}
+      </>
+    );
+  };
+
+  const className = (tab: { key: Tab; count?: number }) =>
+    [
+      'ge-seg__item',
+      tab.key === active ? 'is-active' : '',
+      tab.count === 0 && tab.key !== active ? 'ge-seg__item--empty' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
   return (
-    <nav className="ge-filters" aria-label={t('page.orders.card.sections')}>
-      {tabs.map((tab) =>
-        tab.key === active ? (
-          <span className="ge-filters__here" key={tab.key}>
-            {tab.label}
-            {tab.count === undefined ? '' : ` ${tab.count}`}
-          </span>
-        ) : (
-          <Link to={tab.to} key={tab.key}>
-            {tab.label}
-            {tab.count === undefined ? '' : ` ${tab.count}`}
-          </Link>
-        ),
-      )}
-    </nav>
+    <div className="ge-segbar">
+      <nav
+        className="ge-seg ge-seg--line"
+        aria-label={t('page.orders.card.sections')}
+      >
+        {tabs.map((tab) =>
+          tab.key === active ? (
+            <span className={className(tab)} key={tab.key} aria-current="page">
+              {label(tab)}
+            </span>
+          ) : (
+            <Link className={className(tab)} to={tab.to} key={tab.key}>
+              {label(tab)}
+            </Link>
+          ),
+        )}
+      </nav>
+    </div>
   );
 }

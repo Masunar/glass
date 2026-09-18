@@ -363,3 +363,81 @@
   padding: 3px 0;
   font-size: 13px;
 }
+
+/* ---------- pasek segmentowy ---------- */
+
+/* Zakladki jako segmenty w jednej ramce, a nie osobne napisy z podkresleniem.
+   Roznica jest praktyczna, nie estetyczna: segment ma wlasna szerokosc, wiec
+   licznik moze stanac przy jego prawej krawedzi i kolumna liczb czyta sie
+   w pionie. Przy napisach licznik plynal razem z dlugoscia etykiety.
+
+   Zero zaokraglen — jak wszystko w tym designie. */
+.ge-segbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-seg {
+  display: flex;
+  border: 1px solid var(--ge-divider);
+  background: var(--ge-surface);
+}
+.ge-seg__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 0;
+  border-right: 1px solid var(--ge-divider);
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ge-neutral-700);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ge-seg__item:last-child { border-right: 0; }
+.ge-seg__item:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+
+/* Zakladka pusta: sama etykieta, ciszej. Nic nie trzeba czytac, zeby
+   wiedziec, ze nie ma tam nic — brak licznika jest informacja. */
+.ge-seg__item--empty { color: var(--ge-neutral-500); }
+
+.ge-seg__count {
+  padding: 1px 7px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ge-neutral-600);
+}
+
+/* Wariant z podkresleniem — zakladki wewnatrz zlecenia. Segment prowadzi
+   pod wlasny adres, wiec aktywny jest oznaczony akcentem przy krawedzi,
+   a nie wypelnieniem: to nadal nawigacja, nie filtr. */
+.ge-seg--line .ge-seg__item.is-active {
+  color: var(--ge-text);
+  font-weight: 500;
+  border-bottom-color: var(--ge-mod);
+}
+.ge-seg--line .ge-seg__item.is-active .ge-seg__count {
+  background: var(--ge-mod-tint);
+  color: color-mix(in oklab, var(--ge-mod) 70%, black);
+}
+
+/* Wariant wypelniony — filtry listy zlecen. Filtr zmienia to, co widac
+   pod spodem, wiec ma byc widac na pierwszy rzut oka, ktory jest wlaczony;
+   pole w akcencie mowi, ile ma biezacy filtr. */
+.ge-seg--solid .ge-seg__item.is-active {
+  background: var(--ge-mod);
+  border-right-color: var(--ge-mod);
+  color: #fff;
+  font-weight: 500;
+}
+.ge-seg--solid .ge-seg__item.is-active:hover { color: #fff; }
+.ge-seg--solid .ge-seg__item.is-active .ge-seg__count {
+  background: color-mix(in srgb, #fff 26%, transparent);
+  color: #fff;
+}
