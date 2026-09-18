@@ -137,6 +137,9 @@ final readonly class OrderPricing
      *     code: string,
      *     label: string,
      *     product_id: int|null,
+     *     unit: Unit,
+     *     unit_label: string,
+     *     units: float,
      *     parameter: string|null,
      *     days: int|null,
      *     comment: string|null,
@@ -192,7 +195,7 @@ final readonly class OrderPricing
             $manual = $this->amount($selection['unit_net_price'] ?? null);
             $rate = $manual ?? $catalogueRate;
 
-            $unit = $product?->unit ?? Unit::RUNNING_METER;
+            $unit = $product === null ? Unit::RUNNING_METER : $product->unit;
             $units = $this->calculator->units($pane, $unit);
 
             $rows[] = [

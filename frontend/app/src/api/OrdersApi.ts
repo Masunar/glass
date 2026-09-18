@@ -71,7 +71,8 @@ export type OrderCardItem = {
   section: string;
   name: string;
   quantity: string;
-  unit_net_price: string;
+  /** `null` znaczy brak pozycji w cenniku, nie cene zerowa. */
+  unit_net_price: string | null;
   amount: string;
   processes: string[];
   pane: OrderPane | null;

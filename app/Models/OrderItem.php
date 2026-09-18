@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Section $section
  * @property string $name
  * @property string $quantity
- * @property string $unit_net_price
+ * @property string|null $unit_net_price
  * @property string|null $unit_cost
  * @property string $amount
  * @property array<int, mixed>|null $price_path

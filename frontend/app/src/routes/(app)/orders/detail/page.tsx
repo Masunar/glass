@@ -14,11 +14,13 @@ import {
 } from '@app/api/OrdersApi';
 import { Strip, Strips } from '@app/components/list';
 
-const money = (value: string) =>
-  new Intl.NumberFormat('pl-PL', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(value));
+const money = (value: string | null) =>
+  value === null
+    ? '—'
+    : new Intl.NumberFormat('pl-PL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(value));
 
 export default function Page() {
   const t = useTranslation();

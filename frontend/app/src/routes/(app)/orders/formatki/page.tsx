@@ -19,11 +19,13 @@ import type {
 import { OrdersApi } from '@app/api/OrdersApi';
 import { Band, Strip } from '@app/components/list';
 
-const money = (value: string | number) =>
-  new Intl.NumberFormat('pl-PL', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(value));
+const money = (value: string | number | null) =>
+  value === null
+    ? '—'
+    : new Intl.NumberFormat('pl-PL', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(value));
 
 const decimal = (value: number | null, digits = 2) =>
   value === null
@@ -396,13 +398,7 @@ function ListBlock({
                 kwota wyrasta. Brak pozycji w cenniku widac tutaj, a nie
                 dopiero po tym, ze suma wyszla mniejsza, niz powinna. */}
             <span className="r ge-quiet">
-              {row.unit_net_price === null ? (
-                <span className="ge-note ge-note--warn">
-                  {t('page.orders.panes.no_price')}
-                </span>
-              ) : (
-                money(row.unit_net_price)
-              )}
+              {money(row.unit_net_price)}
             </span>
             <span className="r ge-dim">
               {/* Kwota bez sladu to liczba bez pochodzenia — a tu naklada

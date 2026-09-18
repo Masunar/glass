@@ -300,7 +300,9 @@ final readonly class OrderItemService
                 // Dla szkla cena jednostkowa to cena metra kwadratowego —
                 // to ona wynika z cennika. Kwota pozycji jest wynikiem
                 // wzoru, nie mnozenia ceny przez ilosc.
-                'unit_net_price' => $price->netPricePerSquareMeter ?? '0.00',
+                // Brak ceny zapisuje sie jako brak. Zero znaczylo
+                // „szklo za darmo" i nie dalo sie go odroznic od ceny.
+                'unit_net_price' => $price->netPricePerSquareMeter,
                 'amount' => $price->glassNet,
                 'price_path' => $price->steps,
                 'position' => $item->exists

@@ -37,7 +37,7 @@ final readonly class PaneCalculator
 {
     /**
      * @param string $netPricePerSquareMeter cena sprzedaży m² dla materiału i sekcji cenowej
-     * @param list<array{label: string, net_price_per_running_meter: string}> $processes
+     * @param list<array{label: string, unit_net_price: string, unit?: Unit}> $processes
      */
     public function calculate(
         PaneSpecification $pane,

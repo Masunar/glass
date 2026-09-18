@@ -213,7 +213,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 1000, heightMm: 1000),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $this->assertSame(4.0, $quote->runningMeters);
@@ -228,7 +228,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 1000, heightMm: 1000, isIrregularShape: true),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $this->assertSame('375.00', $quote->net);
@@ -240,7 +240,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 2500, heightMm: 2000, isIrregularShape: true),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $codes = array_column(
