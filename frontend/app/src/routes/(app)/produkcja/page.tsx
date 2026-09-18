@@ -239,6 +239,14 @@ export default function Page() {
 
               <span className="ge-task__what">
                 <span>
+                  {/* Pilne stoi przed numerem zlecenia, bo to pierwsza
+                      rzecz, ktora operator ma zobaczyc — i to ona
+                      wciagnela ten etap na gore kolejki. */}
+                  {row.is_urgent && (
+                    <span className="ge-tag ge-tag--urgent">
+                      {t('page.orders.panes.urgent')}
+                    </span>
+                  )}
                   <Link to={`/orders/${row.order_id}`}>
                     #{row.order_number}
                   </Link>{' '}

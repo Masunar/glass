@@ -379,10 +379,24 @@ function ListBlock({
         )}
 
         {list.glass.map((row, index) => (
-          <div className="ge-panes__row" key={row.id}>
+          <div
+            className={
+              row.is_urgent ? 'ge-panes__row ge-panes__row--urgent' : 'ge-panes__row'
+            }
+            key={row.id}
+          >
             <span>{index + 1}</span>
             <span>{row.group ?? '—'}</span>
-            <span className="ge-cell--wrap">{row.name}</span>
+            {/* Pilna formatka ma byc widoczna z listy, a nie dopiero po
+                otwarciu panelu — to ona ustawia kolejnosc na hali. */}
+            <span className="ge-cell--wrap">
+              {row.is_urgent && (
+                <span className="ge-tag ge-tag--urgent">
+                  {t('page.orders.panes.urgent')}
+                </span>
+              )}
+              {row.name}
+            </span>
             <span className="r ge-dim">{row.width_mm}</span>
             <span className="r ge-dim">{row.height_mm}</span>
             <span className="r">{Number(row.quantity)}</span>

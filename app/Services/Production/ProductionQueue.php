@@ -77,8 +77,12 @@ final readonly class ProductionQueue
             $left = $a['days_left'] ?? PHP_INT_MAX;
             $right = $b['days_left'] ?? PHP_INT_MAX;
 
-            return [$left, $a['order_number'], $a['position']]
-                <=> [$right, $b['order_number'], $b['position']];
+            // Pilne idzie przed terminem, bo po to sie je zaznacza:
+            // to jedyny sposob, zeby czlowiek przestawil kolejnosc,
+            // ktorej data sama nie przestawi. Wewnatrz pilnych nadal
+            // rzadzi termin.
+            return [$a['is_urgent'] ? 0 : 1, $left, $a['order_number'], $a['position']]
+                <=> [$b['is_urgent'] ? 0 : 1, $right, $b['order_number'], $b['position']];
         });
 
         return [
