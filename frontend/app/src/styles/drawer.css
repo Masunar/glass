@@ -439,6 +439,12 @@
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
 }
+/* Doplata to nie osobna pozycja, tylko kolejny stan tej samej kwoty
+   materialu — stad wciecie i cichszy kolor. Ostatni taki wiersz
+   pokazuje kwote, ktora wchodzi do sumy. */
+.ge-calc__row--sub > span:first-child { padding-left: 14px; }
+.ge-calc__row--sub { color: var(--ge-neutral-600); }
+
 /* Niewyceniony etap nie udaje, ze kosztuje zero. */
 .ge-calc__row--off .ge-calc__formula,
 .ge-calc__row--off .ge-calc__amount { color: var(--m-alert); }

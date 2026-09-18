@@ -266,6 +266,17 @@ export default function PaneDrawer({
     return () => clearTimeout(timer);
   }, [open, JSON.stringify(watched), JSON.stringify(steps)]);
 
+  /**
+   * Kroki wyceny materiału w kolejności, w jakiej je policzono: cena
+   * bazowa, potem dopłaty. Procesy mają własne wiersze, a kroki cennika
+   * (katalog, sekcja, rabat) należą do ścieżki ceny, nie do podliczenia
+   * formatki — stąd zamknięta lista kodów zamiast wszystkiego z rzędu.
+   */
+  const MATERIAL_STEPS = ['base', 'shape', 'oversize', 'min_price'];
+  const material = (preview?.steps ?? []).filter((step) =>
+    MATERIAL_STEPS.includes(step.code),
+  );
+
   const submit = async (data: any) => {
     setSaving(true);
 
@@ -544,16 +555,40 @@ export default function PaneDrawer({
                 biezacego, hartownia od metra kwadratowego, CNC od sztuki. */}
             {preview?.ready && (
               <div className="ge-calc">
-                <div className="ge-calc__row">
-                  <span>{t('page.orders.panes.calc_material')}</span>
-                  <span className="ge-calc__formula">
-                    {preview.m2} m² ×{' '}
-                    {preview.net_price_per_square_meter ?? '—'} zł/m²
-                  </span>
-                  <span className="ge-calc__amount">
-                    {preview.glass_net ?? '—'}
-                  </span>
-                </div>
+                {/* Materiał to drabinka, nie jedna liczba: cena bazowa,
+                    a pod nią każda dopłata osobno. Przy jednym wierszu
+                    właczenie nieregularnego kształtu zmieniało kwotę,
+                    a formuła obok zostawała ta sama — czyli kwota
+                    przestawała się tłumaczyć dokładnie wtedy, gdy
+                    zaczynało się dziać coś ciekawego. */}
+                {material.length === 0 ? (
+                  <div className="ge-calc__row ge-calc__row--off">
+                    <span>{t('page.orders.panes.calc_material')}</span>
+                    <span className="ge-calc__formula">
+                      {t('page.orders.panes.no_price')}
+                    </span>
+                    <span className="ge-calc__amount">—</span>
+                  </div>
+                ) : (
+                  material.map((step, index) => (
+                    <div
+                      className={
+                        step.code === 'base'
+                          ? 'ge-calc__row'
+                          : 'ge-calc__row ge-calc__row--sub'
+                      }
+                      key={`${step.code}-${index}`}
+                    >
+                      <span>
+                        {step.code === 'base'
+                          ? t('page.orders.panes.calc_material')
+                          : step.label}
+                      </span>
+                      <span className="ge-calc__formula">{step.detail}</span>
+                      <span className="ge-calc__amount">{step.value}</span>
+                    </div>
+                  ))
+                )}
 
                 {preview.processes.map((row, index) => (
                   <div

@@ -588,6 +588,52 @@ class OrderItemTest extends TestCase
     }
 
     #[Test]
+    public function podglad_pokazuje_doplate_za_ksztalt_osobnym_krokiem(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $input = $this->pane(['width_mm' => 1500, 'height_mm' => 1000]);
+
+        $plain = $this->service->preview((int) $order->getKey(), $input);
+        $shaped = $this->service->preview(
+            (int) $order->getKey(),
+            [...$input, 'is_irregular_shape' => true],
+        );
+
+        // Doplata musi byc widoczna jako wlasny krok, a nie tylko jako
+        // wieksza kwota przy tej samej formule — inaczej kwota przestaje
+        // sie tlumaczyc dokladnie wtedy, gdy zaczyna sie dziac cos
+        // ciekawego.
+        $codes = array_column($shaped['steps'], 'code');
+
+        $this->assertNotContains('shape', array_column($plain['steps'], 'code'));
+        $this->assertContains('shape', $codes);
+        $this->assertGreaterThan((float) $plain['total'], (float) $shaped['total']);
+    }
+
+    #[Test]
+    public function pilne_i_znak_nie_ruszaja_ceny(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $input = $this->pane();
+        $base = $this->service->preview((int) $order->getKey(), $input);
+
+        // Ani „pilne", ani „znak" nie maja doplaty w zadnym slowniku
+        // starego systemu (Z-20 zostaje otwarte). Dopoki jej nie ma,
+        // przelacznik ma nie ruszac kwoty — zmyslony procent wygladalby
+        // tak samo jak prawdziwy.
+        $urgent = $this->service->preview(
+            (int) $order->getKey(),
+            [...$input, 'is_urgent' => true, 'needs_mark' => true],
+        );
+
+        $this->assertSame($base['total'], $urgent['total']);
+    }
+
+    #[Test]
     public function brak_ceny_szkla_nie_kasuje_ceny_procesow(): void
     {
         // Celowo bez priceGlass() — material nie ma pozycji w cenniku.
