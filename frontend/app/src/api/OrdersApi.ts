@@ -128,6 +128,8 @@ export type OrderCard = {
     is_on_hold: boolean;
     hold_reason: string | null;
     has_open_claim: boolean;
+    /** Dni najdłuższej formatki. `null` = nie ma z czego liczyć. */
+    estimated_days: number | null;
     contractor: {
       id: number;
       name: string;
@@ -216,9 +218,17 @@ export type OrderPaneRow = {
     process_id: number;
     code: string | null;
     name: string | null;
+    /** Wybrana pozycja cennikowa — null, dopóki nikt nie wybrał. */
+    product_id: number | null;
+    /** Nazwa wybranej pozycji: „Faza 15mm". */
+    parameter: string | null;
+    days: number | null;
+    comment: string | null;
     unit_net_price: string;
     amount: string;
   }[];
+  /** Suma dni etapów tej formatki. */
+  days: number;
   price_path: {
     code: string;
     label: string;
@@ -235,6 +245,25 @@ export type OrderPaneRow = {
   kg: number | null;
 };
 
+/** Pozycja cennikowa procesu — „Faza 15mm" przy grubości 8. */
+export type OrderProcessItem = {
+  product_id: number;
+  name: string;
+  /** Zawęża listę, ale jej nie rozstrzyga. `null` = niezależna od grubości. */
+  glass_thickness_mm: number | null;
+  unit: string;
+};
+
+export type OrderProcess = {
+  id: number;
+  code: string;
+  name: string;
+  is_subcontracted: boolean;
+  /** Czas trwania ze słownika — punkt wyjścia, nie wyrok. */
+  duration_days: number | null;
+  items: OrderProcessItem[];
+};
+
 export type OrderItemsList = {
   id: number;
   number: number;
@@ -244,6 +273,8 @@ export type OrderItemsList = {
   is_on_hold: boolean;
   comment: string | null;
   net: string;
+  /** Najdłuższa formatka listy — formatki idą przez halę równolegle. */
+  days: number | null;
   glass: OrderPaneRow[];
   services: OrderPaneRow[];
 };
@@ -284,7 +315,12 @@ export type OrderItemsBoard = {
   };
   tabs: OrderTabCounts;
   lists: OrderItemsList[];
-  totals: OrderTotals & { m2: number; mb: number; kg: number };
+  totals: OrderTotals & {
+    m2: number;
+    mb: number;
+    kg: number;
+    days: number | null;
+  };
   discounts: OrderDiscountRow[];
   catalogue: {
     products: {
@@ -294,12 +330,7 @@ export type OrderItemsBoard = {
       thickness_mm: number | null;
       is_tempered_by_default: boolean;
     }[];
-    processes: {
-      id: number;
-      code: string;
-      name: string;
-      is_subcontracted: boolean;
-    }[];
+    processes: OrderProcess[];
     services: { id: number; name: string }[];
   };
 };

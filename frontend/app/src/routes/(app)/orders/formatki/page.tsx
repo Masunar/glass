@@ -194,6 +194,32 @@ export default function Page() {
             </div>
             <div className="ge-quiet">{t('page.orders.panes.sums_note')}</div>
           </section>
+
+          <section className="ge-section">
+            <div className="ge-section__head">
+              {t('page.orders.panes.days')}
+            </div>
+            {/* Dni biora sie wylacznie z tego, co ktos wpisal przy
+                etapach. Brak wpisow to brak liczby, nie zero. */}
+            {totals.days === null ? (
+              <div className="ge-quiet">
+                {t('page.orders.panes.days_unknown')}
+              </div>
+            ) : (
+              <>
+                <div className="ge-kv">
+                  <span className="ge-kv__k">
+                    {t('page.orders.panes.days_value', {
+                      count: totals.days,
+                    })}
+                  </span>
+                </div>
+                <div className="ge-quiet">
+                  {t('page.orders.panes.days_note')}
+                </div>
+              </>
+            )}
+          </section>
         </aside>
       </div>
 

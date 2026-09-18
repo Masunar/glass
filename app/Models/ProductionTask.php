@@ -20,7 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $order_id
  * @property int $order_item_id
+ * @property int|null $order_item_process_id
  * @property int $process_id
+ * @property int|null $product_id
  * @property int|null $workstation_id
  * @property string|null $parameter
  * @property int $position
@@ -42,7 +44,7 @@ class ProductionTask extends Dateable
     protected $table = 'production_tasks';
 
     protected $fillable = [
-        'order_id', 'order_item_id', 'process_id', 'workstation_id',
+        'order_id', 'order_item_id', 'order_item_process_id', 'process_id', 'product_id', 'workstation_id',
         'parameter', 'position', 'status', 'started_at', 'finished_at',
         'minutes_spent', 'issue_type', 'note', 'done_by',
     ];
@@ -69,6 +71,12 @@ class ProductionTask extends Dateable
     public function item(): BelongsTo
     {
         return $this->belongsTo(OrderItem::class, 'order_item_id', 'id');
+    }
+
+    /** Linia marszruty, z której to zadanie powstało. */
+    public function routeStep(): BelongsTo
+    {
+        return $this->belongsTo(OrderItemProcess::class, 'order_item_process_id', 'id');
     }
 
     /** @return BelongsTo<Process, $this> */

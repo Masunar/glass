@@ -51,10 +51,14 @@ final readonly class ProductionPlan
             foreach ($list->items as $item) {
                 /** @var OrderItemProcess $entry */
                 foreach ($item->processes as $entry) {
-                    $wanted[(int) $item->getKey() . ':' . (int) $entry->process_id] = [
-                        'item' => $item,
-                        'entry' => $entry,
-                    ];
+                    // Tozsamosc etapu to pozycja + proces + wybrana
+                    // pozycja cennikowa: faza 15 mm i faza 25 mm na tej
+                    // samej szybie to dwie rozne prace dla hali.
+                    $wanted[$this->key(
+                        (int) $item->getKey(),
+                        (int) $entry->process_id,
+                        $entry->product_id === null ? null : (int) $entry->product_id,
+                    )] = ['item' => $item, 'entry' => $entry];
                 }
             }
         }
@@ -63,7 +67,11 @@ final readonly class ProductionPlan
         $existing = [];
 
         foreach ($this->tasksOf($order) as $task) {
-            $existing[(int) $task->order_item_id . ':' . (int) $task->process_id] = $task;
+            $existing[$this->key(
+                (int) $task->order_item_id,
+                (int) $task->process_id,
+                $task->product_id === null ? null : (int) $task->product_id,
+            )] = $task;
         }
 
         $created = 0;
@@ -72,11 +80,18 @@ final readonly class ProductionPlan
         DB::transaction(function () use ($order, $wanted, $existing, &$created, &$removed): void {
             foreach ($wanted as $key => $pair) {
                 if (isset($existing[$key])) {
-                    // Parametr etapu moze sie zmienic przy poprawce
-                    // wyceny (inny RAL, inna faza). Dopoki nikt etapu nie
-                    // ruszyl, karta operatora ma pokazywac aktualny.
                     $task = $existing[$key];
 
+                    // Wiersze marszruty sa kasowane i zakladane od nowa
+                    // przy kazdym zapisie formatki, wiec zadanie dostaje
+                    // wskazanie na nowy wiersz niezaleznie od stanu.
+                    $task->update([
+                        'order_item_process_id' => (int) $pair['entry']->getKey(),
+                    ]);
+
+                    // Parametr i czas moga sie zmienic przy poprawce
+                    // wyceny. Dopoki nikt etapu nie ruszyl, karta
+                    // operatora ma pokazywac aktualne.
                     if ($task->status === ProductionStatus::PENDING) {
                         $task->update(['parameter' => $pair['entry']->parameter]);
                     }
@@ -91,7 +106,9 @@ final readonly class ProductionPlan
                 ProductionTask::query()->create([
                     'order_id' => (int) $order->getKey(),
                     'order_item_id' => (int) $pair['item']->getKey(),
+                    'order_item_process_id' => (int) $pair['entry']->getKey(),
                     'process_id' => (int) $pair['entry']->process_id,
+                    'product_id' => $pair['entry']->product_id,
                     'workstation_id' => $process->workstation_id,
                     'parameter' => $pair['entry']->parameter,
                     'position' => (int) $process->default_order,
@@ -127,6 +144,11 @@ final readonly class ProductionPlan
             ->where('order_id', (int) $order->getKey())
             ->where('status', '!=', ProductionStatus::DONE->value)
             ->exists();
+    }
+
+    private function key(int $itemId, int $processId, ?int $productId): string
+    {
+        return $itemId . ':' . $processId . ':' . ($productId ?? '');
     }
 
     /**

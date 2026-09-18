@@ -674,7 +674,10 @@
       "path_problems_one": "{{count}} problem",
       "path_problems_few": "{{count}} problemy",
       "path_problems_many": "{{count}} problemów",
-      "path_problems_other": "{{count}} problemów"
+      "path_problems_other": "{{count}} problemów",
+      "estimated": "Szacowany czas",
+      "estimated_note": "z dni wpisanych przy etapach — najdłuższa formatka",
+      "estimated_unknown": "żaden etap nie ma wpisanych dni"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -729,7 +732,7 @@
       "irregular": "Kształt nieregularny",
       "mark": "Znak",
       "size_note": "Hartowanie zmienia minimalną powierzchnię rozliczeniową, kształt i gabaryt dokładają dopłatę.",
-      "processes_note": "Proces bez pozycji w cenniku zostanie dopisany do formatki, ale nie zostanie wyceniony.",
+      "processes_note": "Kliknięcie procesu dokłada etap. Ten sam proces może wystąpić kilka razy — dwie różne fazy na jednej szybie to dwie różne prace.",
       "service_add": "Nowa usługa",
       "service_edit": "Usługa",
       "from_catalogue": "Z cennika",
@@ -753,7 +756,26 @@
         "processes": "Procesy",
         "area": "m² / mb"
       },
-      "no_trace": "Ta pozycja nie ma zapisanej ścieżki wyliczenia — powstała, zanim cennik ją objął."
+      "no_trace": "Ta pozycja nie ma zapisanej ścieżki wyliczenia — powstała, zanim cennik ją objął.",
+      "step_again": "Jeszcze raz ten sam proces",
+      "step_pick": "wybierz pozycję",
+      "step_no_items": "brak pozycji dla tej grubości",
+      "step_days": "Dni",
+      "step_price": "Cena",
+      "step_price_hint": "z cennika",
+      "step_comment": "Uwaga do etapu",
+      "step_total_days_zero": "Bez dni",
+      "step_total_days_one": "Razem {{count}} dzień",
+      "step_total_days_few": "Razem {{count}} dni",
+      "step_total_days_many": "Razem {{count}} dni",
+      "step_total_days_other": "Razem {{count}} dni",
+      "days": "Szacowany czas",
+      "days_value_one": "{{count}} dzień",
+      "days_value_few": "{{count}} dni",
+      "days_value_many": "{{count}} dni",
+      "days_value_other": "{{count}} dni",
+      "days_note": "najdłuższa formatka — formatki idą przez halę równolegle",
+      "days_unknown": "żaden etap nie ma wpisanych dni"
     },
     "discount": {
       "title": "Rabat",

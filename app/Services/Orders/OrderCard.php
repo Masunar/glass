@@ -37,6 +37,7 @@ final readonly class OrderCard
         private OrderTabs $tabs = new OrderTabs(),
         private ContractorBalance $balance = new ContractorBalance(),
         private ProductionQueue $production = new ProductionQueue(),
+        private OrderSchedule $schedule = new OrderSchedule(),
     ) {
     }
 
@@ -128,6 +129,10 @@ final readonly class OrderCard
                 'buyer_address' => $order->buyer_address,
                 'accounting_note' => $order->accounting_note,
             ],
+            // Szacowana liczba dni bierze sie wylacznie z dni wpisanych
+            // przy etapach. Daty z niej nie wyprowadzamy: dni mowia, ile
+            // pracy jest w srodku, a nie kiedy hala ja zacznie.
+            'estimated_days' => $this->schedule->days($order),
             'deadline' => [
                 'client' => $order->client_deadline?->toDateString(),
                 'production' => $order->production_deadline?->toDateString(),

@@ -7,7 +7,11 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import { validationCompleted } from '@salvon/utils/api-validation';
 import { notifyError, notifySuccess } from '@salvon/utils/notify';
 
-import type { OrderItemsBoard, OrderPaneRow } from '@app/api/OrdersApi';
+import type {
+  OrderItemsBoard,
+  OrderPaneRow,
+  OrderProcessItem,
+} from '@app/api/OrdersApi';
 import { OrdersApi } from '@app/api/OrdersApi';
 import Drawer, { DrawerColumn } from '@app/components/drawer/Drawer';
 import Field, { Choice, Toggle } from '@app/components/drawer/Field';
@@ -33,12 +37,51 @@ const empty = {
   needs_mark: false,
 };
 
+/** Etap na formatce — wybrana pozycja cennikowa, dni, cena, uwaga. */
+type Step = {
+  key: string;
+  process_id: number;
+  product_id: string;
+  days: string;
+  unit_net_price: string;
+  comment: string;
+};
+
+let counter = 0;
+
+const nextKey = () => `s${++counter}`;
+
+/**
+ * Pozycje cennikowe procesu dostępne dla tej grubości szkła.
+ *
+ * Grubość **zawęża** listę, ale jej nie rozstrzyga: fazowanie ma dla
+ * ośmiomilimetrowej szyby osiem wierszy (faza 5…40 mm), a CNC cztery
+ * w ogóle od grubości niezależne — te mają w słowniku grubość pustą
+ * i wchodzą dopiero wtedy, gdy nic dopasowanego nie ma.
+ */
+const candidates = (
+  items: OrderProcessItem[],
+  thickness: number | null,
+): OrderProcessItem[] => {
+  const matched =
+    thickness === null
+      ? []
+      : items.filter((row) => row.glass_thickness_mm === thickness);
+
+  return matched.length > 0
+    ? matched
+    : items.filter((row) => row.glass_thickness_mm === null);
+};
+
 /**
  * Formatka: materiał, wymiary i procesy.
  *
- * Cena nie jest polem formularza — liczy ją serwer przy zapisie i
- * zapisuje razem ze ścieżką wyliczenia. Gdyby dało się ją tu wpisać,
- * ścieżka przestałaby cokolwiek znaczyć.
+ * Cena materiału nie jest polem formularza — liczy ją serwer przy
+ * zapisie i zapisuje razem ze ścieżką wyliczenia. Gdyby dało się ją tu
+ * wpisać, ścieżka przestałaby cokolwiek znaczyć.
+ *
+ * Cena etapu jest polem, bo w cenniku bywa jej po prostu brak, a robota
+ * i tak kosztuje. Puste pole znaczy „weź z cennika", nie „zero".
  */
 export default function PaneDrawer({
   orderId,
@@ -50,7 +93,7 @@ export default function PaneDrawer({
 }: Props) {
   const t = useTranslation();
   const form = useForm();
-  const [processes, setProcesses] = useState<number[]>([]);
+  const [steps, setSteps] = useState<Step[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -58,7 +101,16 @@ export default function PaneDrawer({
       return;
     }
 
-    setProcesses(item?.processes.map((entry) => entry.process_id) ?? []);
+    setSteps(
+      item?.processes.map((entry) => ({
+        key: nextKey(),
+        process_id: entry.process_id,
+        product_id: entry.product_id === null ? '' : String(entry.product_id),
+        days: entry.days === null ? '' : String(entry.days),
+        unit_net_price: entry.unit_net_price,
+        comment: entry.comment ?? '',
+      })) ?? [],
+    );
 
     form.reset({
       ...empty,
@@ -73,19 +125,81 @@ export default function PaneDrawer({
     });
   }, [open, item?.id]);
 
-  const toggle = (id: number) =>
-    setProcesses((current) =>
-      current.includes(id)
-        ? current.filter((value) => value !== id)
-        : [...current, id],
+  const materialId = form.watch('product_id');
+  const thickness =
+    board.catalogue.products.find(
+      (row) => String(row.id) === String(materialId),
+    )?.thickness_mm ?? null;
+
+  /** Domyślny wybór tylko przy jednym kandydacie — inaczej czeka człowiek. */
+  const add = (processId: number) => {
+    const process = board.catalogue.processes.find(
+      (row) => row.id === processId,
     );
+    const only = candidates(process?.items ?? [], thickness);
+
+    setSteps((current) => [
+      ...current,
+      {
+        key: nextKey(),
+        process_id: processId,
+        product_id: only.length === 1 ? String(only[0].product_id) : '',
+        days:
+          process?.duration_days === null ||
+          process?.duration_days === undefined
+            ? ''
+            : String(process.duration_days),
+        unit_net_price: '',
+        comment: '',
+      },
+    ]);
+  };
+
+  const toggle = (processId: number) => {
+    const used = steps.some((step) => step.process_id === processId);
+
+    if (used) {
+      setSteps((current) =>
+        current.filter((step) => step.process_id !== processId),
+      );
+
+      return;
+    }
+
+    add(processId);
+  };
+
+  const patch = (key: string, change: Partial<Step>) =>
+    setSteps((current) =>
+      current.map((step) => (step.key === key ? { ...step, ...change } : step)),
+    );
+
+  const drop = (key: string) =>
+    setSteps((current) => current.filter((step) => step.key !== key));
+
+  const totalDays = steps.reduce(
+    (sum, step) => sum + (step.days === '' ? 0 : Number(step.days)),
+    0,
+  );
 
   const submit = async (data: any) => {
     setSaving(true);
 
     const { content, response } = await OrdersApi.savePane(
       orderId,
-      { ...data, processes },
+      {
+        ...data,
+        // Puste pole znaczy „nie podano" — wiec null, nie pusty napis.
+        // Serwer czyta z tego „wez ze slownika" albo „wez z cennika".
+        processes: steps.map((step) => ({
+          process_id: step.process_id,
+          product_id: step.product_id === '' ? null : Number(step.product_id),
+          days: step.days === '' ? null : Number(step.days),
+          unit_net_price:
+            step.unit_net_price === '' ? null : step.unit_net_price,
+          comment: step.comment === '' ? null : step.comment,
+        })),
+      },
       item?.id,
     );
 
@@ -214,7 +328,9 @@ export default function PaneDrawer({
                   key={process.id}
                   type="button"
                   className={
-                    processes.includes(process.id) ? 'ge-chip is-on' : 'ge-chip'
+                    steps.some((step) => step.process_id === process.id)
+                      ? 'ge-chip is-on'
+                      : 'ge-chip'
                   }
                   onClick={() => toggle(process.id)}
                 >
@@ -222,6 +338,119 @@ export default function PaneDrawer({
                 </button>
               ))}
             </div>
+
+            {steps.map((step) => {
+              const process = board.catalogue.processes.find(
+                (row) => row.id === step.process_id,
+              );
+              const options = candidates(process?.items ?? [], thickness);
+              const needsChoice =
+                step.product_id === '' && options.length !== 1;
+
+              return (
+                <div className="ge-step" key={step.key}>
+                  <div className="ge-step__head">
+                    <span className="ge-step__name">
+                      {process?.name ?? '—'}
+                    </span>
+                    <button
+                      type="button"
+                      className="ge-step__add"
+                      title={t('page.orders.panes.step_again')}
+                      onClick={() => add(step.process_id)}
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      className="ge-step__drop"
+                      title={t('delete')}
+                      onClick={() => drop(step.key)}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* Automat wybiera tylko przy jednym kandydacie. Przy
+                      kilku — faza 5…40 mm dla tej samej grubosci — pole
+                      czeka, bo zgadniety wariant to zla cena w ofercie. */}
+                  <select
+                    className={
+                      needsChoice
+                        ? 'ge-uf__input ge-uf__select is-empty'
+                        : 'ge-uf__input ge-uf__select'
+                    }
+                    value={step.product_id}
+                    onChange={(event) =>
+                      patch(step.key, { product_id: event.target.value })
+                    }
+                  >
+                    <option value="">
+                      {options.length === 0
+                        ? t('page.orders.panes.step_no_items')
+                        : t('page.orders.panes.step_pick')}
+                    </option>
+                    {options.map((row) => (
+                      <option key={row.product_id} value={row.product_id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="ge-step__row">
+                    <label className="ge-uf">
+                      <span className="ge-uf__label">
+                        {t('page.orders.panes.step_days')}
+                      </span>
+                      <input
+                        className="ge-uf__input"
+                        inputMode="numeric"
+                        value={step.days}
+                        onChange={(event) =>
+                          patch(step.key, { days: event.target.value })
+                        }
+                      />
+                    </label>
+
+                    <label className="ge-uf">
+                      <span className="ge-uf__label">
+                        {t('page.orders.panes.step_price')}
+                      </span>
+                      <input
+                        className="ge-uf__input"
+                        inputMode="decimal"
+                        placeholder={t('page.orders.panes.step_price_hint')}
+                        value={step.unit_net_price}
+                        onChange={(event) =>
+                          patch(step.key, {
+                            unit_net_price: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <label className="ge-uf">
+                    <span className="ge-uf__label">
+                      {t('page.orders.panes.step_comment')}
+                    </span>
+                    <input
+                      className="ge-uf__input"
+                      value={step.comment}
+                      onChange={(event) =>
+                        patch(step.key, { comment: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              );
+            })}
+
+            {steps.length > 0 && (
+              <FieldNote>
+                {t('page.orders.panes.step_total_days', { count: totalDays })}
+              </FieldNote>
+            )}
             <FieldNote>{t('page.orders.panes.processes_note')}</FieldNote>
           </Fieldset>
 
