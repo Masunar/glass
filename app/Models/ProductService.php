@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $process_id
  * @property float|null $glass_thickness_mm
  * @property string|null $variant
+ * @property-read Product|null $product
+ * @property-read Process|null $process
  */
 class ProductService extends Model
 {
@@ -33,11 +35,13 @@ class ProductService extends Model
         return ['glass_thickness_mm' => 'float'];
     }
 
+    /** @return BelongsTo<Product, $this> */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');
     }
 
+    /** @return BelongsTo<Process, $this> */
     public function process(): BelongsTo
     {
         return $this->belongsTo(Process::class, 'process_id', 'id');

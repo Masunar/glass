@@ -21,6 +21,8 @@ use App\Models\Contractor;
 use App\Models\InvoiceType;
 use App\Enum\DeliveryMethod;
 use Salvon\Database\Seeder;
+use App\Models\ProductService;
+use App\Services\Pricing\PriceResolver;
 use App\Models\OrderItemProcess;
 use App\Services\NumberSequence;
 
@@ -177,28 +179,43 @@ class OrderSeeder extends Seeder
             'is_tempered' => true,
         ]);
 
-        $this->processes($item, $spec);
+        $this->processes($item, $product, $spec);
     }
 
     /**
-     * Procesy na formatce. Bez nich karta zlecenia nie ma z czego
-     * zbudować ścieżki produkcji — a ścieżka jest tam po to, żeby
-     * powiedzieć, przez co ta szyba musi przejść.
+     * Procesy na formatce.
+     *
+     * Ceny biorą się z **zasianego cennika**, nie z liczb wpisanych tu
+     * z palca. Wcześniej seeder wstawiał 9,00 za cięcie i 38,00 za
+     * hartowanie — kwoty, których silnik wyceny nie miałby jak
+     * wyprodukować, więc dane deweloperskie pokazywały coś, czego
+     * aplikacja nigdy by nie policzyła.
+     *
+     * Hartowanie zostaje **niewycenione**: jego cennika nie dostaliśmy,
+     * a to jest właśnie stan, który ekran ma umieć pokazać.
      *
      * @param array{w: int, h: int, price: string, irregular?: bool} $spec
      */
-    private function processes(OrderItem $item, array $spec): void
+    private function processes(OrderItem $item, Product $product, array $spec): void
     {
         // Obwód w metrach bieżących — podstawa wyceny obróbki krawędzi.
         $perimeter = 2 * ($spec['w'] + $spec['h']) / 1000;
+        $thickness = $product->glass?->thickness_mm;
         $position = 0;
 
-        foreach ([['C', '9.00'], ['S', '14.00'], ['H', '38.00']] as [$code, $rate]) {
+        foreach (['C', 'S', 'H'] as $code) {
             $process = Process::findByCode($code);
 
             if ($process === null) {
                 continue;
             }
+
+            $catalogue = $this->catalogueItem($process, $thickness);
+            $price = $catalogue === null
+                ? null
+                : (new PriceResolver())->catalogue($catalogue);
+
+            $rate = $price !== null && $price->isAvailable() ? (string) $price->netPrice : null;
 
             // Hartowanie liczy sie od m2, obrobka krawedzi od mb.
             $units = $code === 'H'
@@ -208,11 +225,36 @@ class OrderSeeder extends Seeder
             OrderItemProcess::query()->create([
                 'order_item_id' => $item->id,
                 'process_id' => $process->id,
-                'unit_net_price' => $rate,
-                'amount' => number_format($units * (float) $rate, 2, '.', ''),
+                'product_id' => $catalogue?->getKey(),
+                'parameter' => $catalogue?->name,
+                'days' => $process->duration_days,
+                'unit_net_price' => $rate ?? '0.00',
+                'amount' => $rate === null
+                    ? '0.00'
+                    : number_format($units * (float) $rate, 2, '.', ''),
                 'position' => $position += 10,
             ]);
         }
+    }
+
+    /**
+     * Pozycja cennikowa procesu dopasowana grubością. Bierzemy ją tylko
+     * wtedy, gdy jest **dokładnie jedna** — tak samo jak aplikacja,
+     * która przy kilku kandydatach czeka na wybór człowieka.
+     */
+    private function catalogueItem(Process $process, ?float $thickness): ?Product
+    {
+        $matches = ProductService::query()
+            ->with('product')
+            ->where('process_id', $process->getKey())
+            ->when(
+                $thickness !== null,
+                static fn($query) => $query->where('glass_thickness_mm', $thickness),
+                static fn($query) => $query->whereNull('glass_thickness_mm'),
+            )
+            ->get();
+
+        return $matches->count() === 1 ? $matches->first()?->product : null;
     }
 
     /**

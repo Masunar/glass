@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
 
     protected array $devSeeders = [
         Dev\UserSeeder::class,
+        // Przed zleceniami: OrderSeeder czyta z tego cennika zamiast
+        // wpisywac ceny procesow z palca.
+        Dev\ProcessPriceSeeder::class,
         Dev\ContractorSeeder::class,
         Dev\OrderSeeder::class,
     ];
