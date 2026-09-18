@@ -434,14 +434,14 @@ export default function PaneDrawer({
                 step.product_id === '' && options.length !== 1;
 
               return (
-                <div className="ge-step" key={step.key}>
-                  <div className="ge-step__head">
-                    <span className="ge-step__name">
+                <div className="ge-proc" key={step.key}>
+                  <div className="ge-proc__head">
+                    <span className="ge-proc__name">
                       {process?.name ?? '—'}
                     </span>
                     <button
                       type="button"
-                      className="ge-step__add"
+                      className="ge-proc__add"
                       title={t('page.orders.panes.step_again')}
                       onClick={() => add(step.process_id)}
                     >
@@ -449,7 +449,7 @@ export default function PaneDrawer({
                     </button>
                     <button
                       type="button"
-                      className="ge-step__drop"
+                      className="ge-proc__drop"
                       title={t('delete')}
                       onClick={() => drop(step.key)}
                     >
@@ -483,7 +483,7 @@ export default function PaneDrawer({
                     ))}
                   </select>
 
-                  <div className="ge-step__row">
+                  <div className="ge-proc__row">
                     <label className="ge-uf">
                       <span className="ge-uf__label">
                         {t('page.orders.panes.step_days')}
