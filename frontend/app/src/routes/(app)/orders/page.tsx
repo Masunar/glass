@@ -199,7 +199,7 @@ export default function Page() {
       )}
 
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--solid" aria-label={t('page.orders.filters')}>
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.orders.filters')}>
           {(board?.filters ?? []).map((filter) => {
             const here = filter.code === status;
 

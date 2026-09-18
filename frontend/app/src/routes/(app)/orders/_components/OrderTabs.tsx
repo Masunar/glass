@@ -87,7 +87,7 @@ export default function OrderTabs({
   return (
     <div className="ge-segbar">
       <nav
-        className="ge-seg ge-seg--line"
+        className="ge-seg ge-seg--nav"
         aria-label={t('page.orders.card.sections')}
       >
         {tabs.map((tab) =>

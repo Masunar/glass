@@ -418,32 +418,29 @@
   color: var(--ge-neutral-700);
 }
 
+/* Aktywny segment wyglada tak samo w obu paskach: bialy, z akcentem pod
+   etykieta. Pasek przy lewej krawedzi probowalem wczesniej i to bylo
+   zle — linia pod spodem laczy zakladke z tym, co pod nia jest, a linia
+   z boku nie laczy z niczym. */
 .ge-seg__item.is-active {
   background: var(--ge-surface);
   color: var(--ge-text);
   font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--ge-mod);
 }
 .ge-seg__item.is-active:hover { background: var(--ge-surface); }
 
-/* Wariant wypelniony — filtry listy zlecen. Filtr zmienia to, co widac
-   pod spodem, wiec pasek stoi przy krawedzi wiodacej, a licznik jest
-   pelny: mowi, ile ma biezacy filtr. */
-.ge-seg--solid .ge-seg__item.is-active {
-  box-shadow: inset 3px 0 0 var(--ge-mod);
-}
-.ge-seg--solid .ge-seg__item.is-active .ge-seg__count {
+/* Rozni je licznik, bo mowi co innego. */
+
+/* Filtr: licznik pelny — „tyle ma biezacy filtr". */
+.ge-seg--filter .ge-seg__item.is-active .ge-seg__count {
   background: var(--ge-mod);
   color: var(--ge-surface);
 }
 
-/* Wariant z podkresleniem — zakladki wewnatrz zlecenia. To nawigacja
-   pod osobne adresy, nie filtr, wiec akcent lezy pod etykieta, a licznik
-   jest tylko podbarwiony: nie mowi „tyle wybrales", tylko „tyle tam
-   jest". */
-.ge-seg--line .ge-seg__item.is-active {
-  box-shadow: inset 0 -3px 0 var(--ge-mod);
-}
-.ge-seg--line .ge-seg__item.is-active .ge-seg__count {
+/* Nawigacja: licznik tylko podbarwiony — „tyle tam jest", a nie „tyle
+   wybrales". Zakladka nie zaweza niczego, tylko prowadzi pod adres. */
+.ge-seg--nav .ge-seg__item.is-active .ge-seg__count {
   background: var(--ge-mod-tint);
   color: color-mix(in oklab, var(--ge-mod) 70%, black);
 }
