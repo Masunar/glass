@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         // Przed zleceniami: OrderSeeder czyta z tego cennika zamiast
         // wpisywac ceny procesow z palca.
         Dev\ProcessPriceSeeder::class,
+        // Macierz cennika szkla — bez niej material nie ma ceny
+        // katalogowej i kazda formatka wychodzi po 0,00.
+        Dev\GlassPriceSeeder::class,
         Dev\ContractorSeeder::class,
         Dev\OrderSeeder::class,
     ];
