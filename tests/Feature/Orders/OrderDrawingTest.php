@@ -18,11 +18,8 @@ use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Orders\OrderNextStep;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use App\Services\Orders\OrderDrawingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -42,10 +39,6 @@ class OrderDrawingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
 
         Order::query()->delete();
         Storage::fake('local');

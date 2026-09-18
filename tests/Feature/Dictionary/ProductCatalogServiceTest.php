@@ -13,10 +13,7 @@ use App\Models\ProductGroup;
 use App\Models\PurchasePrice;
 use App\Enum\PurchasePriceSource;
 use App\Services\PriceListService;
-use Database\Seeders\Core\RoleSeeder;
 use App\Services\ProductCatalogService;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -35,10 +32,6 @@ class ProductCatalogServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
 
         $this->service = new ProductCatalogService();
     }

@@ -71,7 +71,8 @@ export type OrderCardItem = {
   section: string;
   name: string;
   quantity: string;
-  unit_net_price: string;
+  /** `null` znaczy brak pozycji w cenniku, nie cene zerowa. */
+  unit_net_price: string | null;
   amount: string;
   processes: string[];
   pane: OrderPane | null;
@@ -210,7 +211,8 @@ export type OrderPaneRow = {
   name: string;
   thickness_mm: number | null;
   quantity: string;
-  unit_net_price: string;
+  /** Cena m2 materialu. `null` znaczy brak pozycji w cenniku, nie zero. */
+  unit_net_price: string | null;
   amount: string;
   /** Materiał razem z procesami — to widzi klient. */
   total: string;
@@ -240,6 +242,13 @@ export type OrderPaneRow = {
   is_irregular_shape: boolean;
   is_tempered: boolean;
   needs_mark: boolean;
+  is_urgent: boolean;
+  /** Uwaga handlowa — może trafić na ofertę. */
+  note: string | null;
+  /** Instrukcja technologiczna — idzie na kartę operatora. */
+  production_note: string | null;
+  /** `null` = z parametrów wyceny, nie zero. */
+  min_billable_m2: number | null;
   m2: number | null;
   mb: number | null;
   kg: number | null;
@@ -411,6 +420,36 @@ export type OrderPaymentsBoard = {
   base_currency: string;
 };
 
+/** Wycena formatki policzona bez zapisu — podgląd w panelu. */
+export type PanePreview = {
+  /** `false`, gdy formularz jeszcze nie ma z czego liczyć. */
+  ready: boolean;
+  glass_net: string | null;
+  net_price_per_square_meter?: string | null;
+  total: string | null;
+  m2?: number;
+  mb?: number;
+  kg?: number;
+  processes: {
+    process_id: number;
+    label: string;
+    parameter: string | null;
+    unit_net_price: string;
+    /** mb, m² albo szt. — jednostka tego procesu, nie formatki. */
+    unit_label: string;
+    units: number;
+    amount: string;
+    unavailable: string | null;
+  }[];
+  steps: {
+    code: string;
+    label: string;
+    value: string;
+    detail: string | null;
+  }[];
+  unavailable?: string | null;
+};
+
 export class OrdersApi extends ApiRequest {
   static prefix: string = '/orders';
 
@@ -445,6 +484,14 @@ export class OrdersApi extends ApiRequest {
     id: number,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.get(`/${id}/items`);
+  }
+
+  /** Liczy, nic nie zapisuje. */
+  public static async previewPane(
+    id: number,
+    data: Record<string, unknown>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/panes/preview`, data);
   }
 
   public static async savePane(

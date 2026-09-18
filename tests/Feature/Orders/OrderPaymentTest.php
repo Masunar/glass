@@ -20,9 +20,6 @@ use App\Enum\PaymentChannel;
 use App\Models\CashRegister;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Orders\PaymentService;
-use Database\Seeders\Core\RoleSeeder;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use App\Services\Orders\ContractorBalance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -46,10 +43,6 @@ class OrderPaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
 
         Order::query()->delete();
 

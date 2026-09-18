@@ -12,7 +12,6 @@ use App\Models\Role;
 use App\Services\UserBoardService;
 use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\LocationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -30,9 +29,6 @@ class UserBoardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
 
         // Baza bywa zaseedowana kontem deweloperskim — test opisuje
         // wylacznie konta, ktore sam zaklada.

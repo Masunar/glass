@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use Carbon\Carbon;
+use App\Enum\Unit;
 use App\Enum\Section;
 use App\Models\Order;
 use App\Models\Product;
@@ -64,11 +65,16 @@ final readonly class OrderPricing
 
         $resolved = $this->prices->forContractor($product, $order->contractor, $date);
 
+        // Brak ceny materialu nie unieważnia procesów. Szlif ma własną
+        // pozycję w cenniku Usług i kosztuje tyle samo niezależnie od
+        // tego, czy ktoś wypełnił macierz dla tej grubości szkła.
+        // Zerowanie procesów robiło z formatki za 32,50 formatkę za 0,00
+        // i chowało jedyną kwotę, która była znana.
         if (!$resolved->isAvailable()) {
             return new PanePrice(
                 glassNet: '0.00',
                 netPricePerSquareMeter: null,
-                processes: $this->processes($selections, $thickness, $order, $date, $pane, false),
+                processes: $this->processes($selections, $thickness, $order, $date, $pane),
                 steps: [],
                 billableSquareMeters: round($pane->squareMeters(), 4),
                 runningMeters: round($pane->runningMeters(), 2),
@@ -77,7 +83,7 @@ final readonly class OrderPricing
             );
         }
 
-        $processes = $this->processes($selections, $thickness, $order, $date, $pane, true);
+        $processes = $this->processes($selections, $thickness, $order, $date, $pane);
         $parameters = PricingParameters::effective($date);
 
         $quote = $this->calculator->calculate(
@@ -87,7 +93,8 @@ final readonly class OrderPricing
             array_map(
                 static fn(array $process): array => [
                     'label' => $process['label'],
-                    'net_price_per_running_meter' => $process['unit_net_price'],
+                    'unit_net_price' => $process['unit_net_price'],
+                    'unit' => $process['unit'],
                 ],
                 $processes,
             ),
@@ -130,6 +137,9 @@ final readonly class OrderPricing
      *     code: string,
      *     label: string,
      *     product_id: int|null,
+     *     unit: Unit,
+     *     unit_label: string,
+     *     units: float,
      *     parameter: string|null,
      *     days: int|null,
      *     comment: string|null,
@@ -144,7 +154,6 @@ final readonly class OrderPricing
         Order $order,
         Carbon $date,
         PaneSpecification $pane,
-        bool $withAmounts,
     ): array {
         if ($selections === []) {
             return [];
@@ -180,30 +189,38 @@ final readonly class OrderPricing
                 ? null
                 : $this->prices->forContractor($product, $order->contractor, $date);
 
-            $catalogueUnit = $price !== null && $price->isAvailable() ? (string) $price->netPrice : null;
+            $catalogueRate = $price !== null && $price->isAvailable() ? (string) $price->netPrice : null;
             // Cena wpisana recznie wygrywa z cennikiem, ale tylko wtedy,
             // gdy ktos ja faktycznie wpisal. Puste pole to nie zero.
             $manual = $this->amount($selection['unit_net_price'] ?? null);
-            $unit = $manual ?? $catalogueUnit;
+            $rate = $manual ?? $catalogueRate;
+
+            $unit = $product === null ? Unit::RUNNING_METER : $product->unit;
+            $units = $this->calculator->units($pane, $unit);
 
             $rows[] = [
                 'process_id' => (int) $process->getKey(),
                 'code' => $process->code,
                 'label' => $process->name,
                 'product_id' => $product === null ? null : (int) $product->getKey(),
+                // Jednostka procesu, ile jej niesie ta formatka i gotowa
+                // formula — zeby kwota nie byla liczba bez pochodzenia.
+                'unit' => $unit,
+                'unit_label' => $this->calculator->unitLabel($unit),
+                'units' => round($units, 3),
                 // Parametr to nazwa wybranej pozycji — „Faza 15mm",
                 // „RAL 9005". Ta sama wartosc jedzie potem na karte
                 // operatora na hali, wiec nie wymyslamy jej osobno.
                 'parameter' => $product?->name,
                 'days' => $this->days($selection['days'] ?? null, $process),
                 'comment' => $this->text($selection['comment'] ?? null),
-                'unit_net_price' => $unit ?? '0.00',
-                'amount' => $unit === null || !$withAmounts
+                'unit_net_price' => $rate ?? '0.00',
+                'amount' => $rate === null
                     ? '0.00'
-                    : $this->calculator->processAmount($pane, $unit),
+                    : $this->calculator->processAmount($pane, $rate, $unit),
                 // Proces bez wybranej pozycji nie kosztuje zera — kosztuje
                 // „nie wiadomo ile", i to trzeba powiedziec.
-                'unavailable' => $unit !== null ? null : $this->why($candidates, $product, $price),
+                'unavailable' => $rate !== null ? null : $this->why($candidates, $product, $price),
             ];
         }
 

@@ -23,13 +23,6 @@ class RoleModelTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new RoleSeeder())->run();
-    }
-
     #[Test]
     public function konfiguracja_wskazuje_nasz_model(): void
     {

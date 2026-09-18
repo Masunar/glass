@@ -12,28 +12,11 @@ use App\Models\PriceSection;
 use App\Models\InvoiceType;
 use App\Models\GlobalParameter;
 use Database\Seeders\Core\RoleSeeder;
-use Database\Seeders\Core\ProcessSeeder;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\DictionarySeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
-use Database\Seeders\Core\GlobalParameterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class PricingCatalogTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new LocationSeeder())->run();
-        (new RoleSeeder())->run();
-        (new ProcessSeeder())->run();
-        (new PriceSectionSeeder())->run();
-        (new GlobalParameterSeeder())->run();
-        (new DictionarySeeder())->run();
-    }
 
     public function test_kazda_sekcja_asortymentu_ma_jedna_domyslna_sekcje_cenowa(): void
     {

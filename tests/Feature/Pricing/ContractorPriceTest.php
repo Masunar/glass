@@ -14,11 +14,8 @@ use App\Enum\ContractorType;
 use App\Models\PriceSection;
 use App\Models\ContractorPrice;
 use App\Services\PriceListService;
-use Database\Seeders\Core\RoleSeeder;
 use App\Models\ContractorPriceSection;
 use App\Services\Pricing\PriceResolver;
-use Database\Seeders\Core\GlassCatalogSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -37,10 +34,6 @@ class ContractorPriceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new GlassCatalogSeeder())->run();
-        (new PriceSectionSeeder())->run();
 
         $this->resolver = new PriceResolver();
 

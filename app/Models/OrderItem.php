@@ -27,10 +27,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Section $section
  * @property string $name
  * @property string $quantity
- * @property string $unit_net_price
+ * @property string|null $unit_net_price
  * @property string|null $unit_cost
  * @property string $amount
  * @property array<int, mixed>|null $price_path
+ * @property bool $is_urgent
+ * @property string|null $note
+ * @property string|null $production_note
  * @property-read OrderPane|null $pane
  * @property-read Collection<int, OrderItemProcess> $processes
  */
@@ -41,6 +44,7 @@ class OrderItem extends Dateable
     protected $fillable = [
         'order_list_id', 'product_id', 'section', 'name', 'quantity',
         'unit_net_price', 'unit_cost', 'amount', 'price_path', 'position',
+        'is_urgent', 'note', 'production_note',
     ];
 
     protected function casts(): array
@@ -52,6 +56,7 @@ class OrderItem extends Dateable
             'unit_cost' => 'decimal:2',
             'amount' => 'decimal:2',
             'price_path' => 'array',
+            'is_urgent' => 'boolean',
             'position' => 'integer',
         ];
     }

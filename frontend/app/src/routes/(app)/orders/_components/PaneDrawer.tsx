@@ -11,6 +11,7 @@ import type {
   OrderItemsBoard,
   OrderPaneRow,
   OrderProcessItem,
+  PanePreview,
 } from '@app/api/OrdersApi';
 import { OrdersApi } from '@app/api/OrdersApi';
 import Drawer, { DrawerColumn } from '@app/components/drawer/Drawer';
@@ -35,6 +36,10 @@ const empty = {
   is_irregular_shape: false,
   is_tempered: false,
   needs_mark: false,
+  is_urgent: false,
+  min_billable_m2: '',
+  note: '',
+  production_note: '',
 };
 
 /** Etap na formatce — wybrana pozycja cennikowa, dni, cena, uwaga. */
@@ -95,6 +100,8 @@ export default function PaneDrawer({
   const form = useForm();
   const [steps, setSteps] = useState<Step[]>([]);
   const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState<PanePreview | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -102,14 +109,16 @@ export default function PaneDrawer({
     }
 
     setSteps(
-      item?.processes.map((entry) => ({
-        key: nextKey(),
-        process_id: entry.process_id,
-        product_id: entry.product_id === null ? '' : String(entry.product_id),
-        days: entry.days === null ? '' : String(entry.days),
-        unit_net_price: entry.unit_net_price,
-        comment: entry.comment ?? '',
-      })) ?? [],
+      inRouteOrder(
+        item?.processes.map((entry) => ({
+          key: nextKey(),
+          process_id: entry.process_id,
+          product_id: entry.product_id === null ? '' : String(entry.product_id),
+          days: entry.days === null ? '' : String(entry.days),
+          unit_net_price: entry.unit_net_price,
+          comment: entry.comment ?? '',
+        })) ?? [],
+      ),
     );
 
     form.reset({
@@ -122,6 +131,16 @@ export default function PaneDrawer({
       is_irregular_shape: item?.is_irregular_shape ?? false,
       is_tempered: item?.is_tempered ?? false,
       needs_mark: item?.needs_mark ?? false,
+      is_urgent: item?.is_urgent ?? false,
+      // Puste pole znaczy „z parametrow wyceny" — podstawiamy tylko
+      // wpisany wyjatek, nie wartosc globalna, zeby jej przypadkiem
+      // nie utrwalic przy zapisie.
+      min_billable_m2:
+        item?.min_billable_m2 === null || item?.min_billable_m2 === undefined
+          ? ''
+          : String(item.min_billable_m2),
+      note: item?.note ?? '',
+      production_note: item?.production_note ?? '',
     });
   }, [open, item?.id]);
 
@@ -138,21 +157,23 @@ export default function PaneDrawer({
     );
     const only = candidates(process?.items ?? [], thickness);
 
-    setSteps((current) => [
-      ...current,
-      {
-        key: nextKey(),
-        process_id: processId,
-        product_id: only.length === 1 ? String(only[0].product_id) : '',
-        days:
-          process?.duration_days === null ||
-          process?.duration_days === undefined
-            ? ''
-            : String(process.duration_days),
-        unit_net_price: '',
-        comment: '',
-      },
-    ]);
+    setSteps((current) =>
+      inRouteOrder([
+        ...current,
+        {
+          key: nextKey(),
+          process_id: processId,
+          product_id: only.length === 1 ? String(only[0].product_id) : '',
+          days:
+            process?.duration_days === null ||
+            process?.duration_days === undefined
+              ? ''
+              : String(process.duration_days),
+          unit_net_price: '',
+          comment: '',
+        },
+      ]),
+    );
   };
 
   const toggle = (processId: number) => {
@@ -169,6 +190,25 @@ export default function PaneDrawer({
     add(processId);
   };
 
+  /**
+   * Etapy trzymane w kolejności marszruty, a te same procesy obok
+   * siebie. Dołożony szlif ma stanąć przy szlifie, a nie na końcu za
+   * hartownią — inaczej lista przestaje przypominać drogę, którą szyba
+   * naprawdę przejdzie.
+   *
+   * Sortowanie jest stabilne, więc kolejność dwóch faz między sobą
+   * zostaje taka, w jakiej je dołożono.
+   */
+  const inRouteOrder = (rows: Step[]): Step[] => {
+    const rank = (id: number) => {
+      const index = board.catalogue.processes.findIndex((row) => row.id === id);
+
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
+
+    return [...rows].sort((a, b) => rank(a.process_id) - rank(b.process_id));
+  };
+
   const patch = (key: string, change: Partial<Step>) =>
     setSteps((current) =>
       current.map((step) => (step.key === key ? { ...step, ...change } : step)),
@@ -182,24 +222,71 @@ export default function PaneDrawer({
     0,
   );
 
+  /**
+   * Ładunek formularza — jedno miejsce dla zapisu i dla podglądu.
+   * Gdyby podgląd budował go po swojemu, prędzej czy później pokazałby
+   * kwotę, której zapis nie potwierdzi.
+   */
+  const payload = (data: any) => ({
+    ...data,
+    min_billable_m2: data.min_billable_m2 === '' ? null : data.min_billable_m2,
+    note: data.note === '' ? null : data.note,
+    production_note: data.production_note === '' ? null : data.production_note,
+    processes: steps.map((step) => ({
+      process_id: step.process_id,
+      product_id: step.product_id === '' ? null : Number(step.product_id),
+      days: step.days === '' ? null : Number(step.days),
+      unit_net_price: step.unit_net_price === '' ? null : step.unit_net_price,
+      comment: step.comment === '' ? null : step.comment,
+    })),
+  });
+
+  const watched = form.watch();
+
+  // Podglad na zywo. Opozniony, bo inaczej kazde wcisniecie klawisza
+  // w polu szerokosci to osobne zapytanie.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        const { content, response } = await OrdersApi.previewPane(
+          orderId,
+          payload(form.getValues()),
+        );
+        const data: PanePreview | undefined = content?.data;
+
+        // Nieudany podglad zostawial na ekranie poprzedni wynik albo
+        // nie zostawial nic — i jedno, i drugie wyglada dokladnie tak
+        // samo jak „ta zmiana nie wplywa na cene". Awaria ma byc
+        // widoczna, bo inaczej szuka sie jej w wycenie zamiast w sieci.
+        setFailed(!response.success || data === undefined);
+        setPreview(data ?? null);
+      })();
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [open, JSON.stringify(watched), JSON.stringify(steps)]);
+
+  /**
+   * Kroki wyceny materiału w kolejności, w jakiej je policzono: cena
+   * bazowa, potem dopłaty. Procesy mają własne wiersze, a kroki cennika
+   * (katalog, sekcja, rabat) należą do ścieżki ceny, nie do podliczenia
+   * formatki — stąd zamknięta lista kodów zamiast wszystkiego z rzędu.
+   */
+  const MATERIAL_STEPS = ['base', 'shape', 'urgent', 'oversize', 'min_price'];
+  const material = (preview?.steps ?? []).filter((step) =>
+    MATERIAL_STEPS.includes(step.code),
+  );
+
   const submit = async (data: any) => {
     setSaving(true);
 
     const { content, response } = await OrdersApi.savePane(
       orderId,
-      {
-        ...data,
-        // Puste pole znaczy „nie podano" — wiec null, nie pusty napis.
-        // Serwer czyta z tego „wez ze slownika" albo „wez z cennika".
-        processes: steps.map((step) => ({
-          process_id: step.process_id,
-          product_id: step.product_id === '' ? null : Number(step.product_id),
-          days: step.days === '' ? null : Number(step.days),
-          unit_net_price:
-            step.unit_net_price === '' ? null : step.unit_net_price,
-          comment: step.comment === '' ? null : step.comment,
-        })),
-      },
+      payload(data),
       item?.id,
     );
 
@@ -224,12 +311,26 @@ export default function PaneDrawer({
       open={open}
       onClose={onClose}
       narrow
+      wideForm
       kicker={t('page.orders.panes.title')}
       title={t(item ? 'page.orders.panes.edit' : 'page.orders.panes.add')}
       foot={
         <>
-          <span className="ge-drawer__foot-note">
-            {t('page.orders.panes.price_note')}
+          <span
+            className={
+              failed
+                ? 'ge-drawer__foot-note ge-drawer__foot-note--warn'
+                : 'ge-drawer__foot-note'
+            }
+          >
+            {/* Trzy stany, nie dwa: policzone, jeszcze nie ma z czego
+                liczyc, i nie udalo sie policzyc. Sklejone w jeden
+                komunikat nie daja sie odroznic. */}
+            {failed
+              ? t('page.orders.panes.foot_failed')
+              : preview?.ready && preview.total !== null
+                ? t('page.orders.panes.foot_total', { amount: preview.total })
+                : t('page.orders.panes.foot_waiting')}
           </span>
           <div className="ge-drawer__foot-end">
             <Button variant="text" onClick={onClose}>
@@ -313,9 +414,20 @@ export default function PaneDrawer({
                 label={t('page.orders.panes.irregular')}
               />
               <Toggle name="needs_mark" label={t('page.orders.panes.mark')} />
+              <Toggle name="is_urgent" label={t('page.orders.panes.urgent')} />
             </FieldRow>
 
             <FieldNote>{t('page.orders.panes.size_note')}</FieldNote>
+
+            {/* Nadpisanie parametru wyceny dla tej jednej formatki.
+                Puste pole nie znaczy zero — znaczy „obowiazuje wartosc
+                ze slownika", ktora zalezy od hartowania. */}
+            <Field
+              name="min_billable_m2"
+              label={t('page.orders.panes.min_billable')}
+              placeholder={t('page.orders.panes.min_billable_hint')}
+            />
+            <FieldNote>{t('page.orders.panes.min_billable_note')}</FieldNote>
           </Fieldset>
 
           <Fieldset
@@ -348,14 +460,14 @@ export default function PaneDrawer({
                 step.product_id === '' && options.length !== 1;
 
               return (
-                <div className="ge-step" key={step.key}>
-                  <div className="ge-step__head">
-                    <span className="ge-step__name">
+                <div className="ge-proc" key={step.key}>
+                  <div className="ge-proc__head">
+                    <span className="ge-proc__name">
                       {process?.name ?? '—'}
                     </span>
                     <button
                       type="button"
-                      className="ge-step__add"
+                      className="ge-proc__add"
                       title={t('page.orders.panes.step_again')}
                       onClick={() => add(step.process_id)}
                     >
@@ -363,7 +475,7 @@ export default function PaneDrawer({
                     </button>
                     <button
                       type="button"
-                      className="ge-step__drop"
+                      className="ge-proc__drop"
                       title={t('delete')}
                       onClick={() => drop(step.key)}
                     >
@@ -397,7 +509,7 @@ export default function PaneDrawer({
                     ))}
                   </select>
 
-                  <div className="ge-step__row">
+                  <div className="ge-proc__row">
                     <label className="ge-uf">
                       <span className="ge-uf__label">
                         {t('page.orders.panes.step_days')}
@@ -451,7 +563,106 @@ export default function PaneDrawer({
                 {t('page.orders.panes.step_total_days', { count: totalDays })}
               </FieldNote>
             )}
+
+            {/* Podsumowanie z formula przy kazdej pozycji. Kwota bez
+                pokazanego mnozenia to liczba bez pochodzenia — a przy
+                procesach jednostka bywa rozna: ciecie idzie od metra
+                biezacego, hartownia od metra kwadratowego, CNC od sztuki. */}
+            {preview?.ready && (
+              <div className="ge-calc">
+                {/* Materiał to drabinka, nie jedna liczba: cena bazowa,
+                    a pod nią każda dopłata osobno. Przy jednym wierszu
+                    właczenie nieregularnego kształtu zmieniało kwotę,
+                    a formuła obok zostawała ta sama — czyli kwota
+                    przestawała się tłumaczyć dokładnie wtedy, gdy
+                    zaczynało się dziać coś ciekawego. */}
+                {material.length === 0 ? (
+                  <div className="ge-calc__row ge-calc__row--off">
+                    <span>{t('page.orders.panes.calc_material')}</span>
+                    {/* Trzy rozne przyczyny wymagaja trzech roznych
+                        ruchow: przypisania sekcji cenowej, wypelnienia
+                        komorki cennika albo wpisania ceny zakupu.
+                        Jedno „brak ceny" kazalo ich szukac po kolei. */}
+                    <span className="ge-calc__formula">
+                      {preview.unavailable
+                        ? t(
+                            `page.orders.panes.material_why.${preview.unavailable}`,
+                          )
+                        : t('page.orders.panes.no_price')}
+                    </span>
+                    <span className="ge-calc__amount">—</span>
+                  </div>
+                ) : (
+                  material.map((step, index) => (
+                    <div
+                      className={
+                        step.code === 'base'
+                          ? 'ge-calc__row'
+                          : 'ge-calc__row ge-calc__row--sub'
+                      }
+                      key={`${step.code}-${index}`}
+                    >
+                      <span>
+                        {step.code === 'base'
+                          ? t('page.orders.panes.calc_material')
+                          : step.label}
+                      </span>
+                      <span className="ge-calc__formula">{step.detail}</span>
+                      <span className="ge-calc__amount">{step.value}</span>
+                    </div>
+                  ))
+                )}
+
+                {preview.processes.map((row, index) => (
+                  <div
+                    className={
+                      row.unavailable === null
+                        ? 'ge-calc__row'
+                        : 'ge-calc__row ge-calc__row--off'
+                    }
+                    key={`${row.process_id}-${index}`}
+                  >
+                    <span>
+                      {row.label}
+                      {row.parameter && (
+                        <span className="ge-quiet"> · {row.parameter}</span>
+                      )}
+                    </span>
+                    <span className="ge-calc__formula">
+                      {row.unavailable === null
+                        ? `${row.units} ${row.unit_label} × ${row.unit_net_price} zł/${row.unit_label}`
+                        : t(`page.orders.panes.why.${row.unavailable}`)}
+                    </span>
+                    <span className="ge-calc__amount">{row.amount}</span>
+                  </div>
+                ))}
+
+                <div className="ge-calc__row ge-calc__row--total">
+                  <span>{t('page.orders.panes.calc_total')}</span>
+                  <span className="ge-calc__formula" />
+                  <span className="ge-calc__amount">
+                    {preview.total ?? '—'}
+                  </span>
+                </div>
+              </div>
+            )}
             <FieldNote>{t('page.orders.panes.processes_note')}</FieldNote>
+          </Fieldset>
+
+          <Fieldset tone="contact" label={t('page.orders.panes.notes_section')}>
+            {/* Dwa komentarze, bo maja dwoch odbiorcow. Scalone w jeden
+                znaczylyby, ze instrukcja technologiczna trafia na oferte
+                albo uwaga handlowa na hale. */}
+            <Field
+              name="note"
+              label={t('page.orders.panes.note')}
+              placeholder={t('page.orders.panes.note_hint')}
+            />
+            <Field
+              name="production_note"
+              label={t('page.orders.panes.production_note')}
+              placeholder={t('page.orders.panes.production_note_hint')}
+            />
           </Fieldset>
 
           {item && item.price_path.length > 0 && (

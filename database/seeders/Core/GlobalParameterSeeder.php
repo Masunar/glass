@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Core;
 
-use Carbon\Carbon;
 use App\Enum\MinPriceCheck;
 use App\Enum\SurchargeMode;
 use Salvon\Database\Seeder;
@@ -43,6 +42,11 @@ class GlobalParameterSeeder extends Seeder
             ['oversize_threshold_m2', GlobalParameterType::NUMBER, '4', 'Próg gabarytu — powierzchnia formatki, powyżej której doliczana jest dopłata'],
             ['oversize_surcharge_percent', GlobalParameterType::PERCENT, '25', 'Dopłata za przekroczenie gabarytu'],
             ['shape_surcharge_percent', GlobalParameterType::PERCENT, '35', 'Dopłata za nieregularny kształt'],
+            // Zero, bo stawki za pilne nie ma w żadnym słowniku starego
+            // systemu (Z-20) — mechanizm czeka gotowy, a liczbę wpisuje
+            // człowiek. Zmyślony procent wyglądałby na ofercie tak samo
+            // jak prawdziwy i nikt by go nie zakwestionował.
+            ['urgent_surcharge_percent', GlobalParameterType::PERCENT, '0', 'Dopłata za formatkę pilną'],
             ['min_pane_price', GlobalParameterType::NUMBER, '60', 'Próg, poniżej którego formatka dostaje dopłatę'],
             ['min_pane_surcharge_percent', GlobalParameterType::PERCENT, '50', 'Dopłata dla formatki tańszej niż próg'],
             ['surcharge_mode', GlobalParameterType::CHOICE, SurchargeMode::CUMULATIVE->value, 'Sposób łączenia dopłat za kształt i gabaryt — kumulacja albo tylko najwyższa'],
@@ -59,13 +63,13 @@ class GlobalParameterSeeder extends Seeder
 
         foreach ($parameters as [$key, $type, $value, $description]) {
             GlobalParameter::query()->firstOrCreate(
-                ['key' => $key, 'valid_from' => Carbon::today()->startOfYear()],
+                ['key' => $key, 'valid_from' => self::referenceDate()],
                 [
                     'key' => $key,
                     'type' => $type->value,
                     'value' => $value,
                     'description' => $description,
-                    'valid_from' => Carbon::today()->startOfYear(),
+                    'valid_from' => self::referenceDate(),
                 ],
             );
         }

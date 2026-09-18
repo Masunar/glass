@@ -10,7 +10,6 @@ use App\Models\AuditEntry;
 use App\Models\GlobalParameter;
 use App\Services\GlobalParameterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Database\Seeders\Core\GlobalParameterSeeder;
 
 /**
  * Zmiana parametru wyceny zmienia ceny wszystkich nowych ofert, więc
@@ -26,8 +25,6 @@ class GlobalParameterServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new GlobalParameterSeeder())->run();
 
         $this->service = new GlobalParameterService();
     }

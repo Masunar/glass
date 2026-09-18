@@ -20,10 +20,7 @@ use App\Models\InvoiceType;
 use App\Models\CashRegister;
 use App\Enum\PaymentChannel;
 use App\Services\Orders\OrderNextStep;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -43,10 +40,6 @@ class OrderNextStepTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
 
         Order::query()->delete();
 

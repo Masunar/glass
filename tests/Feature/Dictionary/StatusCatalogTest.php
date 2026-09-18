@@ -9,8 +9,6 @@ use App\Models\Status;
 use App\Models\Location;
 use App\Enum\StatusDomain;
 use App\Models\StatusTransition;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -24,13 +22,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 class StatusCatalogTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        (new StatusSeeder())->run();
-    }
 
     public function test_kazda_dziedzina_ma_dokladnie_jeden_status_domyslny(): void
     {
@@ -113,8 +104,6 @@ class StatusCatalogTest extends TestCase
 
     public function test_seeder_lokalizacji_daje_jeden_punkt_domyslny(): void
     {
-        (new LocationSeeder())->run();
-
         $this->assertSame(2, Location::query()->count());
         $this->assertSame(1, Location::query()->where('is_default', true)->count());
     }

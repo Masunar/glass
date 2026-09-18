@@ -152,7 +152,7 @@
 .ge-card__side--right { border-right: 0; border-left: 1px solid var(--ge-divider); }
 
 .ge-panes {
-  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 104px 96px;
+  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px 96px;
 }
 .ge-panes__head,
 .ge-panes__row {

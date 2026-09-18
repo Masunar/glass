@@ -38,7 +38,7 @@ class OrderController extends ApiController
         private readonly OrderListService $listService,
     ) {
         $this->protect(
-            ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments'],
+            ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
             Permission::ORDERS->value,
             SubPermission::LIST->value,
         );
@@ -116,6 +116,21 @@ class OrderController extends ApiController
         return $this->secure(fn(): JsonResponse => $this->dataResponse(
             $this->itemService->board($order),
         ));
+    }
+
+    /**
+     * Podgląd wyceny formatki bez zapisu. Ta sama droga, którą idzie
+     * zapis — inaczej podgląd pokazywałby kwotę, której zapis nie
+     * potwierdzi.
+     */
+    public function previewPane(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            return $this->dataResponse($this->itemService->preview($order, $input));
+        });
     }
 
     public function savePane(Request $request, int $order, ?int $item = null): JsonResponse

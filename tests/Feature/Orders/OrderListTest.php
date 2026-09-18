@@ -16,10 +16,7 @@ use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use App\Services\Orders\OrderValue;
 use App\Services\Orders\OrderListService;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
-use Database\Seeders\Core\StatusSeeder;
-use Database\Seeders\Core\LocationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -40,10 +37,6 @@ class OrderListTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
-        (new StatusSeeder())->run();
 
         Order::query()->delete();
 

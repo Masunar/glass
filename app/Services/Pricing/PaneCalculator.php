@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pricing;
 
+use App\Enum\Unit;
 use App\DTO\Pricing\Quote;
 use App\Enum\MinPriceCheck;
 use App\Enum\SurchargeMode;
@@ -36,7 +37,7 @@ final readonly class PaneCalculator
 {
     /**
      * @param string $netPricePerSquareMeter cena sprzedaży m² dla materiału i sekcji cenowej
-     * @param list<array{label: string, net_price_per_running_meter: string}> $processes
+     * @param list<array{label: string, unit_net_price: string, unit?: Unit}> $processes
      */
     public function calculate(
         PaneSpecification $pane,
@@ -47,9 +48,12 @@ final readonly class PaneCalculator
         $steps = [];
 
         $rawSquareMeters = round($pane->squareMeters(), 4);
-        $minimum = $pane->isTempered
+        // Wyjatek wpisany przy formatce wygrywa z parametrem globalnym.
+        // Zero jest prawidlowa odpowiedzia — „rozlicz doslownie tyle, ile
+        // jest" — wiec nie traktujemy go jak braku.
+        $minimum = $pane->minBillableM2 ?? ($pane->isTempered
             ? $parameters->minBillableTemperedM2
-            : $parameters->minBillableUntemperedM2;
+            : $parameters->minBillableUntemperedM2);
 
         $billable = max($rawSquareMeters, $minimum);
 
@@ -79,18 +83,22 @@ final readonly class PaneCalculator
         $amount = $this->applySurcharges($pane, $amount, $parameters, $steps);
 
         foreach ($processes as $process) {
-            $cost = (float) $this->processAmount($pane, $process['net_price_per_running_meter']);
+            $unit = $process['unit'] ?? Unit::RUNNING_METER;
+            $cost = (float) $this->processAmount($pane, $process['unit_net_price'], $unit);
             $amount = round($amount + $cost, 2);
+            $label = $this->unitLabel($unit);
 
             $steps[] = new QuoteStep(
                 'process',
                 $process['label'],
                 $this->money($amount),
                 sprintf(
-                    '+ %s zł (%s mb × %s zł/mb)',
+                    '+ %s zł (%s %s × %s zł/%s)',
                     $this->money($cost),
-                    number_format($pane->runningMeters(), 2, ',', ' '),
-                    $process['net_price_per_running_meter'],
+                    number_format($this->units($pane, $unit), 2, ',', ' '),
+                    $label,
+                    $process['unit_net_price'],
+                    $label,
                 ),
             );
         }
@@ -112,9 +120,45 @@ final readonly class PaneCalculator
      * się różnić o grosze, a nikt nie będzie wiedział, która jest
      * prawdziwa.
      */
-    public function processAmount(PaneSpecification $pane, string $netPricePerRunningMeter): string
+    /**
+     * Kwota procesu — cena razy **jego własna jednostka**.
+     *
+     * Do tej pory każdy proces liczył się od metrów bieżących, bo tak
+     * liczy się obróbka krawędzi i od niej zaczynaliśmy. Hartownia
+     * rozlicza się od metra kwadratowego, a CNC od sztuki: przy szybie
+     * 1,5 × 1,0 m to pięć metrów bieżących, więc CNC za 150 zł
+     * wystawiało 750. Jednostka stoi w słowniku przy pozycji cennikowej
+     * i wystarczyło ją przeczytać.
+     */
+    public function processAmount(
+        PaneSpecification $pane,
+        string $unitNetPrice,
+        Unit $unit = Unit::RUNNING_METER,
+    ): string {
+        return $this->money(round($this->units($pane, $unit) * (float) $unitNetPrice, 2));
+    }
+
+    /** Ile jednostek tego rodzaju niesie ta formatka. */
+    public function units(PaneSpecification $pane, Unit $unit): float
     {
-        return $this->money(round($pane->runningMeters() * (float) $netPricePerRunningMeter, 2));
+        return match ($unit) {
+            Unit::RUNNING_METER => $pane->runningMeters(),
+            // Powierzchnia surowa, nie rozliczeniowa: minimalna
+            // powierzchnia z parametrów dotyczy ceny materiału i nikt
+            // nie powiedział, że obowiązuje też obróbkę.
+            Unit::SQUARE_METER => $pane->squareMeters(),
+            Unit::PIECE => (float) $pane->quantity,
+        };
+    }
+
+    /** Skrót jednostki do pokazania przy formule. */
+    public function unitLabel(Unit $unit): string
+    {
+        return match ($unit) {
+            Unit::RUNNING_METER => 'mb',
+            Unit::SQUARE_METER => 'm²',
+            Unit::PIECE => 'szt.',
+        };
     }
 
     /** @param list<QuoteStep> $steps */
@@ -136,6 +180,14 @@ final readonly class PaneCalculator
                 'code' => 'shape',
                 'label' => 'Dopłata za nieregularny kształt',
                 'percent' => $parameters->shapeSurchargePercent,
+            ];
+        }
+
+        if ($pane->isUrgent && $parameters->urgentSurchargePercent > 0) {
+            $applicable[] = [
+                'code' => 'urgent',
+                'label' => 'Dopłata za pilne',
+                'percent' => $parameters->urgentSurchargePercent,
             ];
         }
 

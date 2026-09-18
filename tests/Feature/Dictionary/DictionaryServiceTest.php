@@ -13,11 +13,8 @@ use App\Models\Workstation;
 use App\Models\InvoiceType;
 use App\Models\PriceSection;
 use App\Services\DictionaryService;
-use Database\Seeders\Core\RoleSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use App\Dictionaries\DictionaryRegistry;
-use Database\Seeders\Core\LocationSeeder;
-use Database\Seeders\Core\PriceSectionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -38,9 +35,6 @@ class DictionaryServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        (new RoleSeeder())->run();
-        (new LocationSeeder())->run();
 
         $this->service = new DictionaryService(new DictionaryRegistry());
     }
@@ -164,8 +158,6 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function unikalnosc_nazwy_moze_byc_zawezona_do_sekcji(): void
     {
-        (new PriceSectionSeeder())->run();
-
         // „Detaliczny podstawowy” istnieje w szkle i w okuciach naraz —
         // unikalność sekcji cenowych obowiązuje w obrębie sekcji.
         $result = $this->service->save('price-sections', [
@@ -186,8 +178,6 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function pozycja_domyslna_jest_jedna_w_obrebie_zakresu(): void
     {
-        (new PriceSectionSeeder())->run();
-
         /** @var PriceSection $previous */
         $previous = PriceSection::query()
             ->where('section', Section::GLASS->value)
@@ -327,8 +317,6 @@ class DictionaryServiceTest extends TestCase
     #[Test]
     public function edycja_czastkowa_nie_gubi_zakresu_unikalnosci(): void
     {
-        (new PriceSectionSeeder())->run();
-
         /** @var PriceSection $section */
         $section = PriceSection::query()
             ->where('section', Section::GLASS->value)

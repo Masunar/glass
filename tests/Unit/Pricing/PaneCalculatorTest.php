@@ -37,6 +37,7 @@ class PaneCalculatorTest extends TestCase
     private function parameters(
         SurchargeMode $surchargeMode = SurchargeMode::CUMULATIVE,
         MinPriceCheck $minPriceCheck = MinPriceCheck::AFTER_SURCHARGES,
+        float $urgentSurchargePercent = 0.0,
     ): PricingParameters {
         return new PricingParameters(
             minBillableTemperedM2: 0.4,
@@ -44,11 +45,43 @@ class PaneCalculatorTest extends TestCase
             oversizeThresholdM2: 4.0,
             oversizeSurchargePercent: 25.0,
             shapeSurchargePercent: 35.0,
+            urgentSurchargePercent: $urgentSurchargePercent,
             minPanePrice: 60.0,
             minPaneSurchargePercent: 50.0,
             surchargeMode: $surchargeMode,
             minPriceCheck: $minPriceCheck,
         );
+    }
+
+    public function test_pilne_bez_stawki_nie_rusza_ceny(): void
+    {
+        // Stawki za pilne nie ma w zadnym slowniku starego systemu
+        // (Z-20), wiec parametr startuje na zerze. Mechanizm jest
+        // gotowy, ale dopoki nikt nie poda liczby, nie zmyslamy jej.
+        $quote = $this->calculator->calculate(
+            new PaneSpecification(widthMm: 1000, heightMm: 1000, isUrgent: true),
+            self::PRICE_PER_M2,
+            $this->parameters(),
+        );
+
+        $this->assertSame('260.00', $quote->net);
+    }
+
+    public function test_pilne_z_podana_stawka_doklada_doplate(): void
+    {
+        $quote = $this->calculator->calculate(
+            new PaneSpecification(widthMm: 1000, heightMm: 1000, isUrgent: true),
+            self::PRICE_PER_M2,
+            $this->parameters(urgentSurchargePercent: 20.0),
+        );
+
+        // 260,00 + 20% — dopłata wchodzi jako osobny krok, tak samo jak
+        // kształt i gabaryt, więc widać ją w rozpisce.
+        $this->assertSame('312.00', $quote->net);
+        $this->assertContains('urgent', array_map(
+            static fn($step): string => $step->code,
+            $quote->steps,
+        ));
     }
 
     public function test_metr_kwadratowy_liczy_sie_wprost(): void
@@ -213,7 +246,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 1000, heightMm: 1000),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $this->assertSame(4.0, $quote->runningMeters);
@@ -228,7 +261,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 1000, heightMm: 1000, isIrregularShape: true),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $this->assertSame('375.00', $quote->net);
@@ -240,7 +273,7 @@ class PaneCalculatorTest extends TestCase
             new PaneSpecification(widthMm: 2500, heightMm: 2000, isIrregularShape: true),
             self::PRICE_PER_M2,
             $this->parameters(),
-            [['label' => 'Szlifowanie', 'net_price_per_running_meter' => '6.00']],
+            [['label' => 'Szlifowanie', 'unit_net_price' => '6.00']],
         );
 
         $codes = array_column(

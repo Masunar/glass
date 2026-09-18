@@ -714,6 +714,12 @@
       "add_service": "Dodaj usługę",
       "no_glass": "Ta lista nie ma jeszcze żadnej formatki.",
       "no_price": "brak ceny w cenniku",
+        "material_why": {
+          "no_price_section": "brak domyślnej sekcji cenowej dla szkła",
+          "no_price_list_item": "brak pozycji cennika dla tego szkła",
+          "no_price": "brak ceny zakupu, z której liczy się narzut"
+        },
+        "glass_missing": "bez ceny szkła",
       "services": "Usługi",
       "total_net": "Razem netto",
       "glass_summary": "Podsumowanie szkła",
@@ -754,7 +760,8 @@
         "height": "Wys.",
         "count": "Il.",
         "processes": "Procesy",
-        "area": "m² / mb"
+        "area": "m² / mb",
+          "unit_price": "Cena m²"
       },
       "no_trace": "Ta pozycja nie ma zapisanej ścieżki wyliczenia — powstała, zanim cennik ją objął.",
       "step_again": "Jeszcze raz ten sam proces",
@@ -775,7 +782,27 @@
       "days_value_many": "{{count}} dni",
       "days_value_other": "{{count}} dni",
       "days_note": "najdłuższa formatka — formatki idą przez halę równolegle",
-      "days_unknown": "żaden etap nie ma wpisanych dni"
+      "days_unknown": "żaden etap nie ma wpisanych dni",
+      "urgent": "Pilne",
+      "min_billable": "Min. powierzchnia rozliczeniowa (m²)",
+      "min_billable_hint": "z parametrów wyceny",
+      "min_billable_note": "Puste pole znaczy „obowiązuje wartość ze słownika\" — inna dla hartowanej, inna dla zwykłej. Wpisz tylko wtedy, gdy ta jedna formatka ma być wyjątkiem.",
+      "note": "Uwaga do pozycji",
+      "note_hint": "dla handlowca — może trafić na ofertę",
+      "production_note": "Komentarz dla produkcji",
+      "production_note_hint": "instrukcja dla operatora przy tej formatce",
+      "notes_section": "Uwagi",
+      "calc_material": "Materiał",
+      "calc_total": "Razem",
+      "foot_total": "Razem {{amount}} zł netto — liczone na bieżąco, zapis potwierdzi tę samą kwotę",
+        "foot_waiting": "Uzupełnij materiał i wymiary — wtedy policzę na żywo.",
+        "foot_failed": "Nie udało się policzyć podglądu — kwota poniżej może być nieaktualna.",
+      "why": {
+        "needs_choice": "wybierz pozycję",
+        "no_price_list_item": "brak pozycji w cenniku",
+        "no_purchase_price": "brak ceny zakupu",
+        "no_price_list_entry": "brak wpisu w cenniku"
+      }
     },
     "discount": {
       "title": "Rabat",

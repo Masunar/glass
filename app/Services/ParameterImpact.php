@@ -61,6 +61,10 @@ final readonly class ParameterImpact
                 'label' => 'formatka nieregularna 0,64 m²',
                 'pane' => new PaneSpecification(800, 800, isIrregularShape: true),
             ],
+            'urgent' => [
+                'label' => 'formatka pilna 0,64 m²',
+                'pane' => new PaneSpecification(800, 800, isUrgent: true),
+            ],
             'irregular_oversize' => [
                 'label' => 'nieregularna tafla 5,00 m²',
                 'pane' => new PaneSpecification(2500, 2000, isIrregularShape: true),
@@ -78,6 +82,7 @@ final readonly class ParameterImpact
         'oversize_threshold_m2' => 'oversize',
         'oversize_surcharge_percent' => 'oversize',
         'shape_surcharge_percent' => 'irregular',
+        'urgent_surcharge_percent' => 'urgent',
         'min_pane_price' => 'small_plain',
         'min_pane_surcharge_percent' => 'small_plain',
         // Kolejność mnożników widać dopiero tam, gdzie obie dopłaty
@@ -186,6 +191,7 @@ final readonly class ParameterImpact
             oversizeThresholdM2: $number('oversize_threshold_m2', $base->oversizeThresholdM2),
             oversizeSurchargePercent: $number('oversize_surcharge_percent', $base->oversizeSurchargePercent),
             shapeSurchargePercent: $number('shape_surcharge_percent', $base->shapeSurchargePercent),
+            urgentSurchargePercent: $number('urgent_surcharge_percent', $base->urgentSurchargePercent),
             minPanePrice: $number('min_pane_price', $base->minPanePrice),
             minPaneSurchargePercent: $number('min_pane_surcharge_percent', $base->minPaneSurchargePercent),
             surchargeMode: SurchargeMode::tryFrom((string) ($values['surcharge_mode'] ?? ''))

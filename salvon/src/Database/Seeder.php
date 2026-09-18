@@ -18,6 +18,32 @@ abstract class Seeder extends LaravelSeeder
 
     protected array $testSeeders = [];
 
+    /**
+     * Zegar, na którym sieją się dane deweloperskie.
+     *
+     * Dane rdzeniowe sieją się przed zamrożeniem, czyli na zegarze
+     * rzeczywistym, a deweloperskie po nim — na tym. Jeżeli seeder
+     * deweloperski czyta coś, co zapisał rdzeniowy, i obie strony datują
+     * po `Carbon::today()`, to czyta z przeszłości rzecz zapisaną
+     * w przyszłości i nie znajduje jej. Stąd `referenceDate()`.
+     */
+    public const DEV_NOW = '2024-01-01 12:00:00';
+
+    /**
+     * Data, od której obowiązują dane słownikowe: ceny zakupu,
+     * parametry globalne, pozycje cennika.
+     *
+     * Wcześniejsza od obu zegarów, więc widoczna niezależnie od tego,
+     * na którym z nich pyta się o wartość. „Obowiązuje od zawsze" —
+     * bo dla danych startowych żadna prawdziwa data początku nie
+     * istnieje, a `Carbon::today()->startOfYear()` dawało wynik
+     * zależny od dnia, w którym uruchomiono seeder.
+     */
+    public static function referenceDate(): Carbon
+    {
+        return Carbon::parse(self::DEV_NOW)->startOfYear();
+    }
+
     public function run(): void
     {
         $this->commonSeeders();
@@ -27,15 +53,23 @@ abstract class Seeder extends LaravelSeeder
             return;
         }
 
-        Carbon::setTestNow(Carbon::parse('2024-01-01 12:00:00'));
-        if (Env::isTest()) {
-            $this->testSeeders();
-            return;
+        // Zegar wraca na miejsce takze wtedy, gdy gałąź testowa konczy
+        // sie wczesniej. Bez `finally` sianie danych testowych zostawialo
+        // zamrozony zegar na caly proces, a testy liczyly czas od 2024
+        // roku — objaw dowolnie odlegly od przyczyny.
+        Carbon::setTestNow(Carbon::parse(self::DEV_NOW));
+
+        try {
+            if (Env::isTest()) {
+                $this->testSeeders();
+
+                return;
+            }
+
+            $this->devSeeders();
+        } finally {
+            Carbon::setTestNow();
         }
-
-        $this->devSeeders();
-
-        Carbon::setTestNow();
 
         $this->postScript();
     }

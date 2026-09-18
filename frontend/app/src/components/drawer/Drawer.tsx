@@ -13,6 +13,8 @@ type Props = {
   banner?: ReactNode;
   foot?: ReactNode;
   narrow?: boolean;
+  /** Szerszy od wąskiego, węższy od pełnego — formularz z rzędami pól. */
+  wideForm?: boolean;
   /**
    * Panel otwarty z wnętrza innego panelu. Podnosi warstwę, żeby
    * przygaszone tło zakryło ten pod spodem — inaczej niższy panel
@@ -41,6 +43,7 @@ export default function Drawer({
   banner,
   foot,
   narrow,
+  wideForm,
   layer = 0,
   children,
 }: Props) {
@@ -82,7 +85,8 @@ export default function Drawer({
         ref={panel}
         className={[
           'ge-drawer',
-          narrow ? 'ge-drawer--narrow' : '',
+          narrow && !wideForm ? 'ge-drawer--narrow' : '',
+          wideForm ? 'ge-drawer--wide-form' : '',
           open ? 'is-open' : '',
         ]
           .filter(Boolean)
