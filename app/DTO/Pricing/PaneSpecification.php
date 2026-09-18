@@ -17,6 +17,8 @@ final readonly class PaneSpecification
         public int $quantity = 1,
         public bool $isIrregularShape = false,
         public bool $isTempered = false,
+        /** Pilna formatka — dopłata zależy od parametru globalnego. */
+        public bool $isUrgent = false,
         /**
          * Nadpisanie minimalnej powierzchni rozliczeniowej dla tej
          * formatki. `null` znaczy „z parametrów wyceny" — a te mają

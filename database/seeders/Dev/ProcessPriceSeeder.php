@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Dev;
 
-use Carbon\Carbon;
 use App\Enum\Unit;
 use App\Enum\Section;
 use App\Models\Process;
@@ -313,12 +312,12 @@ class ProcessPriceSeeder extends Seeder
         );
 
         PurchasePrice::query()->firstOrCreate(
-            ['product_id' => $product->id, 'valid_from' => Carbon::today()->startOfYear()],
+            ['product_id' => $product->id, 'valid_from' => self::referenceDate()],
             [
                 'product_id' => $product->id,
                 'net_price' => $purchase,
                 'source' => PurchasePriceSource::MANUAL->value,
-                'valid_from' => Carbon::today()->startOfYear(),
+                'valid_from' => self::referenceDate(),
             ],
         );
 

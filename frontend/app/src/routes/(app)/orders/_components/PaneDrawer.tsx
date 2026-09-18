@@ -276,7 +276,7 @@ export default function PaneDrawer({
    * (katalog, sekcja, rabat) należą do ścieżki ceny, nie do podliczenia
    * formatki — stąd zamknięta lista kodów zamiast wszystkiego z rzędu.
    */
-  const MATERIAL_STEPS = ['base', 'shape', 'oversize', 'min_price'];
+  const MATERIAL_STEPS = ['base', 'shape', 'urgent', 'oversize', 'min_price'];
   const material = (preview?.steps ?? []).filter((step) =>
     MATERIAL_STEPS.includes(step.code),
   );

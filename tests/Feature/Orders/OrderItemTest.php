@@ -621,10 +621,10 @@ class OrderItemTest extends TestCase
         $input = $this->pane();
         $base = $this->service->preview((int) $order->getKey(), $input);
 
-        // Ani „pilne", ani „znak" nie maja doplaty w zadnym slowniku
-        // starego systemu (Z-20 zostaje otwarte). Dopoki jej nie ma,
-        // przelacznik ma nie ruszac kwoty — zmyslony procent wygladalby
-        // tak samo jak prawdziwy.
+        // „Pilne" ma juz mechanizm doplaty, ale parametr globalny
+        // startuje na zerze, bo stawki nie ma w zadnym slowniku starego
+        // systemu (Z-20). „Znak" nie ma nawet mechanizmu. Dopoki nikt
+        // nie poda liczby, oba przelaczniki nie ruszaja kwoty.
         $urgent = $this->service->preview(
             (int) $order->getKey(),
             [...$input, 'is_urgent' => true, 'needs_mark' => true],

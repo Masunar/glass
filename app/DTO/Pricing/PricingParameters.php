@@ -24,6 +24,7 @@ final readonly class PricingParameters
         public float $oversizeThresholdM2,
         public float $oversizeSurchargePercent,
         public float $shapeSurchargePercent,
+        public float $urgentSurchargePercent,
         public float $minPanePrice,
         public float $minPaneSurchargePercent,
         public SurchargeMode $surchargeMode,
@@ -38,6 +39,9 @@ final readonly class PricingParameters
             oversizeThresholdM2: GlobalParameter::number('oversize_threshold_m2', $date) ?? 4.0,
             oversizeSurchargePercent: GlobalParameter::number('oversize_surcharge_percent', $date) ?? 25.0,
             shapeSurchargePercent: GlobalParameter::number('shape_surcharge_percent', $date) ?? 35.0,
+            // Domyslnie zero: dopoki nikt nie poda stawki, przelacznik
+            // „pilne" zmienia tylko to, co widzi hala.
+            urgentSurchargePercent: GlobalParameter::number('urgent_surcharge_percent', $date) ?? 0.0,
             minPanePrice: GlobalParameter::number('min_pane_price', $date) ?? 60.0,
             minPaneSurchargePercent: GlobalParameter::number('min_pane_surcharge_percent', $date) ?? 50.0,
             surchargeMode: SurchargeMode::tryFrom(

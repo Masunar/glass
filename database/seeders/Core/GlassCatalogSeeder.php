@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Core;
 
-use Carbon\Carbon;
 use App\Enum\Unit;
 use App\Models\Product;
 use App\Enum\Section;
@@ -100,12 +99,12 @@ class GlassCatalogSeeder extends Seeder
         }
 
         PurchasePrice::query()->firstOrCreate(
-            ['product_id' => $product->id, 'valid_from' => Carbon::today()->startOfYear()],
+            ['product_id' => $product->id, 'valid_from' => self::referenceDate()],
             [
                 'product_id' => $product->id,
                 'net_price' => $purchasePrice,
                 'source' => PurchasePriceSource::MANUAL->value,
-                'valid_from' => Carbon::today()->startOfYear(),
+                'valid_from' => self::referenceDate(),
             ],
         );
     }

@@ -191,6 +191,7 @@ final readonly class OrderItemService
             quantity: max(1, (int) ($input['quantity'] ?? 1)),
             isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
             isTempered: (bool) ($input['is_tempered'] ?? false),
+            isUrgent: (bool) ($input['is_urgent'] ?? false),
             minBillableM2: $minBillable,
         );
 
@@ -274,6 +275,7 @@ final readonly class OrderItemService
             quantity: (int) ($input['quantity'] ?? 1),
             isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
             isTempered: (bool) ($input['is_tempered'] ?? false),
+            isUrgent: (bool) ($input['is_urgent'] ?? false),
             minBillableM2: $minBillable,
         );
 
@@ -585,6 +587,7 @@ final readonly class OrderItemService
                 quantity: (int) $item->quantity,
                 isIrregularShape: (bool) $pane->is_irregular_shape,
                 isTempered: (bool) $pane->is_tempered,
+                isUrgent: (bool) $item->is_urgent,
             );
 
         $thickness = $item->product?->glass?->thickness_mm;

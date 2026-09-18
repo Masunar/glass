@@ -183,6 +183,14 @@ final readonly class PaneCalculator
             ];
         }
 
+        if ($pane->isUrgent && $parameters->urgentSurchargePercent > 0) {
+            $applicable[] = [
+                'code' => 'urgent',
+                'label' => 'Dopłata za pilne',
+                'percent' => $parameters->urgentSurchargePercent,
+            ];
+        }
+
         if ($pane->paneSquareMeters() > $parameters->oversizeThresholdM2
             && $parameters->oversizeSurchargePercent > 0) {
             $applicable[] = [
