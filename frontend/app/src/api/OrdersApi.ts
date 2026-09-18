@@ -474,6 +474,34 @@ export class OrdersApi extends ApiRequest {
     return await this.delete(`/${id}/items/${itemId}`);
   }
 
+  public static async saveList(
+    id: number,
+    data: Record<string, unknown>,
+    listId?: number | null,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return listId
+      ? await this.put(`/${id}/lists/${listId}`, data)
+      : await this.post(`/${id}/lists`, data);
+  }
+
+  public static async deleteList(
+    id: number,
+    listId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/${id}/lists/${listId}`);
+  }
+
+  /** Przeniesienie pozycji — bez przeliczania ceny. */
+  public static async moveItem(
+    id: number,
+    itemId: number,
+    listId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/items/${itemId}/list`, {
+      order_list_id: listId,
+    });
+  }
+
   public static async saveDiscounts(
     id: number,
     discounts: Record<string, string>,

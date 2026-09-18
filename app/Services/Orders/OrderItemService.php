@@ -418,15 +418,18 @@ final readonly class OrderItemService
      */
     private function listFor(Order $order, mixed $listId, ?int $itemId): ?OrderList
     {
-        if ($itemId !== null) {
+        $id = $this->id($listId);
+
+        // Przy edycji wskazana lista wygrywa z dotychczasowa: zmiana
+        // listy w panelu pozycji ma ja przeniesc, a nie zostac cicho
+        // zignorowana. Bez wskazania zostaje tam, gdzie byla.
+        if ($itemId !== null && $id === null) {
             /** @var OrderItem|null $item */
             $item = OrderItem::query()->find($itemId);
             $list = $item?->list;
 
             return $list instanceof OrderList && $list->order_id === $order->getKey() ? $list : null;
         }
-
-        $id = $this->id($listId);
 
         /** @var OrderList|null */
         return OrderList::query()

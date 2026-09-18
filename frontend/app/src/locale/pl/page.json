@@ -852,6 +852,29 @@
         "by": "Kto",
         "note": "Opis"
       }
+    },
+    "lists": {
+      "kicker": "Lista zlecenia",
+      "add": "Dodaj listę",
+      "edit": "Lista zlecenia",
+      "edit_short": "edytuj",
+      "move": "Przenieś na listę",
+      "name": "Nazwa",
+      "name_hint": "np. łazienka, wariant 8 mm",
+      "role": "Rola",
+      "role_note": "Składniki sumują się do kwoty zlecenia. Alternatywa to wariant oferty — zakłada się wyłączona z kwoty i nie idzie na produkcję, ale zostaje w historii zlecenia.",
+      "included": "Wchodzi do kwoty",
+      "included_note": "Wyłączona nie należy do zlecenia: nie liczy się do wartości, nie idzie na halę.",
+      "on_hold": "Wstrzymana",
+      "on_hold_note": "Należy do zlecenia i jest wyceniona, ale blokuje przekazanie na produkcję — całego zlecenia, nie samej listy.",
+      "comment": "Komentarz produkcyjny",
+      "comment_hint": "np. 4 × narożniki lekko stępione",
+      "comment_note": "Trafia na kartę operatora przy każdej pozycji tej listy.",
+      "section": {
+        "what": "Co to za lista",
+        "state": "Stan",
+        "note": "Dla produkcji"
+      }
     }
   },
   "production": {

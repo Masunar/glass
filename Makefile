@@ -118,6 +118,13 @@ queue:
 # Run artisan tests
 test:
 	make art c="test"
+# Testy rownolegle. Bez --recreate-databases: ta flaga zrzuca i buduje
+# osiem baz od zera przy kazdym uruchomieniu i zjada caly zysk.
+# Po zmianie migracji raz odpalic `make test-parallel-fresh`.
+test-parallel:
+	make art c="test --parallel"
+test-parallel-fresh:
+	make art c="test --parallel --recreate-databases"
 # Run database migrations
 migrate:
 	make art c="migrate"

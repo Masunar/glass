@@ -15,6 +15,7 @@ use App\Services\Orders\OrderCard;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderItemService;
+use App\Services\Orders\OrderListService;
 use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
@@ -34,6 +35,7 @@ class OrderController extends ApiController
         private readonly OrderDiscountService $discountService,
         private readonly OrderDrawingService $drawingService,
         private readonly PaymentService $paymentService,
+        private readonly OrderListService $listService,
     ) {
         $this->protect(
             ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments'],
@@ -49,12 +51,13 @@ class OrderController extends ApiController
             [
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
+                'saveList', 'moveItem',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
         );
         $this->protect(
-            ['deleteItem', 'deleteDrawing'],
+            ['deleteItem', 'deleteDrawing', 'deleteList'],
             Permission::ORDERS->value,
             SubPermission::DELETE->value,
         );
@@ -280,6 +283,54 @@ class OrderController extends ApiController
             }
 
             return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Lista zlecenia. Obsługuje kompozycję (kilka pomieszczeń) i
+     * wariantowanie oferty — stąd rola i osobne przełączniki „wchodzi
+     * do kwoty" oraz „wstrzymana".
+     */
+    public function saveList(Request $request, int $order, ?int $list = null): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order, $list): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->listService->save($order, $input, $list);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    public function deleteList(int $order, int $list): JsonResponse
+    {
+        return $this->secure(function () use ($order, $list): JsonResponse {
+            $result = $this->listService->delete($order, $list);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->deletedResponse();
+        });
+    }
+
+    /** Przeniesienie pozycji na inną listę — bez przeliczania ceny. */
+    public function moveItem(Request $request, int $order, int $item): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order, $item): JsonResponse {
+            $result = $this->listService->moveItem($order, $item, $request->input('order_list_id'));
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
         });
     }
 

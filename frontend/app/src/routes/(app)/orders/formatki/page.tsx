@@ -1,4 +1,5 @@
 import DiscountPanel from '../_components/DiscountPanel';
+import ListDrawer from '../_components/ListDrawer';
 import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
@@ -42,6 +43,8 @@ export default function Page() {
   const [paneOpen, setPaneOpen] = useState(false);
   const [service, setService] = useState<OrderPaneRow | null>(null);
   const [serviceOpen, setServiceOpen] = useState(false);
+  const [list, setList] = useState<OrderItemsList | null>(null);
+  const [listOpen, setListOpen] = useState(false);
 
   const load = async () => {
     const { content } = await OrdersApi.items(id);
@@ -68,6 +71,19 @@ export default function Page() {
     await load();
   };
 
+  /** Przeniesienie nie rusza ceny — nie zmienia się ani materiał, ani wymiar. */
+  const move = async (row: OrderPaneRow, listId: number) => {
+    const { content, response } = await OrdersApi.moveItem(id, row.id, listId);
+
+    if (!response.success) {
+      notifyError(content?.errors?.order_list_id?.[0] ?? t('api.ise'));
+
+      return;
+    }
+
+    await load();
+  };
+
   if (!board) {
     return <div className="ge-empty">{t('page.orders.card.loading')}</div>;
   }
@@ -85,6 +101,15 @@ export default function Page() {
         </div>
 
         <div className="ge-head__actions">
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setList(null);
+              setListOpen(true);
+            }}
+          >
+            {t('page.orders.lists.add')}
+          </Button>
           <Button
             variant="outlined"
             onClick={() => {
@@ -125,6 +150,12 @@ export default function Page() {
                 setServiceOpen(true);
               }}
               onRemove={(row) => void remove(row)}
+              onEditList={() => {
+                setList(list);
+                setListOpen(true);
+              }}
+              onMove={(row, target) => void move(row, target)}
+              lists={board.lists}
             />
           ))}
         </div>
@@ -235,6 +266,18 @@ export default function Page() {
         }}
       />
 
+      <ListDrawer
+        orderId={id}
+        list={list}
+        removable={board.lists.length > 1}
+        open={listOpen}
+        onClose={() => setListOpen(false)}
+        onSaved={() => {
+          setListOpen(false);
+          void load();
+        }}
+      />
+
       <ServiceDrawer
         orderId={id}
         board={board}
@@ -252,16 +295,22 @@ export default function Page() {
 
 function ListBlock({
   list,
+  lists,
   t,
   onEditPane,
   onEditService,
   onRemove,
+  onEditList,
+  onMove,
 }: {
   list: OrderItemsList;
+  lists: OrderItemsList[];
   t: (key: string, options?: Record<string, unknown>) => string;
   onEditPane: (row: OrderPaneRow) => void;
   onEditService: (row: OrderPaneRow) => void;
   onRemove: (row: OrderPaneRow) => void;
+  onEditList: () => void;
+  onMove: (row: OrderPaneRow, listId: number) => void;
 }) {
   const title =
     list.name ?? t('page.orders.card.list', { number: list.number });
@@ -270,11 +319,43 @@ function ListBlock({
   return (
     <div className={list.is_included ? undefined : 'ge-list--off'}>
       <Band
-        variant={list.is_included ? 'module' : 'plain'}
-        title={title}
+        variant={
+          list.is_on_hold ? 'alert' : list.is_included ? 'module' : 'plain'
+        }
+        title={
+          list.role === 'alternative'
+            ? `${title} · ${t('page.orders.card.role_alternative')}`
+            : title
+        }
         meta={`${money(list.net)} zł`}
-        end={list.is_included ? undefined : t('page.orders.card.excluded')}
+        // Trzy rozne stany, kazdy znaczy co innego: wstrzymana nie
+        // pojdzie na produkcje, wylaczona nie nalezy do zlecenia.
+        end={
+          <span className="ge-band__end">
+            {list.is_on_hold && (
+              <span className="ge-band__flag">
+                {t('page.orders.card.list_on_hold')}
+              </span>
+            )}
+            {!list.is_included && (
+              <span className="ge-band__flag">
+                {t('page.orders.card.excluded')}
+              </span>
+            )}
+            <button
+              type="button"
+              className="ge-band__edit"
+              onClick={onEditList}
+            >
+              {t('page.orders.lists.edit_short')}
+            </button>
+          </span>
+        }
       />
+
+      {list.comment !== null && (
+        <div className="ge-list__comment">{list.comment}</div>
+      )}
 
       <div className="ge-panes">
         <div className="ge-panes__head">
@@ -328,6 +409,24 @@ function ListBlock({
               )}
             </span>
             <span className="ge-panes__actions">
+              {/* Przeniesienie bez otwierania panelu: przy dzieleniu
+                  wyceny na pomieszczenia robi sie to kilkanascie razy
+                  z rzedu. */}
+              {lists.length > 1 && (
+                <select
+                  className="ge-panes__move"
+                  value={list.id}
+                  aria-label={t('page.orders.lists.move')}
+                  onChange={(event) => onMove(row, Number(event.target.value))}
+                >
+                  {lists.map((target) => (
+                    <option key={target.id} value={target.id}>
+                      {target.name ??
+                        t('page.orders.card.list', { number: target.number })}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button type="button" onClick={() => onEditPane(row)}>
                 {t('edit')}
               </button>
