@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\DictionaryController;
@@ -56,6 +57,13 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
     Route::post('/{slug}', [DictionaryController::class, 'create'])->name('create');
     Route::put('/{slug}/{id}', [DictionaryController::class, 'update'])->name('update');
     Route::delete('/{slug}/{id}', [DictionaryController::class, 'deactivate'])->name('deactivate');
+});
+
+Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void {
+    Route::get('/levels', [WarehouseController::class, 'levels'])->name('levels');
+    Route::get('/demand', [WarehouseController::class, 'demand'])->name('demand');
+    Route::put('/{product}/thresholds', [WarehouseController::class, 'thresholds'])->name('thresholds');
+    Route::post('/{product}/count', [WarehouseController::class, 'count'])->name('count');
 });
 
 Route::prefix('/production')->name('production_')->group(static function (): void {
