@@ -163,11 +163,12 @@ class PurchaseOrderTest extends TestCase
         $this->service->receive($order, [['item' => $item, 'quantity' => 10.0]]);
 
         // Nowa cena obowiazuje od dzis...
-        $this->assertSame('50.00', $product->purchasePriceAt()?->net_price);
-        $this->assertSame(
-            PurchasePriceSource::DELIVERY,
-            $product->purchasePriceAt()?->source,
-        );
+        $current = $product->purchasePriceAt();
+
+        $this->assertNotNull($current);
+        $this->assertSame('50.00', $current->net_price);
+        $this->assertSame(PurchasePriceSource::DELIVERY, $current->source);
+
         // ...a wczorajsza oferta dalej wie, po czym byla liczona.
         $this->assertSame('40.00', $product->purchasePriceAt($yesterday)?->net_price);
     }
