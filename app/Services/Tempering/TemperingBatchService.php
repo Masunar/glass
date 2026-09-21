@@ -6,6 +6,7 @@ namespace App\Services\Tempering;
 
 use Carbon\Carbon;
 use RuntimeException;
+use App\Models\Vehicle;
 use App\Models\Supplier;
 use App\Models\TemperingItem;
 use App\Models\TemperingBatch;
@@ -35,17 +36,46 @@ final readonly class TemperingBatchService
     ) {
     }
 
-    public function draft(Supplier $supplier, ?Carbon $expectedAt = null, ?string $note = null): TemperingBatch
-    {
+    public function draft(
+        Supplier $supplier,
+        ?Carbon $expectedAt = null,
+        ?string $note = null,
+        ?Vehicle $vehicle = null,
+        ?Carbon $departureAt = null,
+    ): TemperingBatch {
         /** @var TemperingBatch */
         return TemperingBatch::query()->create([
             'number' => $this->numbers->next(self::SEQUENCE),
             'supplier_id' => $supplier->id,
+            'vehicle_id' => $vehicle?->id,
             'status' => TemperingBatchStatus::DRAFT->value,
+            'departure_at' => $departureAt,
             'expected_at' => $expectedAt,
             'note' => $note,
             'created_by' => Auth::id(),
         ]);
+    }
+
+    /**
+     * Zmiana planu kursu: auto, data wyjazdu, przewidywany powrót.
+     *
+     * Wolno do wyjazdu — partia jest planem, a plan się zmienia.
+     * Po wysłaniu auto i data wyjazdu są już faktem.
+     */
+    public function plan(
+        TemperingBatch $batch,
+        ?Vehicle $vehicle,
+        ?Carbon $departureAt,
+        ?Carbon $expectedAt,
+    ): TemperingBatch {
+        $this->assertEditable($batch);
+
+        $batch->vehicle_id = $vehicle?->id;
+        $batch->departure_at = $departureAt;
+        $batch->expected_at = $expectedAt;
+        $batch->save();
+
+        return $batch->refresh();
     }
 
     /**
@@ -102,7 +132,7 @@ final readonly class TemperingBatchService
     public function send(TemperingBatch $batch, ?Carbon $sentAt = null): TemperingBatch
     {
         if ($batch->status !== TemperingBatchStatus::DRAFT) {
-            throw new RuntimeException('Wysłać można tylko szkic partii.');
+            throw new RuntimeException('Wysłać można tylko partię zaplanowaną.');
         }
 
         if ($batch->items()->count() === 0) {
@@ -111,7 +141,10 @@ final readonly class TemperingBatchService
 
         return DB::transaction(function () use ($batch, $sentAt): TemperingBatch {
             $batch->status = TemperingBatchStatus::SENT;
-            $batch->sent_at = $sentAt ?? Carbon::today();
+            // Wyjazd zgodny z planem to najczestszy przypadek, wiec
+            // domyslnie bierzemy planowana date. Fakt rozny od planu
+            // wymaga wskazania — i wtedy roznica zostaje widoczna.
+            $batch->sent_at = $sentAt ?? $batch->departure_at ?? Carbon::today();
             $batch->save();
 
             /** @var iterable<TemperingItem> $items */
@@ -245,7 +278,7 @@ final readonly class TemperingBatchService
     public function cancel(TemperingBatch $batch): TemperingBatch
     {
         if (!$batch->status->isEditable()) {
-            throw new RuntimeException('Anulować można tylko szkic partii.');
+            throw new RuntimeException('Anulować można tylko partię przed wyjazdem.');
         }
 
         return DB::transaction(function () use ($batch): TemperingBatch {
@@ -263,7 +296,7 @@ final readonly class TemperingBatchService
     private function assertEditable(TemperingBatch $batch): void
     {
         if (!$batch->status->isEditable()) {
-            throw new RuntimeException('Pozycje zmienia się tylko w szkicu partii.');
+            throw new RuntimeException('Partię zmienia się tylko przed wyjazdem.');
         }
     }
 }

@@ -16,7 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $number
  * @property int $supplier_id
+ * @property int|null $vehicle_id
  * @property TemperingBatchStatus $status
+ * @property Carbon|null $departure_at
  * @property Carbon|null $sent_at
  * @property Carbon|null $expected_at
  * @property Carbon|null $returned_at
@@ -24,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $document
  * @property string|null $note
  * @property-read Supplier|null $supplier
+ * @property-read Vehicle|null $vehicle
  * @property-read Collection<int, TemperingItem> $items
  */
 class TemperingBatch extends Dateable
@@ -31,8 +34,9 @@ class TemperingBatch extends Dateable
     protected $table = 'tempering_batches';
 
     protected $fillable = [
-        'number', 'supplier_id', 'status', 'sent_at', 'expected_at',
-        'returned_at', 'net_cost', 'document', 'note', 'created_by',
+        'number', 'supplier_id', 'vehicle_id', 'status', 'departure_at',
+        'sent_at', 'expected_at', 'returned_at', 'net_cost', 'document',
+        'note', 'created_by',
     ];
 
     protected function casts(): array
@@ -40,6 +44,7 @@ class TemperingBatch extends Dateable
         return [
             'number' => 'integer',
             'status' => TemperingBatchStatus::class,
+            'departure_at' => 'date',
             'sent_at' => 'date',
             'expected_at' => 'date',
             'returned_at' => 'date',
@@ -51,6 +56,12 @@ class TemperingBatch extends Dateable
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
+    }
+
+    /** @return BelongsTo<Vehicle, $this> */
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id', 'id');
     }
 
     /** @return HasMany<TemperingItem, $this> */

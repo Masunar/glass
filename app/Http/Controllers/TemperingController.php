@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Enum\Permission;
+use App\Models\Vehicle;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Salvon\Enum\SubPermission;
@@ -31,7 +32,7 @@ class TemperingController extends ApiController
             SubPermission::LIST->value,
         );
         $this->protect(
-            ['store', 'addItems', 'send', 'receive', 'settle', 'cancel'],
+            ['store', 'addItems', 'plan', 'send', 'receive', 'settle', 'cancel'],
             Permission::TEMPERING->value,
             SubPermission::UPDATE->value,
         );
@@ -80,12 +81,12 @@ class TemperingController extends ApiController
             /** @var Supplier $supplier */
             $supplier = Supplier::query()->findOrFail((int) $request->input('supplier_id'));
 
-            $expected = $request->input('expected_at');
-
             $batch = $this->service->draft(
                 $supplier,
-                $expected === null || $expected === '' ? null : Carbon::parse((string) $expected),
+                $this->date($request->input('expected_at')),
                 $request->input('note'),
+                $this->vehicle($request->input('vehicle_id')),
+                $this->date($request->input('departure_at')),
             );
 
             /** @var list<int> $ids */
@@ -97,6 +98,21 @@ class TemperingController extends ApiController
                 ...$this->board->card($batch->refresh()),
                 'skipped' => $result['skipped'],
             ]);
+        });
+    }
+
+    /** Zmiana planu kursu: auto, wyjazd, przewidywany powrót. */
+    public function plan(Request $request, int $batch): JsonResponse
+    {
+        return $this->secure(function () use ($request, $batch): JsonResponse {
+            $model = $this->service->plan(
+                $this->batch($batch),
+                $this->vehicle($request->input('vehicle_id')),
+                $this->date($request->input('departure_at')),
+                $this->date($request->input('expected_at')),
+            );
+
+            return $this->dataResponse($this->board->card($model));
         });
     }
 
@@ -136,11 +152,9 @@ class TemperingController extends ApiController
     public function send(Request $request, int $batch): JsonResponse
     {
         return $this->secure(function () use ($request, $batch): JsonResponse {
-            $sentAt = $request->input('sent_at');
-
             $model = $this->service->send(
                 $this->batch($batch),
-                $sentAt === null || $sentAt === '' ? null : Carbon::parse((string) $sentAt),
+                $this->date($request->input('sent_at')),
             );
 
             return $this->dataResponse($this->board->card($model));
@@ -166,12 +180,10 @@ class TemperingController extends ApiController
                 $outcomes[(int) $id] = (string) $value;
             }
 
-            $returnedAt = $request->input('returned_at');
-
             $result = $this->service->receive(
                 $model,
                 $outcomes,
-                $returnedAt === null || $returnedAt === '' ? null : Carbon::parse((string) $returnedAt),
+                $this->date($request->input('returned_at')),
                 $request->input('note'),
             );
 
@@ -204,6 +216,22 @@ class TemperingController extends ApiController
         return $this->secure(fn(): JsonResponse => $this->dataResponse(
             $this->board->card($this->service->cancel($this->batch($batch))),
         ));
+    }
+
+    /** Pusty napis z formularza to brak daty, nie dzisiaj. */
+    private function date(mixed $value): ?Carbon
+    {
+        return $value === null || $value === '' ? null : Carbon::parse((string) $value);
+    }
+
+    private function vehicle(mixed $value): ?Vehicle
+    {
+        if ($value === null || $value === '' || (int) $value === 0) {
+            return null;
+        }
+
+        /** @var Vehicle|null */
+        return Vehicle::query()->find((int) $value);
     }
 
     private function batch(int $id): TemperingBatch

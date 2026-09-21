@@ -94,6 +94,7 @@ Route::prefix('/tempering')->name('tempering_')->group(static function (): void 
         Route::get('/', [TemperingController::class, 'batches'])->name('index');
         Route::post('/', [TemperingController::class, 'store'])->name('store');
         Route::get('/{batch}', [TemperingController::class, 'show'])->name('show');
+        Route::put('/{batch}/plan', [TemperingController::class, 'plan'])->name('plan');
         Route::post('/{batch}/items', [TemperingController::class, 'addItems'])->name('add_items');
         Route::delete('/{batch}/items/{item}', [TemperingController::class, 'removeItem'])
             ->name('remove_item');
