@@ -219,6 +219,7 @@ function BatchCard({
         <span className="r">{t('page.tempering.column.size')}</span>
         <span className="r">{t('page.tempering.column.quantity')}</span>
         <span className="r">{t('page.tempering.column.kg')}</span>
+        <span className="r">{t('page.tempering.column.cost_share')}</span>
         <span>{t('page.tempering.column.outcome')}</span>
       </div>
 
@@ -233,6 +234,8 @@ function BatchCard({
           </span>
           <span className="r">{decimal(item.quantity)}</span>
           <span className="r ge-quiet">{decimal(item.kg)}</span>
+          {/* Koszt, nie cena — pojawia sie dopiero po rozliczeniu. */}
+          <span className="r ge-quiet">{item.cost_share ?? '—'}</span>
           <span>
             {card.status === 'sent' ? (
               <select

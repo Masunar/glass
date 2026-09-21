@@ -23,6 +23,12 @@ export type TemperingRow = {
   /** Pozycja zastępcza wskazuje tę, która się stłukła. */
   replaces_id: number | null;
   batch_number: number | null;
+  /**
+   * Udział pozycji w koszcie partii, liczony po m². To **koszt**,
+   * nie cena — klient płaci za hartowanie z cennika procesu H.
+   * Pojawia się dopiero po rozliczeniu partii.
+   */
+  cost_share?: string;
 };
 
 export type TemperingQueue = {
@@ -55,6 +61,8 @@ export type TemperingBatchRow = {
 
 export type TemperingBatchCard = TemperingBatchRow & {
   items: TemperingRow[];
+  /** Powierzchnia całej partii — podstawa rozksięgowania kosztu. */
+  m2: number;
   skipped?: { id: number; reason: string }[];
   replaced?: number;
 };

@@ -569,7 +569,7 @@
 
 .ge-temp__grid {
   display: grid;
-  grid-template-columns: 74px minmax(180px, 1fr) 110px 80px 90px 160px;
+  grid-template-columns: 74px minmax(180px, 1fr) 110px 80px 90px 90px 160px;
   gap: 12px;
   align-items: center;
   padding-block: 6px;
