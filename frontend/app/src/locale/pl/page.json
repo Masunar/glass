@@ -66,7 +66,9 @@
     "dictionaries": "Słowniki",
     "production": "Kolejka produkcji",
     "tempering": "Hartownia",
-    "workload": "Obciążenie stanowisk"
+    "workload": "Obciążenie stanowisk",
+    "warehouse": "Magazyn",
+    "supplier_orders": "Zamówienia"
   },
   "user_account": {
     "mfa": {
@@ -714,12 +716,12 @@
       "add_service": "Dodaj usługę",
       "no_glass": "Ta lista nie ma jeszcze żadnej formatki.",
       "no_price": "brak ceny w cenniku",
-        "material_why": {
-          "no_price_section": "brak domyślnej sekcji cenowej dla szkła",
-          "no_price_list_item": "brak pozycji cennika dla tego szkła",
-          "no_price": "brak ceny zakupu, z której liczy się narzut"
-        },
-        "glass_missing": "bez ceny szkła",
+      "material_why": {
+        "no_price_section": "brak domyślnej sekcji cenowej dla szkła",
+        "no_price_list_item": "brak pozycji cennika dla tego szkła",
+        "no_price": "brak ceny zakupu, z której liczy się narzut"
+      },
+      "glass_missing": "bez ceny szkła",
       "services": "Usługi",
       "total_net": "Razem netto",
       "glass_summary": "Podsumowanie szkła",
@@ -751,7 +753,8 @@
         "size": "Wymiary",
         "processes": "Procesy",
         "path": "Skąd ta cena",
-        "service": "Usługa"
+        "service": "Usługa",
+        "fitting": "Okucie"
       },
       "column": {
         "kind": "Rodzaj",
@@ -761,7 +764,10 @@
         "count": "Il.",
         "processes": "Procesy",
         "area": "m² / mb",
-          "unit_price": "Cena m²"
+        "unit_price": "Cena m²",
+        "code": "Kod",
+        "finish": "Wykończenie",
+        "stock": "Stan"
       },
       "no_trace": "Ta pozycja nie ma zapisanej ścieżki wyliczenia — powstała, zanim cennik ją objął.",
       "step_again": "Jeszcze raz ten sam proces",
@@ -795,14 +801,27 @@
       "calc_material": "Materiał",
       "calc_total": "Razem",
       "foot_total": "Razem {{amount}} zł netto — liczone na bieżąco, zapis potwierdzi tę samą kwotę",
-        "foot_waiting": "Uzupełnij materiał i wymiary — wtedy policzę na żywo.",
-        "foot_failed": "Nie udało się policzyć podglądu — kwota poniżej może być nieaktualna.",
+      "foot_waiting": "Uzupełnij materiał i wymiary — wtedy policzę na żywo.",
+      "foot_failed": "Nie udało się policzyć podglądu — kwota poniżej może być nieaktualna.",
       "why": {
         "needs_choice": "wybierz pozycję",
         "no_price_list_item": "brak pozycji w cenniku",
         "no_purchase_price": "brak ceny zakupu",
         "no_price_list_entry": "brak wpisu w cenniku"
-      }
+      },
+      "fittings": "Okucia",
+      "add_fitting": "Dodaj okucie",
+      "fitting": "Okucie",
+      "fitting_pick": "wybierz z katalogu",
+      "fitting_add": "Okucie",
+      "fitting_edit": "Okucie",
+      "fitting_note": "Cenę liczy cennik. Puste pole znaczy „weź z cennika”; zero znaczy zero.",
+      "fitting_single": "Pojedyncze okucie",
+      "fitting_from_set": "Z zestawu",
+      "set": "Zestaw",
+      "set_pick": "wybierz zestaw",
+      "set_option": "{{name}} — {{count}} poz.",
+      "set_note": "Zestaw dokłada swoje pozycje do listy i znika. Każdą da się potem zmienić albo usunąć osobno."
     },
     "discount": {
       "title": "Rabat",
@@ -966,6 +985,34 @@
       "material": "brak materiału",
       "drawing": "błąd rysunku",
       "rework": "poprawka"
+    }
+  },
+  "warehouse": {
+    "title": "Magazyn",
+    "tab_levels": "Stany",
+    "tab_demand": "Okucia w zamówieniach",
+    "search": "Szukaj po kodzie lub nazwie…",
+    "only_shortages": "Tylko do zamówienia",
+    "thresholds": "Progi",
+    "counted": "spis",
+    "count_note": "inwentaryzacja z ekranu magazynu",
+    "empty": "Nic tu nie ma — okucia dostają stan po pierwszym przyjęciu albo spisie.",
+    "demand_empty": "Żadne otwarte zlecenie nie potrzebuje okuć.",
+    "column": {
+      "code": "Kod",
+      "name": "Nazwa",
+      "finish": "Wykończenie",
+      "stock": "Stan",
+      "reserved": "Zarezerw.",
+      "available": "Dostępne",
+      "min": "Min",
+      "max": "Max",
+      "to_order": "Do zamówienia",
+      "order": "Zlecenie",
+      "contractor": "Kontrahent",
+      "status": "Status",
+      "needed": "Potrzeba",
+      "missing": "Brakuje"
     }
   }
 }

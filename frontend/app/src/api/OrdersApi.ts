@@ -285,7 +285,20 @@ export type OrderItemsList = {
   /** Najdłuższa formatka listy — formatki idą przez halę równolegle. */
   days: number | null;
   glass: OrderPaneRow[];
+  /** Okucia — własne kolumny, bo nie mają wymiarów ani procesów. */
+  fittings: OrderFittingRow[];
   services: OrderPaneRow[];
+};
+
+export type OrderFittingRow = OrderPaneRow & {
+  /**
+   * Stan magazynowy okucia. Nazwa mówi, czym jest — w starym systemie
+   * ta kolumna nazywała się „Obecna wartość" i raz pokazywała kwotę
+   * pozycji, raz stan, a w modalu edycji zero.
+   */
+  in_stock: number | null;
+  finish?: string | null;
+  code?: string | null;
 };
 
 export type OrderTotals = {
@@ -341,6 +354,15 @@ export type OrderItemsBoard = {
     }[];
     processes: OrderProcess[];
     services: { id: number; name: string }[];
+    fittings: {
+      id: number;
+      name: string;
+      code: string | null;
+      finish: string | null;
+      dimension: string | null;
+    }[];
+    /** Biblioteka szablonów — bez zapisanych konfiguracji klientów. */
+    sets: { id: number; name: string; items: number }[];
   };
 };
 
@@ -492,6 +514,25 @@ export class OrdersApi extends ApiRequest {
     data: Record<string, unknown>,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.post(`/${id}/panes/preview`, data);
+  }
+
+  /** Okucie na zleceniu. Cenę liczy cennik; pole ceny jest nadpisaniem. */
+  public static async saveFitting(
+    id: number,
+    data: Record<string, unknown>,
+    itemId?: number | null,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return itemId
+      ? await this.put(`/${id}/fittings/${itemId}`, data)
+      : await this.post(`/${id}/fittings`, data);
+  }
+
+  /** Rozwinięcie zestawu na pozycje listy. */
+  public static async addFittingSet(
+    id: number,
+    data: Record<string, unknown>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/fittings/set`, data);
   }
 
   public static async savePane(

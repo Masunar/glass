@@ -81,7 +81,23 @@ export const appModules: AppModule[] = [
       { labelKey: 'page.menu.workload' },
     ],
   },
-  { key: 'mag', code: 'MAG', labelKey: 'page.module.mag', links: [] },
+  {
+    key: 'mag',
+    code: 'MAG',
+    labelKey: 'page.module.mag',
+    links: [
+      {
+        labelKey: 'page.menu.warehouse',
+        path: appRoutes.warehouse.path,
+        permission: {
+          permission: Permission.WAREHOUSE,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      // Zamowienia do dostawcow — etap 4, jeszcze nie ma ekranu.
+      { labelKey: 'page.menu.supplier_orders' },
+    ],
+  },
   { key: 'ksie', code: 'KSIĘ', labelKey: 'page.module.ksie', links: [] },
   { key: 'rap', code: 'RAP', labelKey: 'page.module.rap', links: [] },
   {

@@ -105,6 +105,7 @@ class StatusSeeder extends Seeder
                 ['rule' => 'all_drawings_added', 'message' => 'Nie zaznaczono, że wszystkie rysunki są dodane.'],
                 ['rule' => 'no_list_on_hold', 'message' => 'Co najmniej jedna lista jest wstrzymana.'],
                 ['rule' => 'prepayment_or_credit_limit', 'message' => 'Brak zaliczki, a kontrahent nie mieści się w limicie kredytowym.'],
+                ['rule' => 'fittings_in_stock', 'message' => 'Brakuje okuć na stanie.'],
             ]],
             ['PRODUKCJA', 'GOTOWE', 'Oznacz jako gotowe', [
                 ['rule' => 'all_production_tasks_done', 'message' => 'Nie wszystkie etapy produkcji są wykonane.'],

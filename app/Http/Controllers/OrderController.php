@@ -16,6 +16,7 @@ use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderListService;
+use App\Services\Orders\OrderFittingService;
 use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
@@ -36,6 +37,7 @@ class OrderController extends ApiController
         private readonly OrderDrawingService $drawingService,
         private readonly PaymentService $paymentService,
         private readonly OrderListService $listService,
+        private readonly OrderFittingService $fittingService,
     ) {
         $this->protect(
             ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -51,7 +53,7 @@ class OrderController extends ApiController
             [
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
-                'saveList', 'moveItem',
+                'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
@@ -162,6 +164,43 @@ class OrderController extends ApiController
             }
 
             return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Okucie na zleceniu. Cena idzie z cennika — pole ceny w formularzu
+     * jest nadpisaniem, nie źródłem.
+     */
+    public function saveFitting(Request $request, int $order, ?int $item = null): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order, $item): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->fittingService->save($order, $input, $item);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /** Rozwinięcie zestawu na pozycje listy. */
+    public function addFittingSet(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->fittingService->addSet($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['ids' => $result['ids']]);
         });
     }
 

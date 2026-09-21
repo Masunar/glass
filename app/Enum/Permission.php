@@ -20,5 +20,6 @@ enum Permission: string
     case CONTRACTORS = 'contractors';
     case ORDERS = 'orders';
     case PRODUCTION = 'production';
+    case WAREHOUSE = 'warehouse';
     case DICTIONARIES = 'dictionaries';
 }

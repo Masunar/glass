@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
         // Macierz cennika szkla — bez niej material nie ma ceny
         // katalogowej i kazda formatka wychodzi po 0,00.
         Dev\GlassPriceSeeder::class,
+        // Okucia razem ze stanami i biblioteka zestawow — przed
+        // zleceniami, bo OrderSeeder moze z nich kiedys korzystac.
+        Dev\FittingSeeder::class,
         Dev\ContractorSeeder::class,
         Dev\OrderSeeder::class,
     ];

@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductionController;
+use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\DictionaryController;
@@ -58,6 +59,13 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
     Route::delete('/{slug}/{id}', [DictionaryController::class, 'deactivate'])->name('deactivate');
 });
 
+Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void {
+    Route::get('/levels', [WarehouseController::class, 'levels'])->name('levels');
+    Route::get('/demand', [WarehouseController::class, 'demand'])->name('demand');
+    Route::put('/{product}/thresholds', [WarehouseController::class, 'thresholds'])->name('thresholds');
+    Route::post('/{product}/count', [WarehouseController::class, 'count'])->name('count');
+});
+
 Route::prefix('/production')->name('production_')->group(static function (): void {
     Route::get('/', [ProductionController::class, 'board'])->name('board');
     Route::post('/tasks/{task}/start', [ProductionController::class, 'start'])->name('task_start');
@@ -84,6 +92,12 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::post('/{order}/panes/preview', [OrderController::class, 'previewPane'])->name('pane_preview');
     Route::post('/{order}/panes', [OrderController::class, 'savePane'])->name('pane_create');
     Route::put('/{order}/panes/{item}', [OrderController::class, 'savePane'])->name('pane_update');
+    // Zestaw przed pojedyncza pozycja: '/{order}/fittings/set' nie moze
+    // wpasc w '/{order}/fittings/{item}'.
+    Route::post('/{order}/fittings/set', [OrderController::class, 'addFittingSet'])->name('fitting_set');
+    Route::post('/{order}/fittings', [OrderController::class, 'saveFitting'])->name('fitting_create');
+    Route::put('/{order}/fittings/{item}', [OrderController::class, 'saveFitting'])->name('fitting_update');
+
     Route::post('/{order}/services', [OrderController::class, 'saveService'])->name('service_create');
     Route::put('/{order}/services/{item}', [OrderController::class, 'saveService'])->name('service_update');
     Route::delete('/{order}/items/{item}', [OrderController::class, 'deleteItem'])->name('item_delete');

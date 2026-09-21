@@ -458,3 +458,34 @@
   padding-top: 6px;
 }
 .ge-calc__row--total .ge-calc__amount { font-size: 15px; color: var(--ge-text); }
+
+/* ---------- przelacznik trybu w panelu ---------- */
+
+/* Dwie drogi do tego samego celu („dopisz okucia do listy"), wiec
+   przelacznik, a nie dwa osobne panele. Ten sam jezyk co pasek
+   segmentowy na listach: szara szyna, bialy aktywny, akcent pod
+   etykieta. */
+.ge-switch {
+  display: flex;
+  margin-bottom: 4px;
+  border: 1px solid var(--ge-neutral-300);
+  background: var(--ge-neutral-100);
+}
+.ge-switch__tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: 0;
+  border-right: 1px solid var(--ge-neutral-300);
+  background: transparent;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+}
+.ge-switch__tab:last-child { border-right: 0; }
+.ge-switch__tab.is-active {
+  background: var(--ge-surface);
+  color: var(--ge-text);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--ge-mod);
+}
