@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Models\TemperingItem;
 use App\Models\TemperingBatch;
 use App\Services\NumberSequence;
+use App\Services\Production\SubcontractedWork;
 use App\Enum\TemperingItemStatus;
 use App\Enum\TemperingBatchStatus;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ final readonly class TemperingBatchService
     public function __construct(
         private TemperingQueue $queue = new TemperingQueue(),
         private NumberSequence $numbers = new NumberSequence(),
+        private SubcontractedWork $subcontracted = new SubcontractedWork(),
     ) {
     }
 
@@ -112,10 +114,22 @@ final readonly class TemperingBatchService
             $batch->sent_at = $sentAt ?? Carbon::today();
             $batch->save();
 
-            TemperingItem::query()
+            /** @var iterable<TemperingItem> $items */
+            $items = TemperingItem::query()
                 ->where('tempering_batch_id', $batch->getKey())
                 ->where('status', TemperingItemStatus::QUEUED->value)
-                ->update(['status' => TemperingItemStatus::SENT->value]);
+                ->get();
+
+            foreach ($items as $item) {
+                $item->status = TemperingItemStatus::SENT;
+                $item->save();
+
+                // Pozycja zastepcza po stluczce jedzie do pieca przy juz
+                // zamknietym etapie. „Zrobione" przy szybie, ktorej nie
+                // ma, to dokladnie ten falsz, ktoremu to sprzezenie ma
+                // zapobiegac — wiec etap wraca do otwartych.
+                $this->subcontracted->reopen((int) $item->order_item_id);
+            }
 
             return $batch->refresh();
         });
@@ -129,7 +143,7 @@ final readonly class TemperingBatchService
      * trzeba zrobić od nowa, a to jest koszt, nie sprzedaż.
      *
      * @param array<int, string> $outcomes id pozycji => wartość `TemperingItemStatus`
-     * @return array{returned: int, replaced: list<TemperingItem>}
+     * @return array{returned: int, replaced: list<TemperingItem>, closed: int}
      */
     public function receive(
         TemperingBatch $batch,
@@ -150,7 +164,11 @@ final readonly class TemperingBatchService
                 ->where('tempering_batch_id', $batch->getKey())
                 ->get();
 
+            /** @var array<int, true> $touched */
+            $touched = [];
+
             foreach ($items as $item) {
+                $touched[(int) $item->order_item_id] = true;
                 $raw = $outcomes[(int) $item->getKey()] ?? TemperingItemStatus::RETURNED->value;
                 $status = TemperingItemStatus::tryFrom($raw) ?? TemperingItemStatus::RETURNED;
 
@@ -180,7 +198,21 @@ final readonly class TemperingBatchService
 
             $batch->save();
 
-            return ['returned' => $returned, 'replaced' => $replaced];
+            // Etap podzlecany zamyka sie dopiero, gdy dla pozycji nie
+            // zostalo nic w kolejce ani u podwykonawcy. Stluczka wlasnie
+            // zalozyla pozycje zastepcza, wiec taka pozycja nie zamknie
+            // sie w tym przebiegu — i o to chodzi.
+            $closed = 0;
+
+            foreach (array_keys($touched) as $orderItemId) {
+                if ($this->queue->outstandingFor($orderItemId) > 0) {
+                    continue;
+                }
+
+                $closed += $this->subcontracted->close($orderItemId);
+            }
+
+            return ['returned' => $returned, 'replaced' => $replaced, 'closed' => $closed];
         });
     }
 
