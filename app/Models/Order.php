@@ -135,6 +135,7 @@ class Order extends Dateable
      *
      * @return BelongsTo<Location, $this>
      */
+    /** @return BelongsTo<Location, $this> */
     public function pickupLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'pickup_location_id', 'id');
@@ -146,6 +147,7 @@ class Order extends Dateable
      *
      * @return HasMany<OrderDrawing, $this>
      */
+    /** @return HasMany<OrderDrawing, $this> */
     public function drawings(): HasMany
     {
         return $this->hasMany(OrderDrawing::class, 'order_id', 'id');
@@ -157,6 +159,7 @@ class Order extends Dateable
      *
      * @return HasMany<Payment, $this>
      */
+    /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'order_id', 'id');
@@ -169,6 +172,7 @@ class Order extends Dateable
      *
      * @return BelongsTo<InvoiceType, $this>
      */
+    /** @return BelongsTo<InvoiceType, $this> */
     public function invoiceType(): BelongsTo
     {
         return $this->belongsTo(InvoiceType::class, 'invoice_type_id', 'id');
@@ -180,6 +184,7 @@ class Order extends Dateable
      *
      * @return BelongsTo<User, $this>
      */
+    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by', 'id');

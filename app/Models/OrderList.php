@@ -57,11 +57,13 @@ class OrderList extends Dateable
         return $this->is_included;
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id', 'id');
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_list_id', 'id');

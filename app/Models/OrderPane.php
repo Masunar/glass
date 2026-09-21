@@ -49,6 +49,7 @@ class OrderPane extends Model
         ];
     }
 
+    /** @return BelongsTo<OrderItem, $this> */
     public function item(): BelongsTo
     {
         return $this->belongsTo(OrderItem::class, 'order_item_id', 'id');
