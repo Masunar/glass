@@ -127,31 +127,40 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.contractors.filters')}>
-        <button
-          type="button"
-          className={includeInactive ? '' : 'is-active'}
-          onClick={() => {
-            setIncludeInactive(false);
-            void load(query, false);
-          }}
-        >
-          {t('page.contractors.filter.active', { count: total })}
-        </button>
-        <button
-          type="button"
-          className={includeInactive ? 'is-active' : ''}
-          onClick={() => {
-            setIncludeInactive(true);
-            void load(query, true);
-          }}
-        >
-          {t('page.contractors.filter.all')}
-        </button>
-        <span className="ge-filters__end">
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.contractors.filters')}>
+          <button
+            type="button"
+            className={
+              includeInactive ? 'ge-seg__item' : 'ge-seg__item is-active'
+            }
+            aria-pressed={!includeInactive}
+            onClick={() => {
+              setIncludeInactive(false);
+              void load(query, false);
+            }}
+          >
+            <span>{t('page.contractors.filter.active')}</span>
+            <span className="ge-seg__count">{total}</span>
+          </button>
+          <button
+            type="button"
+            className={
+              includeInactive ? 'ge-seg__item is-active' : 'ge-seg__item'
+            }
+            aria-pressed={includeInactive}
+            onClick={() => {
+              setIncludeInactive(true);
+              void load(query, true);
+            }}
+          >
+            <span>{t('page.contractors.filter.all')}</span>
+          </button>
+        </nav>
+        <span className="ge-segbar__end">
           {t('page.contractors.shown', { count: rows.length })}
         </span>
-      </nav>
+      </div>
 
       <DataList columns={columns}>
         <ListHead columns={columns} translate={t} />

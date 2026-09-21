@@ -444,7 +444,7 @@
       "actions": ""
     },
     "filter": {
-      "active": "Aktywni {{count}}",
+      "active": "Aktywni",
       "all": "Wszyscy"
     },
     "type": {

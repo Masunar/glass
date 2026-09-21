@@ -160,49 +160,7 @@
 .ge-strip__note--warn { color: var(--m-alert); }
 .ge-strip__text { font-size: 15px; line-height: 1.45; margin-top: 4px; }
 
-/* ---------- filtry i stopka ---------- */
-
-.ge-filters {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 0 24px;
-  font-size: 14px;
-  border-bottom: 1px solid var(--ge-divider);
-}
-.ge-filters button {
-  border: 0;
-  background: transparent;
-  font: inherit;
-  color: var(--ge-neutral-700);
-  padding: 10px 0;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-}
-.ge-filters button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
-.ge-filters button.is-active {
-  color: var(--ge-text);
-  font-weight: 500;
-  border-bottom-color: var(--ge-mod);
-}
-.ge-filters__end { margin-left: auto; color: var(--ge-neutral-600); font-size: 13px; }
-
-/* Zakladka bedaca odnosnikiem wyglada tak samo jak przycisk — roznica
-   jest w tym, ze prowadzi pod wlasny adres, nie zmienia stanu ekranu. */
-.ge-filters a {
-  color: var(--ge-neutral-700);
-  text-decoration: none;
-  padding: 10px 0;
-  border-bottom: 2px solid transparent;
-}
-.ge-filters a:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
-.ge-filters a.is-active,
-.ge-filters__here {
-  color: var(--ge-text);
-  font-weight: 500;
-  border-bottom: 2px solid var(--ge-mod);
-  padding: 10px 0;
-}
+/* ---------- stopka ---------- */
 
 .ge-footbar {
   display: flex;
@@ -349,10 +307,6 @@
 .ge-params__foot strong { color: color-mix(in oklab, var(--m-ksie) 84%, black); font-weight: 500; }
 .ge-params__foot-end { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
-/* Zakładka „Zmienione" — pojawia się dopiero, gdy jest co pokazać. */
-.ge-filters button.is-warn { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
-.ge-filters button.is-warn.is-active { border-bottom-color: var(--m-ksie); }
-
 /* ---------- historia wersji ---------- */
 
 .ge-hist { padding-bottom: 14px; border-bottom: 1px solid var(--ge-divider); }
@@ -385,6 +339,21 @@
   gap: 18px;
   padding: 10px 24px;
   border-bottom: 1px solid var(--ge-divider);
+}
+
+/* Prawy koniec paska: zdanie o tym, co widac (sortowanie, licznik) albo
+   przelacznik. Nie jest segmentem, wiec nie wyglada jak zakladka. */
+.ge-segbar__end {
+  margin-left: auto;
+  color: var(--ge-neutral-600);
+  font-size: 13px;
+}
+
+/* Przelacznik na koncu paska jest sterowaniem, nie przypisem — zostaje
+   przy pelnym kolorze tekstu i wlasnej wielkosci. */
+.ge-toggle.ge-segbar__end {
+  color: var(--ge-text);
+  font-size: 13.5px;
 }
 .ge-seg {
   display: flex;
@@ -432,6 +401,18 @@
   box-shadow: inset 0 -3px 0 var(--ge-mod);
 }
 .ge-seg__item.is-active:hover { background: var(--ge-surface); }
+
+/* Zakladka „Zmienione": pojawia sie dopiero, gdy jest co pokazac, wiec
+   niesie inny kolor niz reszta paska — to nie jest kolejny filtr, tylko
+   informacja, ze cos czeka na zapis. */
+.ge-seg__item--warn { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
+.ge-seg__item--warn.is-active { box-shadow: inset 0 -3px 0 var(--m-ksie); }
+/* Zawezone klasa paska, zeby wygrac z regula wariantu `--filter` nizej:
+   ta ma taka sama specyficznosc i stoi pozniej w pliku. */
+.ge-seg .ge-seg__item--warn.is-active .ge-seg__count {
+  background: var(--m-ksie);
+  color: var(--ge-surface);
+}
 
 /* Rozni je licznik, bo mowi co innego. */
 

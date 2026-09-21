@@ -188,26 +188,33 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.dictionaries.tabs')}>
-        {dictionaries.map((item) => (
-          <button
-            key={item.slug}
-            type="button"
-            className={item.slug === slug ? 'is-active' : ''}
-            onClick={() => {
-              setSlug(item.slug);
-              void loadRows(item.slug);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-        <span className="ge-filters__end">
-          <button
-            type="button"
-            className={includeInactive ? 'is-active' : ''}
-            onClick={() => {
-              const next = !includeInactive;
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.dictionaries.tabs')}>
+          {dictionaries.map((item) => (
+            <button
+              key={item.slug}
+              type="button"
+              className={
+                item.slug === slug ? 'ge-seg__item is-active' : 'ge-seg__item'
+              }
+              aria-pressed={item.slug === slug}
+              onClick={() => {
+                setSlug(item.slug);
+                void loadRows(item.slug);
+              }}
+            >
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        {/* Przelacznik, nie zakladka: nie zmienia tego, ktory slownik
+            ogladasz, tylko czy widac w nim pozycje wylaczone. */}
+        <label className="ge-toggle ge-segbar__end">
+          <input
+            type="checkbox"
+            checked={includeInactive}
+            onChange={(event) => {
+              const next = event.target.checked;
 
               setIncludeInactive(next);
 
@@ -215,11 +222,11 @@ export default function Page() {
                 void loadRows(slug, next);
               }
             }}
-          >
-            {t('page.dictionaries.show_inactive')}
-          </button>
-        </span>
-      </nav>
+          />
+          <span className="ge-toggle__track" />
+          {t('page.dictionaries.show_inactive')}
+        </label>
+      </div>
 
       {failure !== null && <p className="ge-lead ge-lead--warn">{failure}</p>}
 

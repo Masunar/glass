@@ -228,27 +228,51 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.parameters.tabs')}>
-        {parameterTabs.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className={item.key === tab ? 'is-active' : ''}
-            onClick={() => setTab(item.key)}
-          >
-            {t(item.labelKey)} {countFor(item.key)}
-          </button>
-        ))}
-        {dirtyKeys.length > 0 && (
-          <button
-            type="button"
-            className={tab === 'changed' ? 'is-warn is-active' : 'is-warn'}
-            onClick={() => setTab('changed')}
-          >
-            {t('page.parameters.tab.changed')} {dirtyKeys.length}
-          </button>
-        )}
-      </nav>
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.parameters.tabs')}>
+          {parameterTabs.map((item) => {
+            const here = item.key === tab;
+            const count = countFor(item.key);
+
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={[
+                  'ge-seg__item',
+                  here ? 'is-active' : '',
+                  count === 0 && !here ? 'ge-seg__item--empty' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-pressed={here}
+                onClick={() => setTab(item.key)}
+              >
+                <span>{t(item.labelKey)}</span>
+                {count === 0 ? null : (
+                  <span className="ge-seg__count">{count}</span>
+                )}
+              </button>
+            );
+          })}
+          {/* Zakladka „Zmienione" istnieje tylko wtedy, gdy jest co zapisac. */}
+          {dirtyKeys.length > 0 && (
+            <button
+              type="button"
+              className={
+                tab === 'changed'
+                  ? 'ge-seg__item ge-seg__item--warn is-active'
+                  : 'ge-seg__item ge-seg__item--warn'
+              }
+              aria-pressed={tab === 'changed'}
+              onClick={() => setTab('changed')}
+            >
+              <span>{t('page.parameters.tab.changed')}</span>
+              <span className="ge-seg__count">{dirtyKeys.length}</span>
+            </button>
+          )}
+        </nav>
+      </div>
 
       <div className="ge-params">
         <div className="ge-params__head">
