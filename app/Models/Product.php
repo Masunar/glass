@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * dla sekcji siedzą w rozszerzeniach 1:1.
  *
  * @property int $product_group_id
+ * @property int|null $supplier_id
  * @property Section $section
  * @property string|null $code
  * @property string|null $manufacturer_code
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $is_made_to_order
  * @property bool $is_active
  * @property-read ProductGroup|null $group
+ * @property-read Supplier|null $supplier
  * @property-read ProductGlass|null $glass
  * @property-read ProductFitting|null $fitting
  * @property-read ProductService|null $service
@@ -40,8 +42,8 @@ class Product extends Dateable
     protected $table = 'products';
 
     protected $fillable = [
-        'product_group_id', 'section', 'code', 'manufacturer_code', 'name',
-        'unit', 'vat_rate', 'is_made_to_order', 'is_active', 'legacy_id',
+        'product_group_id', 'supplier_id', 'section', 'code', 'manufacturer_code',
+        'name', 'unit', 'vat_rate', 'is_made_to_order', 'is_active', 'legacy_id',
     ];
 
     protected function casts(): array
@@ -59,6 +61,12 @@ class Product extends Dateable
     public function group(): BelongsTo
     {
         return $this->belongsTo(ProductGroup::class, 'product_group_id', 'id');
+    }
+
+    /** @return BelongsTo<Supplier, $this> */
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
     }
 
     /** @return HasOne<ProductGlass, $this> */

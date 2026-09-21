@@ -9,6 +9,7 @@ use App\Enum\Section;
 use App\Models\Product;
 use Salvon\Database\Seeder;
 use App\Models\FittingSet;
+use App\Models\Supplier;
 use App\Models\ProductGroup;
 use App\Models\PriceSection;
 use App\Models\PurchasePrice;
@@ -34,6 +35,7 @@ class FittingSeeder extends Seeder
     public function run(): void
     {
         $group = $this->group();
+        $supplier = $this->supplier();
         $ledger = new StockLedger();
 
         // Kod, stan, min, max — przepisane wprost z dwoch zrzutow:
@@ -57,7 +59,7 @@ class FittingSeeder extends Seeder
             // Ceny zakupu tych pozycji nie ma na zadnym zrzucie, wiec ich
             // nie ma i tutaj. Beda niewycenione i powiedza to wprost —
             // tak samo jak lustra w katalogu szkla.
-            $product = $this->product($group, $code, $this->name($code), $this->finish($code), null);
+            $product = $this->product($group, $supplier, $code, $this->name($code), $this->finish($code), null);
 
             $ledger->thresholds($product, (float) $min, (float) $max);
 
@@ -68,8 +70,8 @@ class FittingSeeder extends Seeder
 
         // Te dwie pozycje maja cene zakupu, bo widac ja na zrzucie
         // zestawu `23) Marta Grabowska` (`80-slowniki.md` par. 3.4).
-        $fixs = $this->product($group, 'FIXS-SET2300 P', 'FIXS złoty 2,3m', 'złoty', '82.96');
-        $knob = $this->product($group, 'KHJ24PBC', 'GAŁKA DO DRZWI 35 x 35', 'złoty', '72.08');
+        $fixs = $this->product($group, $supplier, 'FIXS-SET2300 P', 'FIXS złoty 2,3m', 'złoty', '82.96');
+        $knob = $this->product($group, $supplier, 'KHJ24PBC', 'GAŁKA DO DRZWI 35 x 35', 'złoty', '72.08');
 
         $this->priced([$fixs, $knob]);
 
@@ -145,8 +147,28 @@ class FittingSeeder extends Seeder
         return $suffix === 'PBC' ? 'złoty' : $suffix;
     }
 
+    /**
+     * Dostawca jako producent — **założenie deweloperskie**.
+     *
+     * Udokumentowane jest, że te okucia to katalog CDA, seria ETNA.
+     * Kto je sprzedaje, nie wynika z żadnego zrzutu: producent bywa
+     * dostawcą, ale równie dobrze towar idzie przez dystrybutora.
+     * Przypisanie poniżej istnieje po to, żeby zamówienia miały
+     * w środowisku deweloperskim do kogo trafić; prawdziwe przyjdzie
+     * ze zrzutem starej bazy.
+     */
+    private function supplier(): Supplier
+    {
+        /** @var Supplier */
+        return Supplier::query()->firstOrCreate(
+            ['name' => 'CDA'],
+            ['name' => 'CDA', 'short_name' => 'CDA', 'position' => 10],
+        );
+    }
+
     private function product(
         ProductGroup $group,
+        Supplier $supplier,
         string $code,
         string $name,
         string $finish,
@@ -157,6 +179,7 @@ class FittingSeeder extends Seeder
             ['section' => Section::FITTINGS->value, 'code' => $code],
             [
                 'product_group_id' => $group->id,
+                'supplier_id' => $supplier->id,
                 'section' => Section::FITTINGS->value,
                 'code' => $code,
                 'manufacturer_code' => $code,
