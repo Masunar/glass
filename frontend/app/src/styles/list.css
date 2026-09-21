@@ -546,6 +546,46 @@
 .ge-stock__row.is-open { background: var(--ge-neutral-100); }
 .ge-stock__bulk { display: flex; align-items: center; gap: 12px; }
 
+/* ---------- hartownia ---------- */
+
+.ge-stock--queue {
+  --cols: 28px 74px minmax(140px, 1fr) minmax(160px, 1fr) 80px 110px 70px 80px 80px 140px;
+}
+.ge-stock--batches {
+  --cols: 74px minmax(150px, 1fr) 140px 100px 100px 70px 60px 70px 100px 110px;
+}
+
+/* Suma zaznaczenia stoi w pasku, bo to ona jest powodem zaznaczania. */
+.ge-temp__sum { font-size: 13px; color: var(--ge-neutral-800); white-space: nowrap; }
+.ge-temp__sum strong { font-family: var(--ge-font-heading); font-size: 16px; font-weight: 400; }
+.ge-temp__totals { padding-bottom: 8px; }
+
+.ge-temp__flags { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Znak: sygnal dla operatora przy wysylce, wiec musi byc widoczny
+   z drugiego konca tabeli. */
+.ge-tag--mark { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
+/* Pozycja zastepcza po stluczce — ta sama formatka jedzie drugi raz. */
+.ge-tag--again { color: var(--m-alert); }
+
+.ge-temp__grid {
+  display: grid;
+  grid-template-columns: 74px minmax(180px, 1fr) 110px 80px 90px 160px;
+  gap: 12px;
+  align-items: center;
+  padding-block: 6px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-temp__grid--head {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-800);
+  border-bottom: 1px solid var(--ge-neutral-300);
+}
+.ge-temp__grid .r { text-align: right; }
+
 /* Karta zamowienia rozwinieta pod wierszem. */
 .ge-po {
   padding: 14px 24px 16px;

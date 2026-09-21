@@ -76,6 +76,13 @@ export const appRoutes = {
       { permission: Permission.WAREHOUSE, subPermission: SubPermission.LIST },
     ],
   },
+  tempering: {
+    path: '/hartownia',
+    file: 'hartownia',
+    permissions: [
+      { permission: Permission.TEMPERING, subPermission: SubPermission.LIST },
+    ],
+  },
   contractors: {
     path: '/contractors',
     file: 'contractors',

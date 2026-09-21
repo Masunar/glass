@@ -8,6 +8,7 @@ export enum Permission {
   ORDERS = 'orders',
   PRODUCTION = 'production',
   WAREHOUSE = 'warehouse',
+  TEMPERING = 'tempering',
   DICTIONARIES = 'dictionaries',
 }
 
