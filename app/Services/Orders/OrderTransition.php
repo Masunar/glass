@@ -9,6 +9,7 @@ use App\DTO\Orders\NextStep;
 use App\Services\AuditTrail;
 use App\Models\StatusTransition;
 use App\Services\Production\ProductionPlan;
+use App\Services\Warehouse\OrderStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,10 +38,17 @@ final readonly class OrderTransition
     /** Status, przy wejściu w który powstają zadania produkcyjne. */
     private const PRODUCTION = 'PRODUKCJA';
 
+    /** Status, przy wejściu w który okucia są rezerwowane. */
+    private const ORDERED = 'ZLECENIE';
+
+    /** Status, przy wejściu w który rezerwacje wracają na magazyn. */
+    private const CANCELLED = 'ANULOWANE';
+
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
         private AuditTrail $audit = new AuditTrail(),
         private ProductionPlan $plan = new ProductionPlan(),
+        private OrderStock $stock = new OrderStock(),
     ) {
     }
 
@@ -113,6 +121,18 @@ final readonly class OrderTransition
             if ($target->code === self::PRODUCTION) {
                 $this->plan->sync($order);
             }
+
+            // Magazyn rusza sie razem ze statusem, a nie osobna
+            // czynnoscia do zapamietania — to ona nie byla wykonywana
+            // w starym systemie. Kazda z tych metod uzgadnia stan
+            // rezerwacji z tym, co wynika ze zlecenia teraz, wiec
+            // powtorne wejscie na ten sam status niczego nie dubluje.
+            match ($target->code) {
+                self::ORDERED => $this->stock->reserve($order),
+                self::PRODUCTION => $this->stock->issue($order),
+                self::CANCELLED => $this->stock->release($order),
+                default => null,
+            };
         });
 
         return ['errors' => [], 'status' => $target->name, 'status_code' => $target->code];

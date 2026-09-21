@@ -11,6 +11,7 @@ use App\Enum\DeliveryMethod;
 use App\Enum\ContractorType;
 use App\Models\StatusTransition;
 use App\Services\Production\ProductionPlan;
+use App\Services\Warehouse\OrderStock;
 
 /**
  * Co można zrobić z tym zleceniem i czego brakuje, żeby móc.
@@ -32,6 +33,7 @@ final readonly class OrderNextStep
         private OrderValue $value = new OrderValue(),
         private ContractorBalance $balance = new ContractorBalance(),
         private ProductionPlan $plan = new ProductionPlan(),
+        private OrderStock $stock = new OrderStock(),
     ) {
     }
 
@@ -126,7 +128,7 @@ final readonly class OrderNextStep
             // się zrobić — „dodaj rysunki" zamiast „poczekaj na moduł
             // wpłat", skoro i tak brakuje obu.
             if ($result === false) {
-                return [false, $message, false];
+                return [false, $this->detail($order, $rule) ?? $message, false];
             }
 
             if ($result === null) {
@@ -139,6 +141,46 @@ final readonly class OrderNextStep
         }
 
         return [true, null, false];
+    }
+
+    /**
+     * Komunikat wzbogacony o to, czego konkretnie brakuje.
+     *
+     * Wiadomość w katalogu warunków jest stała, bo siedzi w danych.
+     * „Brakuje okuć na stanie" mówi jednak tylko tyle, że coś jest nie
+     * tak — a wymaganie brzmi: zablokowane przejście ma odpowiedzieć,
+     * **czego dokładnie** brakuje (`10-zlecenia.md` §2.3). Nazwy
+     * produktów nie da się wpisać do katalogu, więc dokłada je reguła.
+     *
+     * `null` znaczy „nie mam nic do dodania" — wtedy zostaje komunikat
+     * z katalogu.
+     */
+    private function detail(Order $order, string $rule): ?string
+    {
+        if ($rule !== 'fittings_in_stock') {
+            return null;
+        }
+
+        $names = [];
+
+        foreach ($this->stock->shortages($order) as $shortage) {
+            $names[] = sprintf(
+                '%s (potrzeba %s, na stanie %s)',
+                $shortage['name'],
+                $this->count($shortage['needed']),
+                $this->count($shortage['in_stock']),
+            );
+        }
+
+        return $names === []
+            ? null
+            : 'Brakuje okuć na stanie: ' . implode(', ', $names) . '.';
+    }
+
+    /** Ilość bez zer, które nic nie wnoszą: „3", a nie „3,000". */
+    private function count(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 3, ',', ' '), '0'), ',');
     }
 
     /**
@@ -171,6 +213,10 @@ final readonly class OrderNextStep
             // pozycja usługowa bez procesów technologicznych nie
             // przechodzi przez halę.
             'all_production_tasks_done' => $this->plan->allDone($order),
+            // Wydanie zdejmuje okucia z polki, wiec sprawdzamy stan
+            // fizyczny. Zlecenie bez okuc przechodzi — pusta lista
+            // brakow to spelniony warunek, nie nierozstrzygniety.
+            'fittings_in_stock' => $this->stock->shortages($order) === [],
 
             // Poniższe czekają na moduły, których nie ma. Nie zgadujemy.
             'rejection_reason_set' => null,
