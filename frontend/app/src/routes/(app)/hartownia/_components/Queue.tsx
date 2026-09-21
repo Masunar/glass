@@ -111,6 +111,7 @@ export function Queue({
           <span className="r">{t('page.tempering.column.quantity')}</span>
           <span className="r">{t('page.tempering.column.kg')}</span>
           <span className="r">{t('page.tempering.column.m2')}</span>
+          <span className="r">{t('page.tempering.column.deadline')}</span>
           <span>{t('page.tempering.column.flags')}</span>
         </div>
 
@@ -143,7 +144,16 @@ export function Queue({
             <span className="r">{decimal(row.quantity)}</span>
             <span className="r ge-quiet">{decimal(row.kg)}</span>
             <span className="r ge-quiet">{decimal(row.m2)}</span>
+            {/* Termin decyduje, co ma jechac tym kursem. Pilne stoi
+                i tak na gorze, wiec tutaj wystarczy data. */}
+            <span className="r ge-quiet">{row.deadline ?? '—'}</span>
             <span className="ge-temp__flags">
+              {/* Pilne wygrywa z terminem — ta sama regula, co na hali. */}
+              {row.is_urgent && (
+                <span className="ge-tag ge-tag--urgent">
+                  {t('page.tempering.urgent')}
+                </span>
+              )}
               {row.is_irregular_shape && (
                 <span className="ge-tag">{t('page.tempering.shape')}</span>
               )}
