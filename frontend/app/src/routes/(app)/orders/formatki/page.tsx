@@ -2,6 +2,7 @@ import DiscountPanel from '../_components/DiscountPanel';
 import ListDrawer from '../_components/ListDrawer';
 import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
+import FittingDrawer from '../_components/FittingDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
 import { useEffect, useState } from 'react';
 import { PiPlus, PiTrash } from 'react-icons/pi';
@@ -12,6 +13,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import { notifyError } from '@salvon/utils/notify';
 
 import type {
+  OrderFittingRow,
   OrderItemsBoard,
   OrderItemsList,
   OrderPaneRow,
@@ -45,6 +47,8 @@ export default function Page() {
   const [paneOpen, setPaneOpen] = useState(false);
   const [service, setService] = useState<OrderPaneRow | null>(null);
   const [serviceOpen, setServiceOpen] = useState(false);
+  const [fitting, setFitting] = useState<OrderFittingRow | null>(null);
+  const [fittingOpen, setFittingOpen] = useState(false);
   const [list, setList] = useState<OrderItemsList | null>(null);
   const [listOpen, setListOpen] = useState(false);
 
@@ -122,6 +126,15 @@ export default function Page() {
             {t('page.orders.panes.add_service')}
           </Button>
           <Button
+            icon={<PiPlus />}
+            onClick={() => {
+              setFitting(null);
+              setFittingOpen(true);
+            }}
+          >
+            {t('page.orders.panes.add_fitting')}
+          </Button>
+          <Button
             variant="contained"
             icon={<PiPlus />}
             onClick={() => {
@@ -150,6 +163,10 @@ export default function Page() {
               onEditService={(row) => {
                 setService(row);
                 setServiceOpen(true);
+              }}
+              onEditFitting={(row) => {
+                setFitting(row);
+                setFittingOpen(true);
               }}
               onRemove={(row) => void remove(row)}
               onEditList={() => {
@@ -280,6 +297,18 @@ export default function Page() {
         }}
       />
 
+      <FittingDrawer
+        orderId={id}
+        board={board}
+        item={fitting}
+        open={fittingOpen}
+        onClose={() => setFittingOpen(false)}
+        onSaved={() => {
+          setFittingOpen(false);
+          void load();
+        }}
+      />
+
       <ServiceDrawer
         orderId={id}
         board={board}
@@ -301,6 +330,7 @@ function ListBlock({
   t,
   onEditPane,
   onEditService,
+  onEditFitting,
   onRemove,
   onEditList,
   onMove,
@@ -310,6 +340,7 @@ function ListBlock({
   t: (key: string, options?: Record<string, unknown>) => string;
   onEditPane: (row: OrderPaneRow) => void;
   onEditService: (row: OrderPaneRow) => void;
+  onEditFitting: (row: OrderFittingRow) => void;
   onRemove: (row: OrderPaneRow) => void;
   onEditList: () => void;
   onMove: (row: OrderPaneRow, listId: number) => void;
@@ -503,6 +534,65 @@ function ListBlock({
             )}
           </div>
         ))}
+
+        {list.fittings.length > 0 && (
+          <>
+            <div className="ge-panes__sub">
+              {t('page.orders.panes.fittings')}
+            </div>
+            {/* Okucia maja wlasne kolumny: nie maja wymiarow, procesow
+                ani dni, a maja kod, wykonczenie i stan magazynowy. */}
+            <div className="ge-panes__row ge-panes__row--fitting ge-panes__head--sub">
+              <span>{t('page.orders.card.column.no')}</span>
+              <span>{t('page.orders.panes.column.code')}</span>
+              <span>{t('page.orders.panes.column.material')}</span>
+              <span>{t('page.orders.panes.column.finish')}</span>
+              <span className="r">{t('page.orders.panes.column.count')}</span>
+              <span className="r">{t('page.orders.panes.column.stock')}</span>
+              <span className="r">{t('page.orders.panes.column.unit_price')}</span>
+              <span className="r">{t('page.orders.card.column.amount')}</span>
+              <span />
+            </div>
+            {list.fittings.map((row, index) => (
+              <div
+                className="ge-panes__row ge-panes__row--fitting"
+                key={row.id}
+              >
+                <span>{index + 1}</span>
+                <span className="ge-quiet">{row.code ?? '—'}</span>
+                <span className="ge-cell--wrap">{row.name}</span>
+                <span className="ge-quiet">{row.finish ?? '—'}</span>
+                <span className="r">{Number(row.quantity)}</span>
+                {/* Stan nizszy niz ilosc na zleceniu blokuje wejscie na
+                    produkcje, wiec ma byc widac tutaj, a nie dopiero
+                    przy zablokowanym przejsciu. */}
+                <span
+                  className={
+                    row.in_stock !== null && row.in_stock < Number(row.quantity)
+                      ? 'r ge-note--warn'
+                      : 'r ge-quiet'
+                  }
+                >
+                  {row.in_stock === null ? '—' : decimal(row.in_stock, 0)}
+                </span>
+                <span className="r">{money(row.unit_net_price)}</span>
+                <span className="r ge-dim">{money(row.amount)}</span>
+                <span className="ge-panes__actions">
+                  <button type="button" onClick={() => onEditFitting(row)}>
+                    {t('edit')}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('delete')}
+                    onClick={() => onRemove(row)}
+                  >
+                    <PiTrash />
+                  </button>
+                </span>
+              </div>
+            ))}
+          </>
+        )}
 
         {list.services.length > 0 && (
           <>

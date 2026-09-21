@@ -279,6 +279,41 @@ class OrderFittingTest extends TestCase
     }
 
     #[Test]
+    public function seeder_zaklada_stany_przez_inwentaryzacje(): void
+    {
+        (new \Database\Seeders\Dev\FittingSeeder())->run();
+
+        /** @var Product $product */
+        $product = Product::query()->where('code', 'TGHU90-OSLH PC')->firstOrFail();
+
+        $level = (new \App\Services\Warehouse\StockLedger())->level($product);
+
+        // Stan nie jest polem wpisanym w seederze — wszedl ruchem, wiec
+        // w rejestrze zostaje slad, skad sie wzielo dwanascie sztuk.
+        $this->assertSame('12.000', (string) $level->quantity);
+        $this->assertSame('2.000', (string) $level->min_quantity);
+        $this->assertSame(0.0, $level->toOrder());
+
+        $this->assertSame(1, \App\Models\StockMovement::query()
+            ->where('product_id', $product->getKey())
+            ->count());
+    }
+
+    #[Test]
+    public function zaseedowany_szablon_ma_z_czego_wybierac(): void
+    {
+        (new \Database\Seeders\Dev\FittingSeeder())->run();
+
+        $sets = $this->service->sets();
+
+        // Biblioteka pokazuje szablon, ale nie konfiguracje klienta —
+        // '23) Marta Grabowska' nalezy do jego historii.
+        $this->assertCount(1, $sets);
+        $this->assertSame('1) System przesuwny terno clear', $sets[0]['name']);
+        $this->assertSame(2, $sets[0]['items']);
+    }
+
+    #[Test]
     public function okucia_stoja_w_osobnej_sekcji_tablicy(): void
     {
         $product = $this->fitting('rotula', '50.52');

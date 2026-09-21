@@ -13,6 +13,7 @@ use App\Models\OrderItem;
 use App\Models\OrderPane;
 use App\Support\Normalize;
 use App\Services\AuditTrail;
+use App\Services\Warehouse\OrderStock;
 use App\Models\ProductService;
 use App\Models\OrderItemProcess;
 use App\DTO\Pricing\PaneSpecification;
@@ -44,6 +45,7 @@ final readonly class OrderItemService
         private OrderSchedule $schedule = new OrderSchedule(),
         private AuditTrail $audit = new AuditTrail(),
         private OrderFittingService $fittings = new OrderFittingService(),
+        private OrderStock $stock = new OrderStock(),
     ) {
     }
 
@@ -110,6 +112,12 @@ final readonly class OrderItemService
 
                 $services[] = $row;
             }
+
+            // Stan magazynowy przy okuciu, jednym zapytaniem na liste.
+            // W starym systemie te kolumne nazywano „Obecna wartosc"
+            // i raz pokazywala kwote pozycji, raz stan — tutaj nazywa
+            // sie tym, czym jest.
+            $fittings = $this->withStock($fittings);
 
             $lists[] = [
                 'id' => (int) $list->getKey(),
@@ -564,6 +572,32 @@ final readonly class OrderItemService
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withStock(array $rows): array
+    {
+        $ids = [];
+
+        foreach ($rows as $row) {
+            if (is_int($row['product_id'])) {
+                $ids[] = $row['product_id'];
+            }
+        }
+
+        $levels = $this->stock->levelsFor($ids);
+
+        foreach ($rows as $index => $row) {
+            $productId = $row['product_id'];
+            $rows[$index]['in_stock'] = is_int($productId)
+                ? ($levels[$productId] ?? 0.0)
+                : null;
+        }
+
+        return $rows;
+    }
+
     private function row(OrderItem $item): array
     {
         $processes = [];

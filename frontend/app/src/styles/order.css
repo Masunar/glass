@@ -187,6 +187,22 @@
   grid-template-columns: 30px minmax(200px, 1fr) 90px 120px 120px 96px;
 }
 
+/* Okucia tez maja swoja: bez wymiarow i procesow, za to z kodem,
+   wykonczeniem i stanem magazynowym. */
+.ge-panes__row--fitting {
+  grid-template-columns:
+    30px 110px minmax(160px, 1fr) 110px 64px 74px 104px 104px auto;
+}
+
+/* Naglowek podsekcji czyta sie jak naglowek tabeli, nie jak wiersz. */
+.ge-panes__head--sub {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-600);
+  padding-block: 7px;
+}
+
 .ge-panes__sub {
   padding: 10px 24px 4px;
   font-size: 11px;

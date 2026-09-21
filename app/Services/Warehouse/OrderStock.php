@@ -8,6 +8,7 @@ use App\Enum\Section;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
+use App\Models\StockLevel;
 use App\Models\StockMovement;
 use App\Enum\StockMovementType;
 use Illuminate\Support\Facades\DB;
@@ -196,6 +197,37 @@ final readonly class OrderStock
                 'needed' => $quantity,
                 'in_stock' => $inStock,
             ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Stany fizyczne dla listy produktów — jednym zapytaniem.
+     *
+     * Ekran zlecenia pokazuje stan przy każdym okuciu, a pytanie
+     * o każdy z osobna zamieniłoby otwarcie zakładki w kilkanaście
+     * zapytań.
+     *
+     * @param list<int> $productIds
+     * @return array<int, float>
+     */
+    public function levelsFor(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        /** @var iterable<StockLevel> $levels */
+        $levels = StockLevel::query()
+            ->whereIn('product_id', $productIds)
+            ->get();
+
+        $rows = [];
+
+        foreach ($levels as $level) {
+            $productId = (int) $level->product_id;
+            $rows[$productId] = ($rows[$productId] ?? 0.0) + (float) $level->quantity;
         }
 
         return $rows;
