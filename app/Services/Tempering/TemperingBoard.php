@@ -6,6 +6,7 @@ namespace App\Services\Tempering;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Vehicle;
 use App\Models\Supplier;
 use App\Models\TemperingItem;
 use App\Models\TemperingBatch;
@@ -58,6 +59,19 @@ final readonly class TemperingBoard
 
             $rows[] = $row;
         }
+
+        // Pilne wygrywa z terminem — ta sama regula, co w kolejce hali.
+        // Po to sie pilne zaznacza: to jedyny sposob, zeby czlowiek
+        // przestawil kolejnosc, ktorej data sama nie przestawi.
+        // Brak terminu idzie na koniec, a nie na poczatek.
+        usort($rows, static function (array $a, array $b): int {
+            if ($a['is_urgent'] !== $b['is_urgent']) {
+                return $a['is_urgent'] ? -1 : 1;
+            }
+
+            return [$a['deadline'] ?? '9999-12-31', $a['order_number']]
+                <=> [$b['deadline'] ?? '9999-12-31', $b['order_number']];
+        });
 
         // Grubosci sortujemy liczbowo, zeby 10 nie stalo przed 4.
         $available = array_map(floatval(...), array_keys($thicknesses));
@@ -167,7 +181,16 @@ final readonly class TemperingBoard
     {
         /** @var iterable<TemperingBatch> $batches */
         $batches = TemperingBatch::query()
-            ->with(['supplier', 'items'])
+            // Waga partii liczy sie z pozycji, wiec lista potrzebuje
+            // tego samego, co karta — inaczej kazdy wiersz dociagalby
+            // formatki osobnym zapytaniem.
+            ->with([
+                'supplier',
+                'vehicle',
+                'items.item.pane',
+                'items.item.product.glass',
+                'items.item.list.order.contractor',
+            ])
             ->when(
                 $status === 'open',
                 static fn(Builder $query): Builder => $query->whereIn('status', [
@@ -193,6 +216,7 @@ final readonly class TemperingBoard
             'rows' => $rows,
             'filters' => $this->filters(),
             'suppliers' => $this->suppliers(),
+            'vehicles' => $this->vehicles(),
         ];
     }
 
@@ -203,7 +227,13 @@ final readonly class TemperingBoard
      */
     public function card(TemperingBatch $batch): array
     {
-        $batch->loadMissing(['supplier', 'items.item.pane', 'items.item.product.glass', 'items.item.list.order.contractor']);
+        $batch->loadMissing([
+            'supplier',
+            'vehicle',
+            'items.item.pane',
+            'items.item.product.glass',
+            'items.item.list.order.contractor',
+        ]);
 
         $items = [];
         $totalM2 = 0.0;
@@ -297,6 +327,10 @@ final readonly class TemperingBoard
             // H-01, nadal bez odpowiedzi, wiec zostaje flaga.
             'needs_mark' => $pane->needs_mark,
             'note' => $item->production_note,
+            // Termin i pilne, bo bez nich „dobieranie do samochodu"
+            // jest zgadywaniem: widac kilogramy, nie widac, co sie pali.
+            'is_urgent' => (bool) $item->is_urgent,
+            'deadline' => $order->effectiveDeadline()?->toDateString(),
             'status' => $position->status->value,
             'status_label' => $position->status->label(),
             'replaces_id' => $position->replaces_id,
@@ -312,20 +346,44 @@ final readonly class TemperingBoard
         $lines = 0;
         $quantity = 0.0;
         $broken = 0;
+        $kg = 0.0;
 
         foreach ($batch->items as $position) {
             $lines++;
             $quantity += (float) $position->quantity;
+
+            $row = $this->row($position);
+
+            if ($row !== null) {
+                $kg += $row['kg'];
+            }
 
             if (!$position->status->covers()) {
                 $broken++;
             }
         }
 
+        $vehicle = $batch->vehicle;
+        $payload = $vehicle === null ? null : $vehicle->payload_kg;
+
         return [
             'id' => (int) $batch->getKey(),
             'number' => $batch->number,
             'supplier' => $batch->supplier->name,
+            'vehicle' => $vehicle?->name,
+            'vehicle_id' => $batch->vehicle_id,
+            'payload_kg' => $payload,
+            'load_kg' => round($kg, 2),
+            // Zapelnienie i nadwyzka licza sie tylko przy wskazanym
+            // aucie. Bez auta nie ma wobec czego wazyc — i nie ma
+            // powodu pokazywac stu procent z niczego.
+            'load_percent' => $payload === null || $payload <= 0
+                ? null
+                : (int) round($kg / $payload * 100),
+            'over_by_kg' => $payload === null || $kg <= $payload
+                ? null
+                : round($kg - $payload, 2),
+            'departure_at' => $batch->departure_at?->toDateString(),
             'status' => $batch->status->value,
             'status_label' => $batch->status->label(),
             'is_open' => $batch->status->isOpen(),
@@ -377,6 +435,34 @@ final readonly class TemperingBoard
         $filters[] = ['code' => 'all', 'name' => 'Wszystkie', 'count' => array_sum($counts)];
 
         return $filters;
+    }
+
+    /**
+     * Flota do wyboru przy kursie. Ładowność idzie razem z nazwą, żeby
+     * przy wyborze auta było widać, ile w nie wejdzie.
+     *
+     * @return list<array{id: int, name: string, payload_kg: int}>
+     */
+    private function vehicles(): array
+    {
+        /** @var iterable<Vehicle> $vehicles */
+        $vehicles = Vehicle::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+
+        $rows = [];
+
+        foreach ($vehicles as $vehicle) {
+            $rows[] = [
+                'id' => (int) $vehicle->getKey(),
+                'name' => $vehicle->name,
+                'payload_kg' => $vehicle->payload_kg,
+            ];
+        }
+
+        return $rows;
     }
 
     /**

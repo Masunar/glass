@@ -34,7 +34,10 @@ enum TemperingBatchStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::DRAFT => 'Szkic',
+            // Nie „szkic": to jest plan kursu z data i autem, a szyby
+            // wolno w nim przekladac az do wyjazdu. „Szkic" sugerowal,
+            // ze cos jest niedokonczone, i zniechecal do zmian.
+            self::DRAFT => 'Planowana',
             self::SENT => 'U podwykonawcy',
             self::RETURNED => 'Wróciła',
             self::SETTLED => 'Rozliczona',

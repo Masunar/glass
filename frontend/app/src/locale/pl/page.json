@@ -1120,7 +1120,18 @@
       "broken": "Stłuczki",
       "cost": "Koszt",
       "outcome": "Los pozycji",
-      "cost_share": "Koszt"
-    }
+      "cost_share": "Koszt",
+      "deadline": "Termin",
+      "vehicle": "Samochód",
+      "load": "Załadunek",
+      "departure_at": "Wyjazd"
+    },
+    "vehicle": "Samochód",
+    "no_vehicle": "Jeszcze nie wiadomo",
+    "departure_at": "Wyjazd",
+    "save_plan": "Zapisz plan",
+    "urgent": "pilne",
+    "load_of": "z {{payload}} kg ({{percent}}%)",
+    "over_payload": "Przeładowane o {{over}} kg wobec „{{vehicle}}\". Można wysłać, ale warto rozbić na dwa kursy."
   }
 }

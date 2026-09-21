@@ -104,12 +104,20 @@ export default function Page() {
     void loadBatches();
   };
 
-  const createBatch = async (supplierId: number, expectedAt: string, note: string) => {
+  const createBatch = async (
+    supplierId: number,
+    expectedAt: string,
+    note: string,
+    vehicleId: string,
+    departureAt: string,
+  ) => {
     const { response, content } = await TemperingApi.createBatch(
       supplierId,
       selected,
       expectedAt,
       note,
+      vehicleId,
+      departureAt,
     );
 
     if (!response.success) {
@@ -131,6 +139,12 @@ export default function Page() {
     setTab('batches');
     setStatus('draft');
   };
+
+  // Masa zaznaczenia jest potrzebna przy wyborze auta, a zaznaczenie
+  // zyje tutaj — wiec liczymy ja tu, a nie w zakladce kolejki.
+  const pickedKg = (queue?.rows ?? [])
+    .filter((row) => selected.includes(row.id))
+    .reduce((total, row) => total + row.kg, 0);
 
   const tabs: { key: Tab; label: string; count: number | null }[] = [
     {
@@ -177,10 +191,12 @@ export default function Page() {
         <NewBatch
           t={t}
           suppliers={batches?.suppliers ?? []}
+          vehicles={batches?.vehicles ?? []}
           count={selected.length}
+          kg={pickedKg}
           onCancel={() => setCreating(false)}
-          onCreate={(supplierId, expectedAt, note) =>
-            void createBatch(supplierId, expectedAt, note)
+          onCreate={(supplierId, expectedAt, note, vehicleId, departureAt) =>
+            void createBatch(supplierId, expectedAt, note, vehicleId, departureAt)
           }
         />
       )}
@@ -220,6 +236,11 @@ export default function Page() {
             setCard(null);
           }}
           onOpen={(id) => void openCard(id)}
+          onPlan={(id, vehicleId, departureAt, expectedAt) =>
+            void act(() =>
+              TemperingApi.planBatch(id, vehicleId, departureAt, expectedAt),
+            )
+          }
           onSend={(id, sentAt) => void act(() => TemperingApi.sendBatch(id, sentAt))}
           onReceive={(id, outcomes, returnedAt) =>
             void act(() => TemperingApi.receiveBatch(id, outcomes, returnedAt))
@@ -237,21 +258,36 @@ export default function Page() {
 function NewBatch({
   t,
   suppliers,
+  vehicles,
   count,
+  kg,
   onCancel,
   onCreate,
 }: {
   t: (key: string, options?: Record<string, unknown>) => string;
   suppliers: { id: number; name: string }[];
+  vehicles: { id: number; name: string; payload_kg: number }[];
   count: number;
+  kg: number;
   onCancel: () => void;
-  onCreate: (supplierId: number, expectedAt: string, note: string) => void;
+  onCreate: (
+    supplierId: number,
+    expectedAt: string,
+    note: string,
+    vehicleId: string,
+    departureAt: string,
+  ) => void;
 }) {
   const [supplier, setSupplier] = useState<string>(
     suppliers.length > 0 ? String(suppliers[0].id) : '',
   );
+  const [vehicle, setVehicle] = useState('');
+  const [departureAt, setDepartureAt] = useState('');
   const [expectedAt, setExpectedAt] = useState('');
   const [note, setNote] = useState('');
+
+  const picked = vehicles.find((row) => String(row.id) === vehicle);
+  const over = picked !== undefined && kg > picked.payload_kg;
 
   if (suppliers.length === 0) {
     return <p className="ge-lead ge-lead--warn">{t('page.tempering.no_suppliers')}</p>;
@@ -274,6 +310,30 @@ function NewBatch({
         </select>
       </label>
       <label className="ge-po__field">
+        {t('page.tempering.vehicle')}
+        <select
+          className="ge-uf__select"
+          value={vehicle}
+          onChange={(event) => setVehicle(event.target.value)}
+        >
+          <option value="">{t('page.tempering.no_vehicle')}</option>
+          {vehicles.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.name} · {row.payload_kg} kg
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="ge-po__field">
+        {t('page.tempering.departure_at')}
+        <input
+          type="date"
+          className="ge-uf__input"
+          value={departureAt}
+          onChange={(event) => setDepartureAt(event.target.value)}
+        />
+      </label>
+      <label className="ge-po__field">
         {t('page.tempering.expected_at')}
         <input
           type="date"
@@ -282,6 +342,17 @@ function NewBatch({
           onChange={(event) => setExpectedAt(event.target.value)}
         />
       </label>
+
+      {/* Ostrzezenie przy wyborze auta, nie dopiero na karcie partii —
+          zeby dalo sie zmienic decyzje, zanim kurs powstanie. */}
+      {over && picked !== undefined && (
+        <p className="ge-lead ge-lead--warn">
+          {t('page.tempering.over_payload', {
+            over: Math.round((kg - picked.payload_kg) * 100) / 100,
+            vehicle: picked.name,
+          })}
+        </p>
+      )}
       <label className="ge-po__field ge-po__field--wide">
         {t('page.warehouse.note')}
         <input
@@ -294,7 +365,9 @@ function NewBatch({
         <button
           type="button"
           className="ge-act--go"
-          onClick={() => onCreate(Number(supplier), expectedAt, note)}
+          onClick={() =>
+            onCreate(Number(supplier), expectedAt, note, vehicle, departureAt)
+          }
         >
           {t('page.tempering.create_batch_with', { count })}
         </button>

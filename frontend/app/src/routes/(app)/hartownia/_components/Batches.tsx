@@ -14,6 +14,36 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 const OUTCOMES = ['returned', 'rework', 'broken', 'missing'] as const;
 
 /**
+ * Zapełnienie auta.
+ *
+ * Bez wskazanego pojazdu nie ma wobec czego ważyć — wtedy zostaje sama
+ * masa, a nie sto procent z niczego. Przekroczenie świeci i podaje,
+ * o ile; **nie blokuje**, bo człowiek przy aucie wie więcej niż tabela.
+ */
+function Load({ row }: { row: TemperingBatchRow }) {
+  if (row.payload_kg === null || row.load_percent === null) {
+    return <span className="ge-quiet">{decimal(row.load_kg)} kg</span>;
+  }
+
+  const over = row.over_by_kg !== null;
+
+  return (
+    <span className={over ? 'ge-load ge-load--over' : 'ge-load'}>
+      <span className="ge-load__bar">
+        <span
+          className="ge-load__fill"
+          style={{ width: `${Math.min(100, row.load_percent)}%` }}
+        />
+      </span>
+      <span className="ge-load__text">
+        {decimal(row.load_kg)} / {row.payload_kg} kg
+        {over && ` · +${decimal(row.over_by_kg ?? 0)}`}
+      </span>
+    </span>
+  );
+}
+
+/**
  * Partie u podwykonawcy.
  *
  * Wiersz rozwija się w kartę z pozycjami i losem każdej z nich.
@@ -27,6 +57,7 @@ export function Batches({
   status,
   onStatus,
   onOpen,
+  onPlan,
   onSend,
   onReceive,
   onSettle,
@@ -38,6 +69,7 @@ export function Batches({
   status: string;
   onStatus: (value: string) => void;
   onOpen: (id: number | null) => void;
+  onPlan: (id: number, vehicleId: string, departureAt: string, expectedAt: string) => void;
   onSend: (id: number, sentAt: string) => void;
   onReceive: (id: number, outcomes: Record<number, string>, returnedAt: string) => void;
   onSettle: (id: number, netCost: string, document: string) => void;
@@ -81,7 +113,9 @@ export function Batches({
           <span className="r">{t('page.tempering.column.number')}</span>
           <span>{t('page.tempering.column.supplier')}</span>
           <span>{t('page.tempering.column.batch_status')}</span>
-          <span className="r">{t('page.tempering.column.sent_at')}</span>
+          <span>{t('page.tempering.column.vehicle')}</span>
+          <span className="r">{t('page.tempering.column.load')}</span>
+          <span className="r">{t('page.tempering.column.departure_at')}</span>
           <span className="r">{t('page.tempering.column.expected_at')}</span>
           <span className="r">{t('page.tempering.column.days_out')}</span>
           <span className="r">{t('page.tempering.column.lines')}</span>
@@ -97,7 +131,11 @@ export function Batches({
             t={t}
             open={card?.id === row.id}
             card={card?.id === row.id ? card : null}
+            vehicles={board?.vehicles ?? []}
             onOpen={() => onOpen(card?.id === row.id ? null : row.id)}
+            onPlan={(vehicleId, departureAt, expectedAt) =>
+              onPlan(row.id, vehicleId, departureAt, expectedAt)
+            }
             onSend={(sentAt) => onSend(row.id, sentAt)}
             onReceive={(outcomes, returnedAt) => onReceive(row.id, outcomes, returnedAt)}
             onSettle={(cost, document) => onSettle(row.id, cost, document)}
@@ -118,7 +156,9 @@ function BatchLine({
   card,
   t,
   open,
+  vehicles,
   onOpen,
+  onPlan,
   onSend,
   onReceive,
   onSettle,
@@ -128,7 +168,9 @@ function BatchLine({
   card: TemperingBatchCard | null;
   t: Translate;
   open: boolean;
+  vehicles: { id: number; name: string; payload_kg: number }[];
   onOpen: () => void;
+  onPlan: (vehicleId: string, departureAt: string, expectedAt: string) => void;
   onSend: (sentAt: string) => void;
   onReceive: (outcomes: Record<number, string>, returnedAt: string) => void;
   onSettle: (netCost: string, document: string) => void;
@@ -147,7 +189,20 @@ function BatchLine({
         <span className="r ge-dim">{row.number}</span>
         <span className="ge-cell--wrap">{row.supplier}</span>
         <span className={row.is_open ? '' : 'ge-quiet'}>{row.status_label}</span>
-        <span className="r ge-quiet">{row.sent_at ?? '—'}</span>
+        <span className="ge-cell--wrap ge-quiet">{row.vehicle ?? '—'}</span>
+        <span className="r">
+          <Load row={row} />
+        </span>
+        {/* Plan wyjazdu; fakt stoi obok dopiero, gdy sie rozni. */}
+        <span className="r ge-quiet">
+          {row.departure_at ?? '—'}
+          {row.sent_at !== null && row.sent_at !== row.departure_at && (
+            <>
+              {' '}
+              <span className="ge-note--warn">({row.sent_at})</span>
+            </>
+          )}
+        </span>
         <span className={late ? 'r ge-note--warn' : 'r ge-quiet'}>
           {row.expected_at ?? '—'}
         </span>
@@ -168,6 +223,8 @@ function BatchLine({
         <BatchCard
           card={card}
           t={t}
+          vehicles={vehicles}
+          onPlan={onPlan}
           onSend={onSend}
           onReceive={onReceive}
           onSettle={onSettle}
@@ -181,6 +238,8 @@ function BatchLine({
 function BatchCard({
   card,
   t,
+  vehicles,
+  onPlan,
   onSend,
   onReceive,
   onSettle,
@@ -188,6 +247,8 @@ function BatchCard({
 }: {
   card: TemperingBatchCard;
   t: Translate;
+  vehicles: { id: number; name: string; payload_kg: number }[];
+  onPlan: (vehicleId: string, departureAt: string, expectedAt: string) => void;
   onSend: (sentAt: string) => void;
   onReceive: (outcomes: Record<number, string>, returnedAt: string) => void;
   onSettle: (netCost: string, document: string) => void;
@@ -202,6 +263,12 @@ function BatchCard({
   const [cost, setCost] = useState(card.net_cost ?? '');
   const [documentNo, setDocumentNo] = useState(card.document ?? '');
 
+  const [vehicle, setVehicle] = useState(
+    card.vehicle_id === null ? '' : String(card.vehicle_id),
+  );
+  const [departureAt, setDepartureAt] = useState(card.departure_at ?? '');
+  const [expectedAt, setExpectedAt] = useState(card.expected_at ?? '');
+
   const kg = card.items.reduce((total, item) => total + item.kg, 0);
   const m2 = card.items.reduce((total, item) => total + item.m2, 0);
 
@@ -211,7 +278,63 @@ function BatchCard({
 
       <p className="ge-quiet ge-temp__totals">
         {decimal(Math.round(kg * 100) / 100)} kg · {decimal(Math.round(m2 * 1000) / 1000)} m²
+        {card.payload_kg !== null && (
+          <>
+            {' · '}
+            <span className={card.over_by_kg !== null ? 'ge-note--warn' : undefined}>
+              {t('page.tempering.load_of', {
+                payload: card.payload_kg,
+                percent: card.load_percent ?? 0,
+              })}
+            </span>
+          </>
+        )}
       </p>
+
+      {/* Plan kursu zmienia sie do wyjazdu — partia jest planem. */}
+      {card.is_editable && (
+        <div className="ge-po__plan">
+          <label className="ge-po__field">
+            {t('page.tempering.vehicle')}
+            <select
+              className="ge-uf__select"
+              value={vehicle}
+              onChange={(event) => setVehicle(event.target.value)}
+            >
+              <option value="">{t('page.tempering.no_vehicle')}</option>
+              {vehicles.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name} · {row.payload_kg} kg
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ge-po__field">
+            {t('page.tempering.departure_at')}
+            <input
+              type="date"
+              className="ge-uf__input"
+              value={departureAt}
+              onChange={(event) => setDepartureAt(event.target.value)}
+            />
+          </label>
+          <label className="ge-po__field">
+            {t('page.tempering.expected_at')}
+            <input
+              type="date"
+              className="ge-uf__input"
+              value={expectedAt}
+              onChange={(event) => setExpectedAt(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => onPlan(vehicle, departureAt, expectedAt)}
+          >
+            {t('page.tempering.save_plan')}
+          </button>
+        </div>
+      )}
 
       <div className="ge-temp__grid ge-temp__grid--head">
         <span className="r">{t('page.tempering.column.order')}</span>

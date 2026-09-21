@@ -549,10 +549,10 @@
 /* ---------- hartownia ---------- */
 
 .ge-stock--queue {
-  --cols: 28px 74px minmax(140px, 1fr) minmax(160px, 1fr) 80px 110px 70px 80px 80px 140px;
+  --cols: 28px 74px minmax(140px, 1fr) minmax(160px, 1fr) 80px 110px 70px 80px 80px 100px 150px;
 }
 .ge-stock--batches {
-  --cols: 74px minmax(150px, 1fr) 140px 100px 100px 70px 60px 70px 100px 110px;
+  --cols: 64px minmax(130px, 1fr) 130px minmax(110px, 0.7fr) 120px 100px 100px 60px 56px 64px 92px 100px;
 }
 
 /* Suma zaznaczenia stoi w pasku, bo to ona jest powodem zaznaczania. */
@@ -566,6 +566,20 @@
 .ge-tag--mark { color: color-mix(in oklab, var(--m-ksie) 84%, black); }
 /* Pozycja zastepcza po stluczce — ta sama formatka jedzie drugi raz. */
 .ge-tag--again { color: var(--m-alert); }
+
+/* Zapelnienie auta: pasek plus liczby. Pasek sam nie wystarcza —
+   „prawie pelny" i „o 10 kg za duzo" wygladaja na nim tak samo. */
+.ge-load { display: inline-flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.ge-load__bar {
+  width: 86px;
+  height: 5px;
+  background: var(--ge-neutral-200);
+  overflow: hidden;
+}
+.ge-load__fill { display: block; height: 100%; background: var(--ge-mod); }
+.ge-load__text { font-size: 12px; color: var(--ge-neutral-800); white-space: nowrap; }
+.ge-load--over .ge-load__fill { background: var(--m-alert); }
+.ge-load--over .ge-load__text { color: var(--m-alert); }
 
 .ge-temp__grid {
   display: grid;
@@ -615,4 +629,24 @@
 .ge-po__foot { display: flex; align-items: flex-end; gap: 16px; padding-top: 12px; flex-wrap: wrap; }
 .ge-po__field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ge-neutral-700); }
 .ge-po__field--wide { flex: 1 1 240px; }
+/* Plan kursu: auto i dwie daty w jednym rzedzie nad pozycjami. */
+.ge-po__plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ge-neutral-300);
+  margin-bottom: 10px;
+}
+.ge-po__plan button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.ge-po__plan button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
 .ge-po__hint { flex-basis: 100%; font-size: 12.5px; }

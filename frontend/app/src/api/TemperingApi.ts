@@ -18,6 +18,9 @@ export type TemperingRow = {
   /** Znak z formatki. Co fizycznie oznacza — H-01, nadal otwarte. */
   needs_mark: boolean;
   note: string | null;
+  /** Termin zlecenia — bez niego dobieranie wsadu to zgadywanie. */
+  deadline: string | null;
+  is_urgent: boolean;
   status: string;
   status_label: string;
   /** Pozycja zastępcza wskazuje tę, która się stłukła. */
@@ -42,6 +45,17 @@ export type TemperingBatchRow = {
   id: number;
   number: number;
   supplier: string;
+  vehicle: string | null;
+  vehicle_id: number | null;
+  /** Dopuszczalna masa ładunku. `null`, gdy auto nie jest wskazane. */
+  payload_kg: number | null;
+  load_kg: number;
+  /** `null` bez auta — sto procent z niczego byłoby liczbą wymyśloną. */
+  load_percent: number | null;
+  /** O ile za dużo. Ostrzega, nie blokuje. */
+  over_by_kg: number | null;
+  /** Planowany wyjazd, osobno od `sent_at`, który jest faktem. */
+  departure_at: string | null;
   status: string;
   status_label: string;
   is_open: boolean;
@@ -71,6 +85,7 @@ export type TemperingBatchBoard = {
   rows: TemperingBatchRow[];
   filters: { code: string; name: string; count: number }[];
   suppliers: { id: number; name: string }[];
+  vehicles: { id: number; name: string; payload_kg: number }[];
 };
 
 export class TemperingApi extends ApiRequest {
@@ -98,12 +113,30 @@ export class TemperingApi extends ApiRequest {
     itemIds: number[],
     expectedAt: string = '',
     note: string = '',
+    vehicleId: string = '',
+    departureAt: string = '',
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.post('/batches', {
       supplier_id: supplierId,
       item_ids: itemIds,
       expected_at: expectedAt,
       note,
+      vehicle_id: vehicleId,
+      departure_at: departureAt,
+    });
+  }
+
+  /** Zmiana planu kursu — wolno do wyjazdu, bo partia jest planem. */
+  public static async planBatch(
+    id: number,
+    vehicleId: string,
+    departureAt: string,
+    expectedAt: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/batches/${id}/plan`, {
+      vehicle_id: vehicleId,
+      departure_at: departureAt,
+      expected_at: expectedAt,
     });
   }
 
