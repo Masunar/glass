@@ -485,3 +485,94 @@
   justify-content: flex-end;
   white-space: nowrap;
 }
+
+/* Akcja w wierszu i w pasku: tekst, nie klocek. Aplikacja nie miala
+   dotad zadnego wspolnego wygladu dla takiego przycisku — wiersze
+   magazynu renderowaly gole `button` przegladarki. Wzor wziety
+   z `.ge-panes__actions button`, ktory juz tak wygladal. */
+.ge-stock__actions button,
+.ge-segbar button,
+.ge-po__foot button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+  padding: 4px 2px;
+  white-space: nowrap;
+}
+.ge-stock__actions button:hover,
+.ge-segbar button:hover,
+.ge-po__foot button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-stock__actions button:disabled,
+.ge-po__foot button:disabled { color: var(--ge-neutral-400); cursor: default; }
+
+/* Zobowiazanie — wyslanie zamowienia, przyjecie towaru — dostaje
+   prostokat akcentu. Reszta zostaje tekstem, zeby bylo widac, ktory
+   przycisk cos naprawde robi. */
+.ge-segbar button.ge-act--go,
+.ge-po__foot button.ge-act--go {
+  background: var(--ge-mod);
+  color: var(--ge-surface);
+  padding: 7px 14px;
+  font-size: 13px;
+}
+.ge-segbar button.ge-act--go:hover,
+.ge-po__foot button.ge-act--go:hover {
+  background: color-mix(in oklab, var(--ge-mod) 85%, black);
+  color: var(--ge-surface);
+}
+.ge-po__foot button.ge-act--go:disabled {
+  background: var(--ge-neutral-300);
+  color: var(--ge-neutral-600);
+}
+
+/* Anulowanie zamowienia stoi z boku i nie udaje akcji glownej. */
+.ge-po__foot button.ge-po__cancel { margin-left: auto; color: var(--m-alert); }
+
+/* ---------- zamowienia do dostawcow ---------- */
+
+.ge-stock--orders {
+  --cols: 74px minmax(160px, 1fr) 150px 110px 110px 60px 110px 110px 110px;
+}
+.ge-stock--drift {
+  --cols: 120px minmax(180px, 1fr) 100px 100px 110px 90px 110px 110px;
+}
+/* Kolumna zaznaczenia przed kodem — reszta bez zmian. */
+.ge-stock--pick {
+  --cols: 28px 120px minmax(180px, 1fr) 110px 74px 84px 84px 64px 64px 110px 170px;
+}
+.ge-stock__row.is-open { background: var(--ge-neutral-100); }
+.ge-stock__bulk { display: flex; align-items: center; gap: 12px; }
+
+/* Karta zamowienia rozwinieta pod wierszem. */
+.ge-po {
+  padding: 14px 24px 16px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+  background: var(--ge-neutral-100);
+}
+.ge-po--new { border-bottom: 1px solid var(--ge-divider); display: flex; flex-wrap: wrap; gap: 18px; }
+.ge-po__grid {
+  display: grid;
+  grid-template-columns: 120px minmax(180px, 1fr) 90px 90px 100px 110px 110px;
+  gap: 12px;
+  align-items: center;
+  padding-block: 6px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-po__grid--head {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-800);
+  border-bottom: 1px solid var(--ge-neutral-300);
+}
+.ge-po__grid .r { text-align: right; }
+.ge-po__history { padding-top: 8px; font-size: 12.5px; }
+.ge-po__foot { display: flex; align-items: flex-end; gap: 16px; padding-top: 12px; flex-wrap: wrap; }
+.ge-po__field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ge-neutral-700); }
+.ge-po__field--wide { flex: 1 1 240px; }
+.ge-po__hint { flex-basis: 100%; font-size: 12.5px; }

@@ -8,6 +8,7 @@ use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\DictionaryController;
@@ -64,6 +65,25 @@ Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void 
     Route::get('/demand', [WarehouseController::class, 'demand'])->name('demand');
     Route::put('/{product}/thresholds', [WarehouseController::class, 'thresholds'])->name('thresholds');
     Route::post('/{product}/count', [WarehouseController::class, 'count'])->name('count');
+
+    // Rozjazd cennika stoi przed `/orders/{order}`, bo inaczej „price-drift"
+    // wpadloby jako identyfikator zamowienia. Ta sama pulapka co przy
+    // `/{order}/fittings/set`.
+    Route::get('/price-drift', [PurchaseOrderController::class, 'drift'])->name('price_drift');
+
+    Route::prefix('/orders')->name('orders_')->group(static function (): void {
+        Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');
+        Route::post('/', [PurchaseOrderController::class, 'store'])->name('store');
+        Route::post('/from-suggestions', [PurchaseOrderController::class, 'fromSuggestions'])
+            ->name('from_suggestions');
+        Route::get('/{order}', [PurchaseOrderController::class, 'show'])->name('show');
+        Route::post('/{order}/items', [PurchaseOrderController::class, 'addItem'])->name('add_item');
+        Route::delete('/{order}/items/{item}', [PurchaseOrderController::class, 'removeItem'])
+            ->name('remove_item');
+        Route::post('/{order}/send', [PurchaseOrderController::class, 'send'])->name('send');
+        Route::post('/{order}/cancel', [PurchaseOrderController::class, 'cancel'])->name('cancel');
+        Route::post('/{order}/receive', [PurchaseOrderController::class, 'receive'])->name('receive');
+    });
 });
 
 Route::prefix('/production')->name('production_')->group(static function (): void {

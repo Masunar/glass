@@ -8,6 +8,8 @@ use App\Enum\Section;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockLevel;
+use App\Models\PriceListItem;
+use App\Models\PurchasePrice;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -96,6 +98,90 @@ final readonly class StockBoard
                 'shown' => count($rows),
                 'to_order' => $toOrder,
             ],
+        ];
+    }
+
+    /**
+     * Produkty, których cena zakupu zmieniła się po ostatnim
+     * przeliczeniu cennika sprzedaży.
+     *
+     * Sygnał, nie automat (M-08): przyjęcie towaru aktualizuje cenę
+     * zakupu, ale cen sprzedaży nie rusza. Ktoś musi zobaczyć, że się
+     * rozjechały, i zdecydować. Dlatego wiersz podaje **starą i nową
+     * cenę zakupu obok siebie** — samo „zmieniło się" nie daje na czym
+     * oprzeć decyzji, zwłaszcza że cena bierze się z ostatniej dostawy
+     * (M-16) i uzupełnienie stanu drożej zawyża koszt tego, co już
+     * leżało.
+     *
+     * Liczone bez nowych kolumn: rozjazd to okres ceny zakupu
+     * zaczynający się później niż najnowsza pozycja cennika.
+     *
+     * @return array<string, mixed>
+     */
+    public function priceDrift(): array
+    {
+        /** @var iterable<Product> $products */
+        $products = Product::query()
+            ->where('section', Section::FITTINGS->value)
+            ->where('is_active', true)
+            ->whereHas('priceListItems')
+            ->whereHas('purchasePrices')
+            ->get();
+
+        $rows = [];
+
+        foreach ($products as $product) {
+            $productId = (int) $product->getKey();
+
+            /** @var PurchasePrice|null $newest */
+            $newest = PurchasePrice::query()
+                ->where('product_id', $productId)
+                ->orderByDesc('valid_from')
+                ->orderByDesc('id')
+                ->first();
+
+            /** @var PriceListItem|null $pricedAt */
+            $pricedAt = PriceListItem::query()
+                ->where('product_id', $productId)
+                ->orderByDesc('valid_from')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($newest === null || $pricedAt === null) {
+                continue;
+            }
+
+            if (!$newest->valid_from->greaterThan($pricedAt->valid_from)) {
+                continue;
+            }
+
+            /** @var PurchasePrice|null $previous */
+            $previous = PurchasePrice::query()
+                ->where('product_id', $productId)
+                ->whereDate('valid_from', '<', $newest->valid_from)
+                ->orderByDesc('valid_from')
+                ->orderByDesc('id')
+                ->first();
+
+            $rows[] = [
+                'product_id' => $productId,
+                'code' => $product->code,
+                'name' => $product->name,
+                'previous_purchase_price' => $previous?->net_price,
+                'purchase_price' => $newest->net_price,
+                'changed_at' => $newest->valid_from->toDateString(),
+                'priced_at' => $pricedAt->valid_from->toDateString(),
+                'coefficient' => $pricedAt->coefficient,
+                'list_net_price' => $pricedAt->effectiveNetPrice(),
+            ];
+        }
+
+        usort($rows, static fn(array $a, array $b): int => [$b['changed_at'], $a['name']]
+            <=> [$a['changed_at'], $b['name']]);
+
+        return [
+            'rows' => $rows,
+            'summary' => ['drifted' => count($rows)],
         ];
     }
 

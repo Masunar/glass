@@ -7,6 +7,7 @@ namespace App\Dictionaries;
 use App\Enum\Unit;
 use App\Enum\Section;
 use App\Models\Vehicle;
+use App\Models\Supplier;
 use App\Models\Process;
 use App\Models\Location;
 use App\Enum\Permission;
@@ -46,6 +47,7 @@ final readonly class DictionaryRegistry
             $this->vehicles(),
             $this->workstations(),
             $this->processes(),
+            $this->suppliers(),
         ];
     }
 
@@ -160,6 +162,28 @@ final readonly class DictionaryRegistry
             note: 'Odpowiednik starych „Typów wpłat”, ale rozbity na trzy wymiary: '
                 . 'kasę, kanał i walutę. W jednej liście nie dało się zapytać '
                 . 'ani o wszystkie wpłaty gotówkowe, ani o wszystko w euro.',
+        );
+    }
+
+    private function suppliers(): DictionaryDefinition
+    {
+        return new DictionaryDefinition(
+            slug: 'suppliers',
+            label: 'Dostawcy',
+            model: Supplier::class,
+            fields: [
+                new Field('name', 'Nazwa', required: true, max: 120),
+                new Field('short_name', 'Skrót', max: 20),
+                new Field('contact_person', 'Osoba kontaktowa', max: 120),
+                new Field('phone', 'Telefon', max: 30),
+                new Field('email', 'E-mail', max: 150, extraRules: ['email']),
+                new Field('is_active', 'Aktywny', FieldType::BOOLEAN),
+            ],
+            permission: Permission::WAREHOUSE,
+            note: 'Od kogo kupujemy towar. Osobno od kartoteki kontrahentów, '
+                . 'bo limit kupiecki, sekcja cenowa i limity rabatowe przy '
+                . 'dostawcy nic nie znaczą. Firma będąca i klientem, '
+                . 'i dostawcą wystąpi w obu miejscach.',
         );
     }
 

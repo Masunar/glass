@@ -10,11 +10,10 @@ use App\Enum\Section;
 use App\Models\Product;
 use App\Models\ProductGlass;
 use App\Models\ProductGroup;
-use App\Models\PurchasePrice;
 use App\Models\ProductFitting;
 use App\Models\ProductService;
 use App\Enum\PurchasePriceSource;
-use Illuminate\Support\Facades\Auth;
+use App\Services\Pricing\PurchasePriceLedger;
 use Illuminate\Database\Eloquent\Builder;
 use App\Support\Normalize;
 use Illuminate\Support\Facades\Validator;
@@ -204,9 +203,8 @@ final readonly class ProductCatalogService
     }
 
     /**
-     * Zmiana ceny zakupu zamyka poprzednią wersję datą i zakłada nową.
-     * Bez tego nie da się odpowiedzieć, dlaczego zlecenie sprzed pół
-     * roku miało taką marżę.
+     * Cena zakupu wpisana z ręki. Okresy obowiązywania prowadzi
+     * `PurchasePriceLedger` — ta sama droga co przy przyjęciu towaru.
      *
      * @param array<string, mixed> $input
      */
@@ -216,36 +214,12 @@ final readonly class ProductCatalogService
             return;
         }
 
-        $value = Normalize::text($input['purchase_net_price']);
-        $current = $product->purchasePriceAt($today);
-
-        if ($value === null) {
-            $current?->update(['valid_to' => $today->copy()->subDay()]);
-
-            return;
-        }
-
-        $normalized = number_format((float) $value, 2, '.', '');
-
-        if ($current !== null && $current->net_price === $normalized) {
-            return;
-        }
-
-        if ($current !== null && $current->valid_from->isSameDay($today)) {
-            $current->update(['net_price' => $normalized, 'created_by' => Auth::id()]);
-
-            return;
-        }
-
-        $current?->update(['valid_to' => $today->copy()->subDay()]);
-
-        PurchasePrice::query()->create([
-            'product_id' => $product->id,
-            'net_price' => $normalized,
-            'source' => PurchasePriceSource::MANUAL->value,
-            'valid_from' => $today,
-            'created_by' => Auth::id(),
-        ]);
+        (new PurchasePriceLedger())->set(
+            $product,
+            Normalize::text($input['purchase_net_price']),
+            $today,
+            PurchasePriceSource::MANUAL,
+        );
     }
 
     /**
