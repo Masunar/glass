@@ -13,6 +13,7 @@ use App\Models\OrderList;
 use App\Models\AuditEntry;
 use App\Models\ContractorAddress;
 use App\Services\Production\ProductionQueue;
+use App\Services\Tempering\TemperingBoard;
 
 /**
  * Karta zlecenia — jedno miejsce decyzji.
@@ -38,6 +39,7 @@ final readonly class OrderCard
         private ContractorBalance $balance = new ContractorBalance(),
         private ProductionQueue $production = new ProductionQueue(),
         private OrderSchedule $schedule = new OrderSchedule(),
+        private TemperingBoard $tempering = new TemperingBoard(),
     ) {
     }
 
@@ -75,6 +77,10 @@ final readonly class OrderCard
             'credit' => $this->credit($order, (float) $totals->net, $totals->vatRate),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
             'path' => $this->path($order),
+            // Brakujace przejscie w druga strone: hartownia wiedziala
+            // o zleceniu, zlecenie o hartowni nie. `null` znaczy, ze
+            // nie ma nic do hartowania.
+            'tempering' => $this->tempering->forOrder($order),
             'lists' => $this->lists($order),
             'history' => $this->history($order),
         ];

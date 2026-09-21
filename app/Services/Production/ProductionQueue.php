@@ -59,6 +59,14 @@ final readonly class ProductionQueue
             ->when(
                 !$includeDone,
                 static fn($builder) => $builder->where('status', '!=', ProductionStatus::DONE->value),
+            )
+            // Etapu podzlecanego hala nie odhacza: praca dzieje sie
+            // gdzie indziej, a zadanie zamyka powrot od podwykonawcy.
+            // Zadanie nadal istnieje i liczy sie do `allDone()`, wiec
+            // zlecenie nie przejdzie na „Gotowe" przed powrotem szkla.
+            ->whereHas(
+                'process',
+                static fn($builder) => $builder->where('is_subcontracted', false),
             );
 
         /** @var iterable<ProductionTask> $tasks */

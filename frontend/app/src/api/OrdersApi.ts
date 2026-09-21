@@ -185,6 +185,28 @@ export type OrderCard = {
   } | null;
   steps: NextStep[];
   path: OrderPathStep[];
+  /**
+   * Stan hartowania zlecenia. `null` znaczy, że nie ma nic do
+   * hartowania — wtedy karta o tym nie wspomina.
+   */
+  tempering: {
+    /** Czeka, czyli zlecenie nie przejdzie na „Gotowe". */
+    is_waiting: boolean;
+    queued: number;
+    sent: number;
+    returned: number;
+    broken: number;
+    /** Najdłużej jadąca partia, w dniach od wysyłki. */
+    days_out: number | null;
+    batches: {
+      id: number;
+      number: number;
+      supplier: string;
+      sent_at: string | null;
+      expected_at: string | null;
+      days_out: number | null;
+    }[];
+  } | null;
   lists: OrderCardList[];
   history: OrderHistoryEntry[];
 };

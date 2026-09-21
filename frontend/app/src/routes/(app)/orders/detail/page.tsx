@@ -340,6 +340,52 @@ export default function Page() {
           />
         )}
 
+        {card.tempering && (
+          <Strip
+            // Szklo poza zakladem to jedyny etap, ktorego zakład nie
+            // kontroluje — i jedyny, ktory potrafi zatrzymac zlecenie
+            // bez sladu na hali. Pasek ma to powiedziec wprost.
+            variant={card.tempering.is_waiting ? 'prod' : 'plain'}
+            label={t('page.orders.card.tempering')}
+            value={
+              card.tempering.is_waiting
+                ? t('page.orders.card.tempering_days', {
+                    count: card.tempering.days_out ?? 0,
+                  })
+                : t('page.orders.card.tempering_back')
+            }
+            noteWarn={card.tempering.broken > 0}
+            note={
+              card.tempering.broken > 0
+                ? t('page.orders.card.tempering_broken', {
+                    count: card.tempering.broken,
+                  })
+                : t('page.orders.card.tempering_note', {
+                    sent: card.tempering.sent,
+                    queued: card.tempering.queued,
+                  })
+            }
+            text={
+              <span className="ge-from">
+                {card.tempering.batches.map((batch) => (
+                  <span className="ge-from__row" key={batch.id}>
+                    <span>
+                      {t('page.orders.card.tempering_batch', {
+                        number: batch.number,
+                      })}{' '}
+                      {batch.supplier}
+                    </span>
+                    <span>{batch.expected_at ?? '—'}</span>
+                  </span>
+                ))}
+                <Link to="/hartownia" className="ge-from__link">
+                  {t('page.orders.card.tempering_link')} →
+                </Link>
+              </span>
+            }
+          />
+        )}
+
         <Strip
           variant={primary ? 'plain' : 'alert'}
           wide

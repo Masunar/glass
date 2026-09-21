@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Tempering;
 
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Supplier;
 use App\Models\TemperingItem;
 use App\Models\TemperingBatch;
@@ -73,6 +75,90 @@ final readonly class TemperingBoard
     }
 
     /**
+     * Stan hartowania jednego zlecenia — dla karty zlecenia.
+     *
+     * Dane o partii istniały od początku, ale tylko w jedną stronę:
+     * hartownia wiedziała o zleceniu, zlecenie o hartowni nie. To jest
+     * to brakujące przejście. `null` znaczy, że zlecenie nie ma nic do
+     * hartowania — wtedy karta o tym nie wspomina.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function forOrder(Order $order): ?array
+    {
+        /** @var list<int> $itemIds */
+        $itemIds = OrderItem::query()
+            ->whereHas('list', static fn(Builder $query): Builder => $query
+                ->where('order_id', $order->getKey()))
+            ->pluck('id')
+            ->all();
+
+        if ($itemIds === []) {
+            return null;
+        }
+
+        /** @var iterable<TemperingItem> $items */
+        $items = TemperingItem::query()
+            ->with('batch.supplier')
+            ->whereIn('order_item_id', $itemIds)
+            ->get();
+
+        $counts = ['queued' => 0.0, 'sent' => 0.0, 'returned' => 0.0, 'broken' => 0.0];
+        $batches = [];
+        $longest = null;
+        $found = 0;
+
+        foreach ($items as $item) {
+            $found++;
+            $quantity = (float) $item->quantity;
+
+            $counts[match ($item->status) {
+                TemperingItemStatus::QUEUED => 'queued',
+                TemperingItemStatus::SENT => 'sent',
+                TemperingItemStatus::BROKEN, TemperingItemStatus::MISSING => 'broken',
+                default => 'returned',
+            }] += $quantity;
+
+            $batch = $item->batch;
+
+            if ($batch === null || $item->status !== TemperingItemStatus::SENT) {
+                continue;
+            }
+
+            $days = $batch->daysOut();
+            $batches[(int) $batch->getKey()] = [
+                'id' => (int) $batch->getKey(),
+                'number' => $batch->number,
+                'supplier' => $batch->supplier->name,
+                'sent_at' => $batch->sent_at?->toDateString(),
+                'expected_at' => $batch->expected_at?->toDateString(),
+                'days_out' => $days,
+            ];
+
+            if ($days !== null && ($longest === null || $days > $longest)) {
+                $longest = $days;
+            }
+        }
+
+        // Zlecenie bez ani jednej pozycji do hartowania nie ma o czym
+        // mowic — karta wtedy o hartowni nie wspomina.
+        if ($found === 0) {
+            return null;
+        }
+
+        return [
+            // Czeka — czyli zlecenie nie przejdzie na „Gotowe".
+            'is_waiting' => $counts['queued'] > 0 || $counts['sent'] > 0,
+            'queued' => round($counts['queued'], 3),
+            'sent' => round($counts['sent'], 3),
+            'returned' => round($counts['returned'], 3),
+            'broken' => round($counts['broken'], 3),
+            'days_out' => $longest,
+            'batches' => array_values($batches),
+        ];
+    }
+
+    /**
      * Partie z filtrem statusu.
      *
      * @return array<string, mixed>
@@ -120,16 +206,39 @@ final readonly class TemperingBoard
         $batch->loadMissing(['supplier', 'items.item.pane', 'items.item.product.glass', 'items.item.list.order.contractor']);
 
         $items = [];
+        $totalM2 = 0.0;
 
         foreach ($batch->items as $position) {
             $row = $this->row($position);
 
             if ($row !== null) {
                 $items[] = $row;
+                $totalM2 += $row['m2'];
             }
         }
 
-        return [...$this->batchRow($batch), 'items' => $items];
+        // Koszt partii rozksiegowany po m2 — bo tak rozlicza sie
+        // podwykonawca. To **koszt**, nie cena: klient placi za
+        // hartowanie z cennika procesu H (H-08). Ta liczba sluzy do
+        // porownania jednego z drugim, a nie do wyceny.
+        $cost = $batch->net_cost === null ? null : (float) $batch->net_cost;
+
+        if ($cost !== null && $totalM2 > 0) {
+            foreach ($items as $index => $row) {
+                $items[$index]['cost_share'] = number_format(
+                    $cost * ($row['m2'] / $totalM2),
+                    2,
+                    '.',
+                    '',
+                );
+            }
+        }
+
+        return [
+            ...$this->batchRow($batch),
+            'items' => $items,
+            'm2' => round($totalM2, 3),
+        ];
     }
 
     /**

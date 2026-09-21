@@ -679,7 +679,14 @@
       "path_problems_other": "{{count}} problemów",
       "estimated": "Szacowany czas",
       "estimated_note": "z dni wpisanych przy etapach — najdłuższa formatka",
-      "estimated_unknown": "żaden etap nie ma wpisanych dni"
+      "estimated_unknown": "żaden etap nie ma wpisanych dni",
+      "tempering": "Hartownia",
+      "tempering_days": "{{count}} dni",
+      "tempering_back": "Wróciło",
+      "tempering_note": "U podwykonawcy {{sent}}, w kolejce {{queued}}.",
+      "tempering_broken": "Stłuczka: {{count}} — szkło trzeba zrobić od nowa.",
+      "tempering_batch": "Partia {{number}}",
+      "tempering_link": "Hartownia"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -1112,7 +1119,8 @@
       "lines": "Poz.",
       "broken": "Stłuczki",
       "cost": "Koszt",
-      "outcome": "Los pozycji"
+      "outcome": "Los pozycji",
+      "cost_share": "Koszt"
     }
   }
 }

@@ -77,6 +77,24 @@ final readonly class TemperingQueue
     }
 
     /**
+     * Ile sztuk pozycji jeszcze nie wróciło z hartowni.
+     *
+     * Liczy to, co czeka w kolejce i co jest u podwykonawcy. Zero
+     * znaczy, że hartowanie tej pozycji jest skończone — i dopiero
+     * wtedy wolno zamknąć etap podzlecany.
+     */
+    public function outstandingFor(int $orderItemId): float
+    {
+        return (float) TemperingItem::query()
+            ->where('order_item_id', $orderItemId)
+            ->whereIn('status', [
+                TemperingItemStatus::QUEUED->value,
+                TemperingItemStatus::SENT->value,
+            ])
+            ->sum('quantity');
+    }
+
+    /**
      * Pozycja zastępcza po stłuczce albo braku.
      *
      * Wskazuje na tę, która się stłukła, bo inaczej po miesiącu nie da
