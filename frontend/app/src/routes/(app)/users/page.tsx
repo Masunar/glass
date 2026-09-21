@@ -183,26 +183,43 @@ export default function Page() {
         </Strips>
       )}
 
-      <nav className="ge-filters" aria-label={t('page.users.filters')}>
-        {(['all', 'active', 'invited', 'disabled'] as Filter[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={filter === key ? 'is-active' : ''}
-            onClick={() => setFilter(key)}
-          >
-            {t(`page.users.filter.${key}`)}{' '}
-            {summary
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.users.filters')}>
+          {(['all', 'active', 'invited', 'disabled'] as Filter[]).map((key) => {
+            const here = filter === key;
+            const count = summary
               ? key === 'all'
                 ? summary.total
                 : summary[key === 'active' ? 'active' : key]
-              : ''}
-          </button>
-        ))}
-        <span className="ge-filters__end">
+              : null;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                className={[
+                  'ge-seg__item',
+                  here ? 'is-active' : '',
+                  // Filtr bez uzytkownikow zostaje sama etykieta.
+                  count === 0 && !here ? 'ge-seg__item--empty' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-pressed={here}
+                onClick={() => setFilter(key)}
+              >
+                <span>{t(`page.users.filter.${key}`)}</span>
+                {count === null || count === 0 ? null : (
+                  <span className="ge-seg__count">{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <span className="ge-segbar__end">
           {t('page.users.sorted_by_login')}
         </span>
-      </nav>
+      </div>
 
       <DataList columns={columns}>
         <ListHead columns={columns} translate={t} />

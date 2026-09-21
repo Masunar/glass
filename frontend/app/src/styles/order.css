@@ -597,8 +597,6 @@
 .ge-path__state { font-size: 12px; color: color-mix(in oklab, var(--ge-mod) 70%, black); padding-top: 2px; }
 .ge-path__state--stuck { color: var(--m-alert); }
 
-.ge-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-
 /* ---------- listy zlecenia ---------- */
 
 .ge-band__end { display: inline-flex; align-items: center; gap: 10px; }

@@ -166,45 +166,54 @@ export default function Page() {
         </div>
       </header>
 
-      <nav className="ge-filters" aria-label={t('page.production.stations')}>
-        {[
-          { key: '', label: t('page.production.all_stations'), open: null },
-          ...board.workstations.map((row) => ({
-            key: row.id === null ? 'none' : String(row.id),
-            label: row.name ?? t('page.production.no_station'),
-            open: row.open,
-          })),
-        ].map((tab) =>
-          tab.key === station ? (
-            <span className="ge-filters__here" key={tab.key}>
-              {tab.label}
-              {tab.open === null ? '' : ` ${tab.open}`}
-            </span>
-          ) : (
-            <button
-              type="button"
-              key={tab.key}
-              onClick={() => {
-                setStation(tab.key);
-                setCursor(0);
-              }}
-            >
-              {tab.label}
-              {tab.open === null ? '' : ` ${tab.open}`}
-            </button>
-          ),
-        )}
-        <span className="ge-filters__end">
-          <label className="ge-check">
-            <input
-              type="checkbox"
-              checked={done}
-              onChange={(event) => setDone(event.target.checked)}
-            />
-            {t('page.production.show_done')}
-          </label>
-        </span>
-      </nav>
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.production.stations')}>
+          {[
+            { key: '', label: t('page.production.all_stations'), open: null },
+            ...board.workstations.map((row) => ({
+              key: row.id === null ? 'none' : String(row.id),
+              label: row.name ?? t('page.production.no_station'),
+              open: row.open,
+            })),
+          ].map((tab) => {
+            const here = tab.key === station;
+
+            return (
+              <button
+                type="button"
+                key={tab.key}
+                className={[
+                  'ge-seg__item',
+                  here ? 'is-active' : '',
+                  // Stanowisko bez otwartych etapow: sama nazwa, ciszej.
+                  tab.open === 0 && !here ? 'ge-seg__item--empty' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-pressed={here}
+                onClick={() => {
+                  setStation(tab.key);
+                  setCursor(0);
+                }}
+              >
+                <span>{tab.label}</span>
+                {tab.open === null || tab.open === 0 ? null : (
+                  <span className="ge-seg__count">{tab.open}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+        <label className="ge-toggle ge-segbar__end">
+          <input
+            type="checkbox"
+            checked={done}
+            onChange={(event) => setDone(event.target.checked)}
+          />
+          <span className="ge-toggle__track" />
+          {t('page.production.show_done')}
+        </label>
+      </div>
 
       <div className="ge-card">
         <div className="ge-card__main" ref={listRef}>

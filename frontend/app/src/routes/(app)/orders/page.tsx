@@ -230,7 +230,7 @@ export default function Page() {
             );
           })}
         </nav>
-        <span className="ge-filters__end">{t('page.orders.sorted_by')}</span>
+        <span className="ge-segbar__end">{t('page.orders.sorted_by')}</span>
       </div>
 
       <OrderDrawer
