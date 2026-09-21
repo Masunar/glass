@@ -21,5 +21,6 @@ enum Permission: string
     case ORDERS = 'orders';
     case PRODUCTION = 'production';
     case WAREHOUSE = 'warehouse';
+    case TEMPERING = 'tempering';
     case DICTIONARIES = 'dictionaries';
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\TemperingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\DictionaryController;
@@ -83,6 +84,23 @@ Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void 
         Route::post('/{order}/send', [PurchaseOrderController::class, 'send'])->name('send');
         Route::post('/{order}/cancel', [PurchaseOrderController::class, 'cancel'])->name('cancel');
         Route::post('/{order}/receive', [PurchaseOrderController::class, 'receive'])->name('receive');
+    });
+});
+
+Route::prefix('/tempering')->name('tempering_')->group(static function (): void {
+    Route::get('/queue', [TemperingController::class, 'queue'])->name('queue');
+
+    Route::prefix('/batches')->name('batches_')->group(static function (): void {
+        Route::get('/', [TemperingController::class, 'batches'])->name('index');
+        Route::post('/', [TemperingController::class, 'store'])->name('store');
+        Route::get('/{batch}', [TemperingController::class, 'show'])->name('show');
+        Route::post('/{batch}/items', [TemperingController::class, 'addItems'])->name('add_items');
+        Route::delete('/{batch}/items/{item}', [TemperingController::class, 'removeItem'])
+            ->name('remove_item');
+        Route::post('/{batch}/send', [TemperingController::class, 'send'])->name('send');
+        Route::post('/{batch}/receive', [TemperingController::class, 'receive'])->name('receive');
+        Route::post('/{batch}/settle', [TemperingController::class, 'settle'])->name('settle');
+        Route::post('/{batch}/cancel', [TemperingController::class, 'cancel'])->name('cancel');
     });
 });
 

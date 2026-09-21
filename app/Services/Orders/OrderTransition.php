@@ -10,6 +10,7 @@ use App\Services\AuditTrail;
 use App\Models\StatusTransition;
 use App\Services\Production\ProductionPlan;
 use App\Services\Warehouse\OrderStock;
+use App\Services\Tempering\TemperingQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -49,6 +50,7 @@ final readonly class OrderTransition
         private AuditTrail $audit = new AuditTrail(),
         private ProductionPlan $plan = new ProductionPlan(),
         private OrderStock $stock = new OrderStock(),
+        private TemperingQueue $tempering = new TemperingQueue(),
     ) {
     }
 
@@ -131,6 +133,17 @@ final readonly class OrderTransition
                 self::ORDERED => $this->stock->reserve($order),
                 self::PRODUCTION => $this->stock->issue($order),
                 self::CANCELLED => $this->stock->release($order),
+                default => null,
+            };
+
+            // Kolejka hartowni idzie tym samym torem: szyby oznaczone
+            // jako hartowane trafiaja do niej przy wejsciu na produkcje,
+            // a przy anulowaniu znika z niej to, co jeszcze nie
+            // pojechalo. Wyslanych nie ruszamy — szklo jest
+            // u podwykonawcy i wroci niezaleznie od losow zlecenia.
+            match ($target->code) {
+                self::PRODUCTION => $this->tempering->sync($order),
+                self::CANCELLED => $this->tempering->release($order),
                 default => null,
             };
         });

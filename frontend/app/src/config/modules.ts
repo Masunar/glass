@@ -77,7 +77,14 @@ export const appModules: AppModule[] = [
           subPermission: SubPermission.LIST,
         },
       },
-      { labelKey: 'page.menu.tempering' },
+      {
+        labelKey: 'page.menu.tempering',
+        path: appRoutes.tempering.path,
+        permission: {
+          permission: Permission.TEMPERING,
+          subPermission: SubPermission.LIST,
+        },
+      },
       { labelKey: 'page.menu.workload' },
     ],
   },
