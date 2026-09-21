@@ -69,6 +69,13 @@ export const appRoutes = {
       { permission: Permission.PRODUCTION, subPermission: SubPermission.LIST },
     ],
   },
+  warehouse: {
+    path: '/magazyn',
+    file: 'magazyn',
+    permissions: [
+      { permission: Permission.WAREHOUSE, subPermission: SubPermission.LIST },
+    ],
+  },
   contractors: {
     path: '/contractors',
     file: 'contractors',

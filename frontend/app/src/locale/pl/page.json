@@ -66,7 +66,9 @@
     "dictionaries": "Słowniki",
     "production": "Kolejka produkcji",
     "tempering": "Hartownia",
-    "workload": "Obciążenie stanowisk"
+    "workload": "Obciążenie stanowisk",
+    "warehouse": "Magazyn",
+    "supplier_orders": "Zamówienia"
   },
   "user_account": {
     "mfa": {
@@ -983,6 +985,34 @@
       "material": "brak materiału",
       "drawing": "błąd rysunku",
       "rework": "poprawka"
+    }
+  },
+  "warehouse": {
+    "title": "Magazyn",
+    "tab_levels": "Stany",
+    "tab_demand": "Okucia w zamówieniach",
+    "search": "Szukaj po kodzie lub nazwie…",
+    "only_shortages": "Tylko do zamówienia",
+    "thresholds": "Progi",
+    "counted": "spis",
+    "count_note": "inwentaryzacja z ekranu magazynu",
+    "empty": "Nic tu nie ma — okucia dostają stan po pierwszym przyjęciu albo spisie.",
+    "demand_empty": "Żadne otwarte zlecenie nie potrzebuje okuć.",
+    "column": {
+      "code": "Kod",
+      "name": "Nazwa",
+      "finish": "Wykończenie",
+      "stock": "Stan",
+      "reserved": "Zarezerw.",
+      "available": "Dostępne",
+      "min": "Min",
+      "max": "Max",
+      "to_order": "Do zamówienia",
+      "order": "Zlecenie",
+      "contractor": "Kontrahent",
+      "status": "Status",
+      "needed": "Potrzeba",
+      "missing": "Brakuje"
     }
   }
 }

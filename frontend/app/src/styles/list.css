@@ -15,11 +15,14 @@
   padding-inline: 24px;
 }
 
+/* Naglowek kolumny ma byc czytelny, nie ozdobny: wersaliki w 11 px
+   same z siebie gasna, wiec biora ciemniejszy tusz i wieksza grubosc. */
 .ge-list__head {
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ge-neutral-600);
+  color: var(--ge-neutral-800);
   padding-block: 10px;
   border-bottom: 1px solid var(--ge-neutral-900);
 }
@@ -443,4 +446,61 @@
 .ge-seg--nav .ge-seg__item.is-active .ge-seg__count {
   background: var(--ge-mod-tint);
   color: color-mix(in oklab, var(--ge-mod) 70%, black);
+}
+
+/* ---------- magazyn ---------- */
+
+/* Tabela stanow: duzo liczb w kolumnach, wiec tabular-nums i wyrownanie
+   do prawej. Czyta sie ja w pionie — „czego brakuje" — a nie wiersz po
+   wierszu. */
+/* Ostatnia kolumna ma stala szerokosc, a nie `auto`: naglowek i wiersz
+   to dwie osobne siatki, wiec `auto` policzyloby sie w naglowku (pusty)
+   inaczej niz w wierszu (spis + przycisk) i 1fr nazwy rozjechaloby
+   wszystkie liczby wzgledem ich etykiet. */
+.ge-stock {
+  --cols: 120px minmax(180px, 1fr) 110px 74px 84px 84px 64px 64px 110px 170px;
+}
+.ge-stock--demand {
+  --cols: 90px minmax(140px, 1fr) 110px 120px minmax(160px, 1fr) 84px 74px 84px;
+}
+.ge-stock__head,
+.ge-stock__row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 12px;
+  align-items: center;
+  padding: 0 24px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-stock__head {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-800);
+  padding-block: 9px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+.ge-stock .r { text-align: right; }
+
+/* Liczba w tabeli nie jest przypisem: `ge-quiet` ma ja tylko wyciszyc
+   kolorem, a nie zmniejszac do 12.5 px w wierszu o 14 px. Inaczej caly
+   srodek tabeli — stan, rezerwacje, progi — robi sie nieczytelny. */
+.ge-stock .ge-quiet { font-size: 14px; color: var(--ge-neutral-800); }
+.ge-stock__row {
+  padding-block: 9px;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 14px;
+}
+.ge-stock__row:hover { background: color-mix(in srgb, var(--ge-mod) 5%, transparent); }
+
+/* Pozycja do zamowienia ma wlos przy krawedzi — po nia sie tu przychodzi. */
+.ge-stock__row--short { box-shadow: inset 3px 0 0 var(--m-alert); }
+
+.ge-stock__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
