@@ -43,6 +43,7 @@ final readonly class OrderItemService
         private OrderTabs $tabs = new OrderTabs(),
         private OrderSchedule $schedule = new OrderSchedule(),
         private AuditTrail $audit = new AuditTrail(),
+        private OrderFittingService $fittings = new OrderFittingService(),
     ) {
     }
 
@@ -75,6 +76,7 @@ final readonly class OrderItemService
         /** @var OrderList $list */
         foreach ($order->lists->sortBy('number') as $list) {
             $glass = [];
+            $fittings = [];
             $services = [];
             $listNet = 0.0;
             $listDays = null;
@@ -100,6 +102,12 @@ final readonly class OrderItemService
                     continue;
                 }
 
+                if ($item->section === Section::FITTINGS) {
+                    $fittings[] = $row;
+
+                    continue;
+                }
+
                 $services[] = $row;
             }
 
@@ -114,6 +122,7 @@ final readonly class OrderItemService
                 'comment' => $list->comment,
                 'net' => $this->money($listNet),
                 'glass' => $glass,
+                'fittings' => $fittings,
                 'services' => $services,
             ];
         }
@@ -142,6 +151,8 @@ final readonly class OrderItemService
                 'products' => $this->glassCatalogue(),
                 'processes' => $this->processCatalogue(),
                 'services' => $this->serviceCatalogue(),
+                'fittings' => $this->fittings->catalogue(),
+                'sets' => $this->fittings->sets(),
             ],
         ];
     }

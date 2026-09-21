@@ -84,6 +84,12 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::post('/{order}/panes/preview', [OrderController::class, 'previewPane'])->name('pane_preview');
     Route::post('/{order}/panes', [OrderController::class, 'savePane'])->name('pane_create');
     Route::put('/{order}/panes/{item}', [OrderController::class, 'savePane'])->name('pane_update');
+    // Zestaw przed pojedyncza pozycja: '/{order}/fittings/set' nie moze
+    // wpasc w '/{order}/fittings/{item}'.
+    Route::post('/{order}/fittings/set', [OrderController::class, 'addFittingSet'])->name('fitting_set');
+    Route::post('/{order}/fittings', [OrderController::class, 'saveFitting'])->name('fitting_create');
+    Route::put('/{order}/fittings/{item}', [OrderController::class, 'saveFitting'])->name('fitting_update');
+
     Route::post('/{order}/services', [OrderController::class, 'saveService'])->name('service_create');
     Route::put('/{order}/services/{item}', [OrderController::class, 'saveService'])->name('service_update');
     Route::delete('/{order}/items/{item}', [OrderController::class, 'deleteItem'])->name('item_delete');
