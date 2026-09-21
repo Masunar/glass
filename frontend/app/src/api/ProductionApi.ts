@@ -23,6 +23,10 @@ export type ProductionRow = {
   width_mm: number | null;
   height_mm: number | null;
   is_irregular_shape: boolean;
+  /** Pilna pozycja — wchodzi na poczatek kolejki. */
+  is_urgent: boolean;
+  /** Instrukcja technologiczna z pozycji zlecenia. */
+  item_note: string | null;
   /** RAL, faza, rodzaj folii — powód, dla którego operator idzie pytać. */
   parameter: string | null;
   comment: string | null;

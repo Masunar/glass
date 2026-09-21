@@ -363,3 +363,84 @@
   padding: 3px 0;
   font-size: 13px;
 }
+
+/* ---------- pasek segmentowy ---------- */
+
+/* Zakladki jako segmenty w jednej ramce, a nie osobne napisy
+   z podkresleniem. Roznica jest praktyczna: segment ma wlasna szerokosc,
+   wiec licznik moze stanac przy jego prawej krawedzi i kolumna liczb
+   czyta sie w pionie. Przy napisach licznik plynal razem z dlugoscia
+   etykiety i dwoch liczb nie dalo sie porownac wzrokiem.
+
+   Szyna jest szara, aktywny segment bialy — to on ma wychodzic do
+   przodu. Akcent wchodzi tylko w dwoch miejscach: pasek przy krawedzi
+   i licznik. Wypelnienie calego segmentu akcentem bylo za ciezkie:
+   w pasku szesciu zakladek jeden prostokat koloru przykrywa reszte. */
+.ge-segbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-seg {
+  display: flex;
+  border: 1px solid var(--ge-neutral-300);
+  background: var(--ge-neutral-100);
+}
+.ge-seg__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 0;
+  border-right: 1px solid var(--ge-neutral-300);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ge-neutral-700);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ge-seg__item:last-child { border-right: 0; }
+.ge-seg__item:hover { color: var(--ge-text); background: var(--ge-neutral-200); }
+
+/* Zakladka pusta: sama etykieta, ciszej. Brak licznika jest informacja
+   — zero trzeba przeczytac, zeby dowiedziec sie tego samego. */
+.ge-seg__item--empty { color: var(--ge-neutral-500); }
+
+.ge-seg__count {
+  padding: 1px 7px;
+  background: var(--ge-neutral-200);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ge-neutral-700);
+}
+
+/* Aktywny segment wyglada tak samo w obu paskach: bialy, z akcentem pod
+   etykieta. Pasek przy lewej krawedzi probowalem wczesniej i to bylo
+   zle — linia pod spodem laczy zakladke z tym, co pod nia jest, a linia
+   z boku nie laczy z niczym. */
+.ge-seg__item.is-active {
+  background: var(--ge-surface);
+  color: var(--ge-text);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--ge-mod);
+}
+.ge-seg__item.is-active:hover { background: var(--ge-surface); }
+
+/* Rozni je licznik, bo mowi co innego. */
+
+/* Filtr: licznik pelny — „tyle ma biezacy filtr". */
+.ge-seg--filter .ge-seg__item.is-active .ge-seg__count {
+  background: var(--ge-mod);
+  color: var(--ge-surface);
+}
+
+/* Nawigacja: licznik tylko podbarwiony — „tyle tam jest", a nie „tyle
+   wybrales". Zakladka nie zaweza niczego, tylko prowadzi pod adres. */
+.ge-seg--nav .ge-seg__item.is-active .ge-seg__count {
+  background: var(--ge-mod-tint);
+  color: color-mix(in oklab, var(--ge-mod) 70%, black);
+}

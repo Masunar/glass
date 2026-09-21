@@ -76,6 +76,7 @@ class ProductionTaskTest extends TestCase
         string $statusCode = 'PRODUKCJA',
         bool $included = true,
         ?string $deadline = null,
+        bool $urgent = false,
     ): Order {
         /** @var Status $status */
         $status = Status::findByCode(StatusDomain::ORDER, $statusCode);
@@ -105,6 +106,7 @@ class ProductionTaskTest extends TestCase
             'quantity' => 1,
             'unit_net_price' => '500.00',
             'amount' => '500.00',
+            'is_urgent' => $urgent,
         ]);
 
         $this->attach($item, $processCodes);
@@ -327,6 +329,27 @@ class ProductionTaskTest extends TestCase
         // Hala ma robic to, co sie pali, a nie to, co przyszlo pierwsze.
         $this->assertSame((int) $urgent->number, $board['rows'][0]['order_number']);
         $this->assertSame(1, $board['rows'][0]['days_left']);
+    }
+
+    #[Test]
+    public function pilna_pozycja_wchodzi_przed_wczesniejszy_termin(): void
+    {
+        $today = Carbon::parse('2026-09-11');
+
+        $soon = $this->order(['C'], deadline: '2026-09-12');
+        $urgent = $this->order(['C'], deadline: '2026-09-30', urgent: true);
+
+        $this->plan->sync($soon);
+        $this->plan->sync($urgent);
+
+        $board = $this->queue->board(today: $today);
+
+        // Termin sam sie nie przestawi, a czlowiek czasem wie wiecej niz
+        // data: klient czeka na te jedna szybe z dwudziestu. Po to jest
+        // przelacznik, wiec musi wygrywac z kalendarzem.
+        $this->assertSame((int) $urgent->number, $board['rows'][0]['order_number']);
+        $this->assertTrue($board['rows'][0]['is_urgent']);
+        $this->assertSame((int) $soon->number, $board['rows'][1]['order_number']);
     }
 
     #[Test]

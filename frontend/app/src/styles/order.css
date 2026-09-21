@@ -152,7 +152,11 @@
 .ge-card__side--right { border-right: 0; border-left: 1px solid var(--ge-divider); }
 
 .ge-panes {
-  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px 96px;
+  /* Ostatnia kolumna rosnie do tresci: przy kilku listach dochodzi do
+     niej wybieranie listy i przy stalych 96px zawartosc wychodzila
+     poza siatke — a `justify-content: flex-end` wypycha nadmiar
+     w LEWO, czyli prosto na kwote. */
+  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px auto;
 }
 .ge-panes__head,
 .ge-panes__row {
@@ -200,7 +204,34 @@
   letter-spacing: 0.12em;
 }
 
-.ge-panes__actions { display: flex; gap: 10px; justify-content: flex-end; }
+.ge-panes__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+  white-space: nowrap;
+}
+/* Dluga nazwa listy nie ma rozpychac kazdego wiersza tabeli. */
+.ge-panes__move { max-width: 92px; }
+
+/* Pilna formatka: wlos przy krawedzi wiersza zamiast ramki, zeby nie
+   przesuwac tresci ani nie robic z wiersza kafelka. */
+.ge-panes__row--urgent { box-shadow: inset 3px 0 0 var(--m-alert); }
+
+/* Znacznik przy nazwie — czytelny z odleglosci reki, bo to on decyduje
+   o kolejnosci na hali. */
+.ge-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  font-family: var(--ge-font-heading);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.ge-tag--urgent { color: var(--m-alert); }
 .ge-panes__actions button {
   border: 0;
   background: none;

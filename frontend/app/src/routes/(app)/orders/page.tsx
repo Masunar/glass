@@ -198,22 +198,40 @@ export default function Page() {
         </Strips>
       )}
 
-      <nav className="ge-filters" aria-label={t('page.orders.filters')}>
-        {(board?.filters ?? []).map((filter) => (
-          <button
-            key={filter.code ?? 'all'}
-            type="button"
-            className={filter.code === status ? 'is-active' : ''}
-            onClick={() => {
-              setStatus(filter.code);
-              void load(query, filter.code);
-            }}
-          >
-            {filter.name} {filter.count}
-          </button>
-        ))}
+      <div className="ge-segbar">
+        <nav className="ge-seg ge-seg--filter" aria-label={t('page.orders.filters')}>
+          {(board?.filters ?? []).map((filter) => {
+            const here = filter.code === status;
+
+            return (
+              <button
+                key={filter.code ?? 'all'}
+                type="button"
+                className={[
+                  'ge-seg__item',
+                  here ? 'is-active' : '',
+                  // Filtr bez zlecen zostaje sama etykieta: pusty licznik
+                  // i tak nie niesie nic poza zerem.
+                  filter.count === 0 && !here ? 'ge-seg__item--empty' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-pressed={here}
+                onClick={() => {
+                  setStatus(filter.code);
+                  void load(query, filter.code);
+                }}
+              >
+                <span>{filter.name}</span>
+                {filter.count === 0 ? null : (
+                  <span className="ge-seg__count">{filter.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
         <span className="ge-filters__end">{t('page.orders.sorted_by')}</span>
-      </nav>
+      </div>
 
       <OrderDrawer
         open={formOpen}

@@ -17,6 +17,13 @@ import {
   useNavigate,
 } from 'react-router';
 import SimpleBar from 'simplebar-react';
+// Bez wlasnego arkusza SimpleBara `.simplebar-placeholder` — element
+// o wysokosci calej tresci — nie chowa sie pod maske, tylko staje pod
+// nia i dokłada sie do wysokosci dokumentu. Efekt: strona przewija sie
+// o drugie tyle w pustke pod powloka. Salvon importuje ten arkusz
+// w swoim `ScrollableContent`, wiec dzialalo wszedzie tam, gdzie tamten
+// komponent sie renderowal — i nie dzialalo tutaj.
+import 'simplebar-react/dist/simplebar.min.css';
 
 import { Div, Flex } from '@salvon/components/div';
 import { NavigationIndicator } from '@salvon/components/progress';
