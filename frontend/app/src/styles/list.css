@@ -490,8 +490,13 @@
    dotad zadnego wspolnego wygladu dla takiego przycisku — wiersze
    magazynu renderowaly gole `button` przegladarki. Wzor wziety
    z `.ge-panes__actions button`, ktory juz tak wygladal. */
+/* ⚠️ Zawezone do `__end`, a nie caly `.ge-segbar`. Zakladki sa
+   `<button>` wewnatrz paska, wiec `.ge-segbar button` (0,1,1) bilo
+   w `.ge-seg__item` (0,1,0) i odbieralo im padding, tlo i obramowania
+   na wszystkich ekranach naraz. Przyciski akcji stoja wylacznie
+   w `.ge-segbar__end` i tylko ich ta regula ma dotyczyc. */
 .ge-stock__actions button,
-.ge-segbar button,
+.ge-segbar__end button,
 .ge-po__foot button {
   border: 0;
   background: none;
@@ -503,7 +508,7 @@
   white-space: nowrap;
 }
 .ge-stock__actions button:hover,
-.ge-segbar button:hover,
+.ge-segbar__end button:hover,
 .ge-po__foot button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
 .ge-stock__actions button:disabled,
 .ge-po__foot button:disabled { color: var(--ge-neutral-400); cursor: default; }
@@ -511,14 +516,14 @@
 /* Zobowiazanie — wyslanie zamowienia, przyjecie towaru — dostaje
    prostokat akcentu. Reszta zostaje tekstem, zeby bylo widac, ktory
    przycisk cos naprawde robi. */
-.ge-segbar button.ge-act--go,
+.ge-segbar__end button.ge-act--go,
 .ge-po__foot button.ge-act--go {
   background: var(--ge-mod);
   color: var(--ge-surface);
   padding: 7px 14px;
   font-size: 13px;
 }
-.ge-segbar button.ge-act--go:hover,
+.ge-segbar__end button.ge-act--go:hover,
 .ge-po__foot button.ge-act--go:hover {
   background: color-mix(in oklab, var(--ge-mod) 85%, black);
   color: var(--ge-surface);

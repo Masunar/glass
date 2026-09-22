@@ -31,9 +31,13 @@ export const parameterBands: {
     titleKey: 'page.parameters.band.surcharge',
     leadKey: 'page.parameters.band.surcharge_lead',
     tone: 'money',
+    // Kolejnosc jak w `PaneCalculator::applySurcharges()`: ksztalt,
+    // pilne, gabaryt, na koncu minimum. Ekran jej nie ustala — ustala
+    // ja kod — ale rozjazd miedzy jednym a drugim mylil przy czytaniu.
     keys: [
-      'oversize_surcharge_percent',
       'shape_surcharge_percent',
+      'urgent_surcharge_percent',
+      'oversize_surcharge_percent',
       'min_pane_surcharge_percent',
       'surcharge_mode',
       'min_price_check',

@@ -282,7 +282,8 @@
       "offer_delivery_time": "Termin realizacji",
       "bank_account_iban": "Rachunek do przedpłat",
       "surcharge_mode": "Łączenie dopłat za kształt i gabaryt",
-      "min_price_check": "Sprawdzenie progu minimalnej ceny"
+      "min_price_check": "Sprawdzenie progu minimalnej ceny",
+      "urgent_surcharge_percent": "Dopłata za formatkę pilną"
     },
     "method_lead": "Dokumentacja nie rozstrzyga, jak łączą się dopłaty ani kiedy sprawdzany jest próg minimalnej ceny. Na formatce 0,2 m² o nieregularnym kształcie różnica wynosi 105,30 zł wobec 70,20 zł, więc ustawienie zostaje tutaj do czasu potwierdzenia na danych ze starego systemu.",
     "option": {
@@ -334,7 +335,7 @@
       "minimum": "Minimum powierzchni",
       "minimum_lead": "poniżej tej wartości liczymy jak dla minimum",
       "surcharge": "Dopłaty",
-      "surcharge_lead": "naliczane po cenie bazowej, w kolejności ustawionej niżej",
+      "surcharge_lead": "naliczane po cenie bazowej, jedna po drugiej — dwie dopłaty składają się, a nie sumują",
       "limits": "Progi i limity",
       "offer": "Oferta"
     },
