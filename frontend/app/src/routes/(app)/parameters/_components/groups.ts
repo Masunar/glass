@@ -9,7 +9,13 @@
  * to dotknie". Bez niej zmiana minimum powierzchni jest liczbą bez
  * konsekwencji — a dotyczy wyłącznie szkła hartowanego.
  */
-export type ParameterBandKey = 'minimum' | 'surcharge' | 'vat' | 'limits' | 'offer';
+export type ParameterBandKey =
+  | 'minimum'
+  | 'surcharge'
+  | 'vat'
+  | 'limits'
+  | 'seller'
+  | 'offer';
 
 export const parameterBands: {
   key: ParameterBandKey;
@@ -72,6 +78,23 @@ export const parameterBands: {
     ],
   },
   {
+    // Dane sprzedawcy stoja osobno od tekstow ofertowych, bo zmienia
+    // sie z innego powodu: tekst handlowiec poprawia, adres firmy
+    // zmienia sie raz na kilka lat i dotyczy kazdego dokumentu, nie
+    // tylko oferty.
+    key: 'seller',
+    titleKey: 'page.parameters.band.seller',
+    leadKey: 'page.parameters.band.seller_lead',
+    tone: 'plain',
+    keys: [
+      'company_name',
+      'company_address',
+      'company_tax_id',
+      'company_phone',
+      'company_email',
+    ],
+  },
+  {
     key: 'offer',
     titleKey: 'page.parameters.band.offer',
     tone: 'plain',
@@ -94,7 +117,7 @@ export const parameterTabs: {
   {
     key: 'all',
     labelKey: 'page.parameters.tab.all',
-    bands: ['minimum', 'surcharge', 'vat', 'limits', 'offer'],
+    bands: ['minimum', 'surcharge', 'vat', 'limits', 'seller', 'offer'],
   },
   {
     key: 'pane',
@@ -103,7 +126,11 @@ export const parameterTabs: {
   },
   { key: 'vat', labelKey: 'page.parameters.tab.vat', bands: ['vat'] },
   { key: 'limits', labelKey: 'page.parameters.tab.limits', bands: ['limits'] },
-  { key: 'offer', labelKey: 'page.parameters.tab.offer', bands: ['offer'] },
+  {
+    key: 'offer',
+    labelKey: 'page.parameters.tab.offer',
+    bands: ['seller', 'offer'],
+  },
 ];
 
 /** Jednostka dopisywana za wartością. Pusta tam, gdzie liczba jest bezwymiarowa. */

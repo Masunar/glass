@@ -84,6 +84,60 @@ final readonly class OrderValue
     }
 
     /**
+     * Kwota każdej listy — także wyłączonej z sumy zlecenia.
+     *
+     * Potrzebne ofercie, bo oferta wariantowa pokazuje alternatywy obok
+     * składników: klient ma zobaczyć, ile kosztuje szkło 8 mm zamiast
+     * 6 mm, mimo że do kwoty zlecenia wchodzi tylko jedno z nich.
+     *
+     * **Dwie drogi liczenia i to jest świadome.** Listy wliczone dostają
+     * kwotę z rozdzielenia rabatu sekcji, razem z resztą z zaokrągleń,
+     * więc ich suma zgadza się z netto zlecenia co do grosza. Lista
+     * wyłączona nie należy do żadnej sekcji w tym sensie — jej rabatu
+     * nie ma z czego rozdzielać — więc dostaje po prostu procent swojej
+     * sekcji. To jest cena, którą klient zapłaciłby po wyborze tego
+     * wariantu, a nie udział w kwocie, której wariant nie tworzy.
+     *
+     * @return array<int, array{net: float, included: bool}>
+     */
+    public function perList(Order $order): array
+    {
+        $percents = $this->percents($order);
+        $included = $this->listNets($this->listBases($order), $percents);
+
+        $rows = [];
+
+        /** @var OrderList $list */
+        foreach ($order->lists as $list) {
+            $id = (int) $list->getKey();
+
+            if ($list->is_included) {
+                $rows[$id] = ['net' => $included[$id] ?? 0.0, 'included' => true];
+
+                continue;
+            }
+
+            $net = 0.0;
+
+            /** @var OrderItem $item */
+            foreach ($list->items as $item) {
+                $amount = (float) $item->amount;
+
+                foreach ($item->processes as $process) {
+                    $amount += (float) $process->amount;
+                }
+
+                $percent = $percents[$item->section->value] ?? 0.0;
+                $net += $amount - round($amount * $percent / 100, 2);
+            }
+
+            $rows[$id] = ['net' => round($net, 2), 'included' => false];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Sumy per stawka. Zaokrąglamy raz na stawkę, a nie na listę:
      * tak liczy się VAT na fakturze i tak zgadza się z księgowością.
      *

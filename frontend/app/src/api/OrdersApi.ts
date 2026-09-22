@@ -1,5 +1,7 @@
 import { ApiRequest } from './ApiRequest';
 
+import type { OfferRow } from './OffersApi';
+
 import type { ResponseContent, ResponseProps } from '@salvon/request';
 
 export type NextStep = {
@@ -116,6 +118,7 @@ export type OrderTabCounts = {
   panes: number;
   drawings: number;
   payments: number;
+  offers: number;
   log: number;
 };
 
@@ -186,6 +189,11 @@ export type OrderCard = {
     outstanding: string;
     exceeds_by: string | null;
     is_gross: boolean;
+  } | null;
+  /** `null` = zlecenie nie było jeszcze ofertowane, a nie „zero ofert". */
+  offers: {
+    count: number;
+    last: OfferRow;
   } | null;
   steps: NextStep[];
   path: OrderPathStep[];

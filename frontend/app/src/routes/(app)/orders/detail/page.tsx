@@ -529,6 +529,52 @@ export default function Page() {
           </section>
 
           <VatLines totals={card.money} t={t} />
+
+          {/* Ostatnia oferta w karcie, a nie tylko w zakladce: pytanie
+              „czy cos do niego poszlo i w jakiej formie" pada przy
+              otwarciu zlecenia, nie po kliknieciu w historie. */}
+          <section className="ge-section">
+            <div className="ge-section__head">
+              {t('page.orders.offers.title')}
+            </div>
+            {card.offers === null ? (
+              <div className="ge-quiet">{t('page.orders.offers.none')}</div>
+            ) : (
+              <div className="ge-section__body">
+                <div className="ge-kv">
+                  <span className="ge-kv__k">{card.offers.last.number}</span>
+                  <span className={`ge-offers__state is-${card.offers.last.status}`}>
+                    {card.offers.last.status_label}
+                  </span>
+                </div>
+                <div className="ge-quiet">
+                  {[
+                    t(
+                      `page.orders.offers.display_${card.offers.last.price_display}`,
+                    ),
+                    t(
+                      `page.orders.offers.detail_${card.offers.last.detail_level}`,
+                    ),
+                    card.offers.last.is_variant
+                      ? t('page.orders.offers.variant')
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+                {card.offers.last.is_expired && (
+                  <div className="ge-note ge-note--warn">
+                    {t('page.orders.offers.expired', {
+                      date: card.offers.last.valid_until ?? '',
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            <Link to={`/orders/${id}/oferty`} className="ge-from__link">
+              {t('page.orders.offers.go')}
+            </Link>
+          </section>
         </aside>
 
         <div className="ge-card__main">
