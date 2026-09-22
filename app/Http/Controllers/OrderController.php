@@ -16,6 +16,7 @@ use App\Services\Orders\OrderService;
 use App\Services\Orders\OrderTransition;
 use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderListService;
+use App\Services\Orders\InvestmentService;
 use App\Services\Orders\OrderFittingService;
 use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
@@ -38,6 +39,7 @@ class OrderController extends ApiController
         private readonly PaymentService $paymentService,
         private readonly OrderListService $listService,
         private readonly OrderFittingService $fittingService,
+        private readonly InvestmentService $investmentService,
     ) {
         $this->protect(
             ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -54,6 +56,7 @@ class OrderController extends ApiController
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
                 'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
+                'saveInvestment',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
@@ -358,6 +361,29 @@ class OrderController extends ApiController
             }
 
             return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /**
+     * Dane inwestycji — rodzaj obiektu i powierzchnia użytkowa.
+     *
+     * Osobny zapis, a nie pole w formularzu zakładania: metraż znany
+     * jest zwykle później niż zlecenie, a decyduje o stawce VAT na
+     * fakturze, więc musi dać się poprawić bez ruszania reszty karty.
+     */
+    public function saveInvestment(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->investmentService->save($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
         });
     }
 

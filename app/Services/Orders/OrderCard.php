@@ -74,7 +74,7 @@ final readonly class OrderCard
             'tabs' => $this->tabs->counts($order),
             'money' => $totals->toArray(),
             'payment' => $this->payment($order, $totals->gross),
-            'credit' => $this->credit($order, (float) $totals->net, $totals->vatRate),
+            'credit' => $this->credit($order, (float) $totals->net, $totals->gross),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
             'path' => $this->path($order),
             // Brakujace przejscie w druga strone: hartownia wiedziala
@@ -135,6 +135,10 @@ final readonly class OrderCard
                 'buyer_address' => $order->buyer_address,
                 'accounting_note' => $order->accounting_note,
             ],
+            // Inwestycja jest w naglowku, a nie przy kwotach, bo to
+            // dana o obiekcie: metraz domu nie zmienia sie od tego, co
+            // jest na liscie. Kwoty tylko z niej korzystaja.
+            'investment' => $this->value->investmentVat($order)?->toArray(),
             // Szacowana liczba dni bierze sie wylacznie z dni wpisanych
             // przy etapach. Daty z niej nie wyprowadzamy: dni mowia, ile
             // pracy jest w srodku, a nie kiedy hala ja zacznie.
@@ -198,7 +202,7 @@ final readonly class OrderCard
      *
      * @return array<string, mixed>|null
      */
-    private function credit(Order $order, float $net, ?int $vatRate): ?array
+    private function credit(Order $order, float $net, ?string $gross): ?array
     {
         $contractor = $order->contractor;
 
@@ -207,7 +211,10 @@ final readonly class OrderCard
         }
 
         $limit = (float) $contractor->credit_limit;
-        $value = $vatRate === null ? $net : $net * (100 + $vatRate) / 100;
+        // Brutto bierzemy gotowe, a nie przeliczamy netto przez stawke:
+        // przy dwoch stawkach na zleceniu jednej stawki po prostu nie ma,
+        // a przelicznik dalby kwote, ktorej nie ma na zadnej fakturze.
+        $value = $gross === null ? $net : (float) $gross;
         $outstanding = (float) $this->balance->outstanding($contractor);
 
         return [
@@ -216,7 +223,7 @@ final readonly class OrderCard
             'order_value' => $this->amount($value),
             'outstanding' => $this->amount($outstanding),
             'exceeds_by' => $outstanding > $limit ? $this->amount($outstanding - $limit) : null,
-            'is_gross' => $vatRate !== null,
+            'is_gross' => $gross !== null,
         ];
     }
 
@@ -334,6 +341,9 @@ final readonly class OrderCard
                 'role' => $list->role->value,
                 'is_included' => (bool) $list->is_included,
                 'is_on_hold' => (bool) $list->is_on_hold,
+                // `null` znaczy „jak w typie faktury" — ekran musi
+                // umiec pokazac te roznice, bo 0 % to inna decyzja.
+                'vat_rate' => $list->vat_rate,
                 'comment' => $list->comment,
                 'net' => $this->amount($net),
                 'items' => $items,

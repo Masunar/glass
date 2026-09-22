@@ -1,4 +1,7 @@
 import OrderTabs from '../_components/OrderTabs';
+import InvestmentDrawer from '../_components/InvestmentDrawer';
+import VatLines from '../_components/VatLines';
+import { vatNote } from '../_components/vat';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PiArrowLeft, PiCaretDown, PiWarningCircle } from 'react-icons/pi';
 import { Link, useParams } from 'react-router';
@@ -33,6 +36,7 @@ export default function Page() {
   const [reasonFor, setReasonFor] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [investmentOpen, setInvestmentOpen] = useState(false);
 
   const load = async () => {
     const { content } = await OrdersApi.card(id);
@@ -100,7 +104,7 @@ export default function Page() {
   }
 
   const due = order.deadline;
-  const vat = card.money.vat_rate;
+  const note = vatNote(card.money, t);
   const paid = card.payment;
 
   return (
@@ -202,15 +206,8 @@ export default function Page() {
           variant="money"
           label={t('page.orders.card.value')}
           value={money(card.money.net)}
-          noteWarn={vat === null}
-          note={
-            vat === null
-              ? t('page.orders.card.no_invoice_type')
-              : t('page.orders.card.value_note', {
-                  vat,
-                  gross: money(card.money.gross ?? '0'),
-                })
-          }
+          noteWarn={note.warn}
+          note={note.text}
           // Kwota bez rozbicia to liczba bez pochodzenia. Sekcje mowia,
           // z czego sie wziela, a rabat pokazuje sie osobno, bo nie jest
           // czescia wyceny pozycji.
@@ -456,6 +453,52 @@ export default function Page() {
               {order.invoice.accounting_note && (
                 <div className="ge-quiet">{order.invoice.accounting_note}</div>
               )}
+
+              {/* Inwestycja stoi przy fakturze, bo tylko na nia wplywa.
+                  Zdanie mowi, co z metrazu wynika — sam metraz nic nie
+                  znaczy, dopoki nie wiadomo, ile z niego idzie na 8 %. */}
+              <div className="ge-kv ge-kv--top">
+                <span className="ge-kv__k">
+                  {t('page.orders.investment.title')}
+                </span>
+                <span>
+                  {order.investment === null
+                    ? t('page.orders.investment.none')
+                    : `${order.investment.type_label}${
+                        order.investment.area_m2 === null
+                          ? ''
+                          : ` · ${order.investment.area_m2} m²`
+                      }`}
+                </span>
+              </div>
+              {order.investment !== null && (
+                <div
+                  className={
+                    order.investment.share === null
+                      ? 'ge-note ge-note--warn'
+                      : 'ge-quiet'
+                  }
+                >
+                  {order.investment.share === null
+                    ? order.investment.reason
+                    : order.investment.is_split
+                      ? t('page.orders.investment.split', {
+                          percent: Math.round(order.investment.share * 100),
+                          reduced: order.investment.reduced_rate,
+                          standard: order.investment.standard_rate,
+                        })
+                      : t('page.orders.investment.within', {
+                          reduced: order.investment.reduced_rate,
+                          limit: order.investment.limit_m2 ?? 0,
+                        })}
+                </div>
+              )}
+              <Button
+                variant="text"
+                onClick={() => setInvestmentOpen(true)}
+              >
+                {t('page.orders.investment.edit')}
+              </Button>
             </div>
           </section>
 
@@ -484,6 +527,8 @@ export default function Page() {
               t={t}
             />
           </section>
+
+          <VatLines totals={card.money} t={t} />
         </aside>
 
         <div className="ge-card__main">
@@ -549,6 +594,17 @@ export default function Page() {
           ))}
         </div>
       </div>
+
+      <InvestmentDrawer
+        orderId={id}
+        investment={order.investment}
+        open={investmentOpen}
+        onClose={() => setInvestmentOpen(false)}
+        onSaved={() => {
+          setInvestmentOpen(false);
+          void load();
+        }}
+      />
     </>
   );
 }

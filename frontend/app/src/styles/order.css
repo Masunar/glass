@@ -636,3 +636,31 @@
   color: var(--ge-neutral-700);
   max-width: 120px;
 }
+
+/* Inwestycja w bloku faktury: etykieta i wartosc moga byc dlugie,
+   wiec wiersz oddycha od gory zamiast sie sciskac. */
+.ge-kv--top { margin-top: 10px; align-items: flex-start; }
+
+/* Rozbicie na stawki — ten sam uklad, co na dole faktury: stawka,
+   netto, VAT, brutto. Liczby prawo do prawej, zeby dalo sie je czytac
+   kolumnami, a nie wierszami. */
+.ge-vat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-vat td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-vat__rate {
+  color: var(--ge-neutral-700);
+  white-space: nowrap;
+}
+.ge-vat__net,
+.ge-vat__vat,
+.ge-vat__gross { text-align: right; }
+.ge-vat__vat { color: var(--ge-neutral-700); }
+.ge-vat__gross { font-weight: 600; }
+.ge-vat__row--warn td { color: var(--m-alert); }

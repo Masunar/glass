@@ -7,6 +7,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Salvon\Model\Dateable;
 use App\Enum\DeliveryMethod;
+use App\Enum\InvestmentType;
 use App\Enum\OrderRelationType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +41,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $buyer_tax_id
  * @property string|null $buyer_address
  * @property string|null $accounting_note
+ * @property InvestmentType|null $investment_type
+ * @property string|null $investment_area_m2
  * @property string|null $shift_reason
  * @property string|null $cancellation_reason
  * @property int|null $created_by
@@ -64,6 +67,7 @@ class Order extends Dateable
         'parent_order_id', 'relation_type',
         'delivery_method', 'pickup_location_id', 'delivery_address', 'delivery_contact',
         'invoice_type_id', 'buyer_name', 'buyer_tax_id', 'buyer_address', 'accounting_note',
+        'investment_type', 'investment_area_m2',
         'is_on_hold', 'hold_reason', 'has_open_claim', 'agreed_contact_on',
         'short_note', 'production_comment', 'installer_comment', 'offer_comment',
         'client_deadline', 'production_deadline', 'shifted_deadline',
@@ -78,6 +82,7 @@ class Order extends Dateable
             'number' => 'integer',
             'relation_type' => OrderRelationType::class,
             'delivery_method' => DeliveryMethod::class,
+            'investment_type' => InvestmentType::class,
             'is_on_hold' => 'boolean',
             'has_open_claim' => 'boolean',
             'agreed_contact_on' => 'date',
