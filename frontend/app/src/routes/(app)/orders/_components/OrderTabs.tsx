@@ -4,7 +4,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 
 import type { OrderTabCounts } from '@app/api/OrdersApi';
 
-type Tab = 'card' | 'panes' | 'drawings' | 'payments' | 'log';
+type Tab = 'card' | 'panes' | 'drawings' | 'payments' | 'offers' | 'log';
 
 /**
  * Zakładki zlecenia — ten sam pasek na każdym z czterech ekranów.
@@ -48,6 +48,12 @@ export default function OrderTabs({
       to: `/orders/${orderId}/platnosci`,
       label: t('page.orders.payments.title'),
       count: counts.payments,
+    },
+    {
+      key: 'offers',
+      to: `/orders/${orderId}/oferty`,
+      label: t('page.orders.offers.title'),
+      count: counts.offers,
     },
     {
       key: 'log',

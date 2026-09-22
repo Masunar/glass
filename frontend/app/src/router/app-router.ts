@@ -55,6 +55,20 @@ export const appRoutes = {
       { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
     ],
   },
+  orderOffers: {
+    path: '/orders/:id/oferty',
+    file: 'orders/oferty',
+    permissions: [
+      { permission: Permission.OFFERS, subPermission: SubPermission.LIST },
+    ],
+  },
+  offers: {
+    path: '/offers',
+    file: 'offers',
+    permissions: [
+      { permission: Permission.OFFERS, subPermission: SubPermission.LIST },
+    ],
+  },
   orderLog: {
     path: '/orders/:id/dziennik',
     file: 'orders/dziennik',

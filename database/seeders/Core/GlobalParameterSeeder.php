@@ -71,6 +71,16 @@ class GlobalParameterSeeder extends Seeder
             ['vat_limit_m2_house', GlobalParameterType::NUMBER, '300', 'Limit powierzchni użytkowej domu jednorodzinnego (art. 41 ust. 12b pkt 1)'],
             ['vat_limit_m2_flat', GlobalParameterType::NUMBER, '150', 'Limit powierzchni użytkowej lokalu mieszkalnego (art. 41 ust. 12b pkt 2)'],
             ['bank_account_iban', GlobalParameterType::IBAN, null, 'Rachunek do przedpłat — do uzupełnienia, nie przenoszę z pola tekstowego starego systemu'],
+
+            // Dane sprzedawcy na ofercie. Zaseedowane puste, bo nie ma
+            // ich nigdzie w systemie ani na żadnym zrzucie starego —
+            // adres firmy wpisany z głowy wyglądałby na wydruku
+            // dokładnie tak samo jak prawdziwy.
+            ['company_name', GlobalParameterType::TEXT, null, 'Nazwa firmy na ofercie — do uzupełnienia'],
+            ['company_address', GlobalParameterType::TEXT, null, 'Adres firmy na ofercie — do uzupełnienia'],
+            ['company_tax_id', GlobalParameterType::TEXT, null, 'NIP na ofercie — do uzupełnienia'],
+            ['company_phone', GlobalParameterType::TEXT, null, 'Telefon na ofercie — do uzupełnienia'],
+            ['company_email', GlobalParameterType::TEXT, null, 'E-mail na ofercie — do uzupełnienia'],
             ['offer_payment_terms', GlobalParameterType::TEMPLATE, 'Warunki płatności: przedpłata na rachunek {{bank_account_iban}}', 'Tekst na ofercie'],
             ['offer_delivery_time', GlobalParameterType::TEMPLATE, 'Termin realizacji: do 30 dni roboczych', 'Tekst na ofercie'],
             ['offer_validity_text', GlobalParameterType::TEMPLATE, 'Ważność oferty: {{offer_validity_days}} dni', 'Tekst na ofercie — liczba podstawiana, żeby nie rozjechała się z parametrem'],

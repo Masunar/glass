@@ -6,6 +6,7 @@ use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -116,6 +117,8 @@ Route::prefix('/production')->name('production_')->group(static function (): voi
     Route::post('/tasks/{task}/reopen', [ProductionController::class, 'reopen'])->name('task_reopen');
 });
 
+Route::get('/offers', [OfferController::class, 'index'])->name('offers_index');
+
 Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/', [OrderController::class, 'board'])->name('board');
     Route::post('/', [OrderController::class, 'create'])->name('create');
@@ -144,6 +147,13 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::delete('/{order}/items/{item}', [OrderController::class, 'deleteItem'])->name('item_delete');
     Route::put('/{order}/discounts', [OrderController::class, 'saveDiscounts'])->name('discounts');
     Route::put('/{order}/investment', [OrderController::class, 'saveInvestment'])->name('investment');
+    // Oferty zlecenia. Trasa szczegolowa `/offers/{offer}/...` idzie
+    // po `/offers`, wiec stalych czlonow nie ma jak pomylic z id.
+    Route::get('/{order}/offers', [OfferController::class, 'forOrder'])->name('offers');
+    Route::post('/{order}/offers', [OfferController::class, 'issue'])->name('offer_issue');
+    Route::post('/{order}/offers/{offer}/sent', [OfferController::class, 'markSent'])->name('offer_sent');
+    Route::post('/{order}/offers/{offer}/accept', [OfferController::class, 'accept'])->name('offer_accept');
+    Route::post('/{order}/offers/{offer}/reject', [OfferController::class, 'reject'])->name('offer_reject');
     Route::get('/{order}/drawings', [OrderController::class, 'drawings'])->name('drawings');
     Route::post('/{order}/drawings', [OrderController::class, 'addDrawing'])->name('drawing_add');
     Route::get('/{order}/drawings/{drawing}', [OrderController::class, 'drawingFile'])->name('drawing_file');

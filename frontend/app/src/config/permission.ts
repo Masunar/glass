@@ -6,6 +6,7 @@ export enum Permission {
   PRODUCTS = 'products',
   CONTRACTORS = 'contractors',
   ORDERS = 'orders',
+  OFFERS = 'offers',
   PRODUCTION = 'production',
   WAREHOUSE = 'warehouse',
   TEMPERING = 'tempering',

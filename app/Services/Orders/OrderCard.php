@@ -12,6 +12,7 @@ use App\Models\OrderItem;
 use App\Models\OrderList;
 use App\Models\AuditEntry;
 use App\Models\ContractorAddress;
+use App\Services\Offers\OfferBoard;
 use App\Services\Production\ProductionQueue;
 use App\Services\Tempering\TemperingBoard;
 
@@ -40,6 +41,7 @@ final readonly class OrderCard
         private ProductionQueue $production = new ProductionQueue(),
         private OrderSchedule $schedule = new OrderSchedule(),
         private TemperingBoard $tempering = new TemperingBoard(),
+        private OfferBoard $offers = new OfferBoard(),
     ) {
     }
 
@@ -75,6 +77,10 @@ final readonly class OrderCard
             'money' => $totals->toArray(),
             'payment' => $this->payment($order, $totals->gross),
             'credit' => $this->credit($order, (float) $totals->net, $totals->gross),
+            // `null` znaczy, ze zlecenie nie bylo jeszcze ofertowane —
+            // inaczej niz „zero ofert", ktore trzeba przeczytac, zeby
+            // dowiedziec sie tego samego.
+            'offers' => $this->offers->summary($order),
             'steps' => array_map(static fn($step): array => $step->toArray(), $steps),
             'path' => $this->path($order),
             // Brakujace przejscie w druga strone: hartownia wiedziala

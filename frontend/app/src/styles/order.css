@@ -664,3 +664,84 @@
 .ge-vat__vat { color: var(--ge-neutral-700); }
 .ge-vat__gross { font-weight: 600; }
 .ge-vat__row--warn td { color: var(--m-alert); }
+
+/* ---------- oferty ---------- */
+
+/* Wiersz oferty odpowiada na pytanie „co poszlo do klienta i w jakiej
+   formie", wiec forma stoi w wierszu, nie w szczegolach. Ostatnia
+   kolumna rosnie do tresci — przyciskow akcji jest raz jeden, raz trzy. */
+.ge-offers__head,
+.ge-offers__row {
+  display: grid;
+  grid-template-columns: 200px 1fr 130px 200px auto;
+  gap: 16px;
+  align-items: start;
+  padding: 9px 0;
+}
+.ge-offers__head--all,
+.ge-offers__row--all {
+  grid-template-columns: 200px 1fr 160px 140px 180px;
+}
+.ge-offers__head {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ge-neutral-800);
+  border-bottom: 1px solid var(--ge-neutral-400);
+}
+.ge-offers__row {
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-offers__row > span { display: block; min-width: 0; }
+.ge-offers__row .r { text-align: right; }
+.ge-offers__by { display: block; font-size: 12px; margin-top: 2px; }
+
+.ge-offers__form { display: flex; flex-wrap: wrap; gap: 5px; }
+.ge-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11.5px;
+  border: 1px solid var(--ge-neutral-400);
+  color: var(--ge-neutral-800);
+}
+.ge-tag--mod {
+  border-color: var(--ge-mod);
+  background: var(--ge-mod-tint);
+}
+
+/* Stan niesie kolor tylko tam, gdzie kolor cos znaczy: przyjeta
+   i odrzucona sa koncowe, dwa pozostale to zwykle oczekiwanie. */
+.ge-offers__state { font-weight: 600; }
+.ge-offers__state.is-accepted { color: var(--m-prod); }
+.ge-offers__state.is-rejected { color: var(--m-alert); }
+
+.ge-offers__actions { display: flex; gap: 10px; justify-content: flex-end; }
+.ge-offers__actions button {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+  padding: 0;
+}
+.ge-offers__actions button:hover:not(:disabled) {
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+}
+.ge-offers__actions button:disabled { opacity: 0.5; cursor: default; }
+
+/* Pytanie o powod albo o wariant rozwija sie pod wierszem, a nie
+   w modalu: decyzja dotyczy tej jednej oferty i widac, ktorej. */
+.ge-offers__ask {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 10px 0 4px;
+}
+.ge-offers__ask .ge-uf { flex: 1; min-width: 260px; }
+.ge-offers__ask-end { display: flex; gap: 8px; margin-left: auto; }

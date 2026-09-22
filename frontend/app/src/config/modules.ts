@@ -61,7 +61,14 @@ export const appModules: AppModule[] = [
         },
       },
       { labelKey: 'page.menu.designers' },
-      { labelKey: 'page.menu.offers' },
+      {
+        labelKey: 'page.menu.offers',
+        path: appRoutes.offers.path,
+        permission: {
+          permission: Permission.OFFERS,
+          subPermission: SubPermission.LIST,
+        },
+      },
     ],
   },
   {

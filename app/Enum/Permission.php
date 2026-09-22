@@ -19,6 +19,7 @@ enum Permission: string
     case PRODUCTS = 'products';
     case CONTRACTORS = 'contractors';
     case ORDERS = 'orders';
+    case OFFERS = 'offers';
     case PRODUCTION = 'production';
     case WAREHOUSE = 'warehouse';
     case TEMPERING = 'tempering';
