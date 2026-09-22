@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Salvon\Regon\Validator\Nip;
 use Salvon\Regon\Validator\Regon;
 use App\Support\Normalize;
+use App\Support\PhoneSearch;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -49,13 +50,22 @@ final readonly class ContractorService
             // kartoteki i nic nie wnosi.
             ->when(mb_strlen($search) >= 3, static function (Builder $q) use ($search): Builder {
                 $like = '%' . $search . '%';
+                $digits = Normalize::digits($search);
 
-                return $q->where(static function (Builder $inner) use ($like): void {
+                return $q->where(static function (Builder $inner) use ($like, $digits): void {
                     $inner->where('name', 'like', $like)
                         ->orWhere('short_name', 'like', $like)
                         ->orWhere('tax_id', 'like', $like)
                         ->orWhere('phone', 'like', $like)
                         ->orWhere('email', 'like', $like);
+
+                    // Numer w bazie ma spacje, wpisywany bywa ciagiem —
+                    // i odwrotnie. Porownanie po samych cyfrach lapie
+                    // oba przypadki; `phone LIKE` wyzej zostaje dla
+                    // szukania po fragmencie z separatorem.
+                    if ($digits !== null && mb_strlen($digits) >= 3) {
+                        PhoneSearch::apply($inner, 'phone', $digits);
+                    }
                 });
             })
             ->orderBy('name')

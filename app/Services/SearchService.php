@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Location;
 use App\Enum\Permission;
 use App\Models\Contractor;
+use App\Support\PhoneSearch;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -133,7 +134,10 @@ final readonly class SearchService
                             ->orWhere('short_name', 'like', '%' . $needle . '%');
 
                         if (mb_strlen($digits) >= 3) {
-                            $inner->orWhere('phone', 'like', '%' . $digits . '%');
+                            // Numer lezy w bazie tak, jak go wpisano —
+                            // ze spacjami. Porownanie po samych cyfrach
+                            // po obu stronach.
+                            PhoneSearch::apply($inner, 'phone', $digits);
                         }
                     },
                 );
@@ -190,9 +194,9 @@ final readonly class SearchService
                 // NIP i telefon wpisuje sie ze spacjami albo bez, wiec
                 // szukamy po samych cyfrach.
                 if (mb_strlen($digits) >= 3) {
-                    $query
-                        ->orWhere('tax_id', 'like', $digits . '%')
-                        ->orWhere('phone', 'like', '%' . $digits . '%');
+                    $query->orWhere('tax_id', 'like', $digits . '%');
+
+                    PhoneSearch::apply($query, 'phone', $digits);
                 }
             })
             ->orderByDesc('is_active')

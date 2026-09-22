@@ -90,6 +90,45 @@ class OrderSearchTest extends TestCase
     }
 
     #[Test]
+    public function telefon_ze_spacjami_znajduje_sie_po_samych_cyfrach(): void
+    {
+        // Wada sprzed tej zmiany, nie tylko w zleceniach: numer lezy
+        // w bazie tak, jak go wpisano, a szukanie porownywalo go
+        // z samymi cyframi. Kartoteka miala to samo i nie miala testu.
+        $this->order(91011, [], 'Gryfino Glass', '91 45 42 475');
+
+        $this->assertContains('#91011', $this->titles('914542'));
+    }
+
+    #[Test]
+    public function telefon_z_prefiksem_kraju_tez_sie_znajduje(): void
+    {
+        $this->order(91012, [], 'Zagranica', '+48 123 456 789');
+
+        $this->assertContains('#91012', $this->titles('123456789'));
+    }
+
+    #[Test]
+    public function kartoteka_kontrahentow_tez_szuka_po_cyfrach(): void
+    {
+        $this->order(91013, [], 'Kartoteka', '603 666 014');
+
+        $found = false;
+
+        foreach ($this->search->search('603666') as $group) {
+            if ($group['key'] !== 'contractors') {
+                continue;
+            }
+
+            /** @var list<array<string, mixed>> $hits */
+            $hits = $group['hits'];
+            $found = $hits !== [];
+        }
+
+        $this->assertTrue($found, 'Kontrahent nie znalazł się po samych cyfrach telefonu.');
+    }
+
+    #[Test]
     public function tresc_szuka_sie_dopiero_od_trzech_znakow(): void
     {
         // `LIKE '%xx%'` po dziesieciu kolumnach nie uzyje indeksu.
