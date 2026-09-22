@@ -39,6 +39,7 @@ final readonly class AccessBoard
 
         foreach ($roles as $role) {
             $granted = $this->resolver->forRole($role);
+            $issues = $this->audit->forRole($role);
 
             $rows[] = [
                 'id' => (int) $role->getKey(),
@@ -46,9 +47,10 @@ final readonly class AccessBoard
                 'is_superuser' => (bool) $role->is_superuser,
                 'permissions' => count($granted),
                 'packages' => $role->packages->count(),
-                // Liczba problemow w wierszu, zeby nie trzeba bylo
-                // wchodzic w kazda role, zeby sprawdzic, czy cos jest nie tak.
-                'issues' => count($this->audit->forRole($role)),
+                'issues' => count($issues),
+                // Nie sama liczba: „2 problemy" kaze wejsc i sprawdzic,
+                // czego dotycza. Nazwy modulow odpowiadaja na to od razu.
+                'issue_labels' => array_values(array_unique(array_column($issues, 'label'))),
             ];
         }
 

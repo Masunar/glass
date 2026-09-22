@@ -32,7 +32,9 @@ export function Demand({ board, t }: { board: DemandBoard | null; t: Translate }
       {rows.map((row) => (
         <div className="ge-stock__row" key={`${row.order_id}-${row.product_id}`}>
           <span>
-            <Link to={`/orders/${row.order_id}`}>#{row.order_number}</Link>
+            <Link to={`/orders/${row.order_id}`} className="ge-link">
+              #{row.order_number}
+            </Link>
           </span>
           <span className="ge-cell--wrap">{row.contractor ?? '—'}</span>
           <span className="ge-quiet">{row.status ?? '—'}</span>

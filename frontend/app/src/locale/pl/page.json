@@ -1311,6 +1311,7 @@
       "update": "Edycja",
       "delete": "Usuwanie",
       "restore": "Przywracanie"
-    }
+    },
+    "role_lead": "Zaznacz, co ta rola ma widzieć i móc zrobić. Dostęp do modułu jest osobny od dostępu do strony."
   }
 }

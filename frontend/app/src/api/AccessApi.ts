@@ -17,6 +17,8 @@ export type RoleRow = {
   permissions: number;
   packages: number;
   issues: number;
+  /** Czego dotyczą — żeby nie trzeba było wchodzić, aby to sprawdzić. */
+  issue_labels: string[];
 };
 
 export type AccessModule = {

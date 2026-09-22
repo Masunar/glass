@@ -149,12 +149,11 @@ export default function Page() {
     <>
       <header className="ge-head">
         <div>
-          <div className="ge-head__kicker">
-            <Link to="/access">
-              <PiArrowLeft /> {t('page.menu.access')}
-            </Link>
-          </div>
+          <Link to="/access" className="ge-back">
+            <PiArrowLeft /> {t('page.menu.access')}
+          </Link>
           <h1 className="ge-head__title">{board.role.name}</h1>
+          <div className="ge-quiet">{t('page.access.role_lead')}</div>
         </div>
 
         {!board.role.is_superuser && (

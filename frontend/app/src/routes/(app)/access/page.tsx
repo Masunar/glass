@@ -57,8 +57,8 @@ export default function Page() {
         {board.roles.map((row) => (
           <div className="ge-acc__row" key={row.id}>
             <span>
-              <Link to={`/access/roles/${row.id}`}>
-                <strong>{row.name}</strong>
+              <Link to={`/access/roles/${row.id}`} className="ge-link">
+                {row.name}
               </Link>
             </span>
             <span className="r">
@@ -76,6 +76,9 @@ export default function Page() {
                 <span className="ge-note ge-note--warn">
                   <PiWarningCircle />{' '}
                   {t('page.access.issue_count', { count: row.issues })}
+                  {row.issue_labels.length > 0 && (
+                    <>: {row.issue_labels.join(', ')}</>
+                  )}
                 </span>
               ) : (
                 <span className="ge-quiet">{t('page.access.ok')}</span>
