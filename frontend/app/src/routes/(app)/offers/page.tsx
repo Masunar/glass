@@ -102,7 +102,7 @@ export default function Page() {
           {board.offers.map((row) => (
             <div className="ge-offers__row ge-offers__row--all" key={row.id}>
               <span>
-                <Link to={`/orders/${row.order_id}/oferty`}>
+                <Link to={`/orders/${row.order_id}/oferty`} className="ge-link">
                   <strong>{row.number}</strong>
                 </Link>
                 <span className="ge-quiet ge-offers__by">

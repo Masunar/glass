@@ -776,7 +776,9 @@
 .ge-acc__head,
 .ge-acc__row {
   display: grid;
-  grid-template-columns: 1fr 140px 110px 260px;
+  /* Ostatnia kolumna rosnie, bo niesie nie tylko liczbe problemow, ale
+     i to, czego dotycza — a nazwy modulow maja zmiescic sie w wierszu. */
+  grid-template-columns: minmax(200px, 1fr) 130px 100px minmax(300px, 1.3fr);
   gap: 16px;
   align-items: baseline;
   padding: 9px 0;
