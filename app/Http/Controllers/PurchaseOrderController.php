@@ -14,6 +14,7 @@ use Salvon\Enum\SubPermission;
 use Illuminate\Http\JsonResponse;
 use App\Models\PurchaseOrderItem;
 use Salvon\Controller\ApiController;
+use App\Services\PriceListService;
 use App\Services\Warehouse\StockBoard;
 use App\Services\Warehouse\PurchaseOrderBoard;
 use App\Services\Warehouse\PurchaseOrderService;
@@ -27,6 +28,7 @@ class PurchaseOrderController extends ApiController
         private readonly PurchaseOrderBoard $board,
         private readonly PurchaseOrderService $service,
         private readonly StockBoard $stock,
+        private readonly PriceListService $priceList,
     ) {
         $this->protect(
             ['index', 'show', 'drift'],
@@ -42,6 +44,15 @@ class PurchaseOrderController extends ApiController
             ['removeItem'],
             Permission::WAREHOUSE->value,
             SubPermission::DELETE->value,
+        );
+        // Ekran rozjazdu stoi w magazynie, ale przeliczenie zmienia
+        // **ceny sprzedazy**. Zaopatrzeniowiec ma widziec rozjazd i nie
+        // miec czym go przeliczyc — stad inne uprawnienie niz reszta
+        // tego kontrolera.
+        $this->protect(
+            ['recalculate'],
+            Permission::PRICE_LIST->value,
+            SubPermission::UPDATE->value,
         );
     }
 
@@ -63,6 +74,31 @@ class PurchaseOrderController extends ApiController
     public function drift(): JsonResponse
     {
         return $this->secure(fn(): JsonResponse => $this->dataResponse($this->stock->priceDrift()));
+    }
+
+    /**
+     * Przeliczenie cennika dla wskazanych produktów.
+     *
+     * Nie liczy niczego po swojemu — `PriceListService` przepuszcza
+     * istniejące współczynniki przez aktualną cenę zakupu i zakłada
+     * nową wersję cennika.
+     */
+    public function recalculate(Request $request): JsonResponse
+    {
+        return $this->secure(function () use ($request): JsonResponse {
+            /** @var list<int> $ids */
+            $ids = array_values(array_unique(array_map(
+                intval(...),
+                (array) $request->input('product_ids', []),
+            )));
+
+            $result = $this->priceList->recalculate($ids);
+
+            return $this->dataResponse([
+                ...$result,
+                'drift' => $this->stock->priceDrift(),
+            ]);
+        });
     }
 
     public function store(Request $request): JsonResponse

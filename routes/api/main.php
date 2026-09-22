@@ -71,6 +71,8 @@ Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void 
     // wpadloby jako identyfikator zamowienia. Ta sama pulapka co przy
     // `/{order}/fittings/set`.
     Route::get('/price-drift', [PurchaseOrderController::class, 'drift'])->name('price_drift');
+    Route::post('/price-drift/recalculate', [PurchaseOrderController::class, 'recalculate'])
+        ->name('price_drift_recalculate');
 
     Route::prefix('/orders')->name('orders_')->group(static function (): void {
         Route::get('/', [PurchaseOrderController::class, 'index'])->name('index');

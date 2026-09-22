@@ -1039,7 +1039,8 @@
       "changed_at": "Od kiedy",
       "coefficient": "Wsp.",
       "list_price": "Cennik",
-      "priced_at": "Cennik z dnia"
+      "priced_at": "Cennik z dnia",
+      "new_list_price": "Po przeliczeniu"
     },
     "tab_orders": "Zamówienia",
     "tab_drift": "Rozjazd cennika",
@@ -1064,7 +1065,11 @@
     "receipts_so_far": "Przyjęcia ({{count}}):",
     "receive_hint": "Przyjęcie zmienia cenę zakupu, ale nie ceny sprzedaży. Co się rozjechało, pokaże zakładka „Rozjazd cennika\".",
     "expand": "Pokaż",
-    "collapse": "Zwiń"
+    "collapse": "Zwiń",
+    "drift_lead": "Cena zakupu zmieniła się po ostatnim przeliczeniu cennika. Zaznacz pozycje i przelicz — cena ręczna zostanie nietknięta.",
+    "recalculate": "Przelicz cennik",
+    "recalculated": "Przeliczono pozycji cennika: {{count}}.",
+    "manual_stays": "ręczna"
   },
   "tempering": {
     "title": "Hartownia",
