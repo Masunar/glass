@@ -256,7 +256,7 @@ export default function Page() {
                       {t('page.orders.panes.urgent')}
                     </span>
                   )}
-                  <Link to={`/orders/${row.order_id}`}>
+                  <Link to={`/orders/${row.order_id}`} className="ge-link">
                     #{row.order_number}
                   </Link>{' '}
                   {row.item ?? '—'}

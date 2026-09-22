@@ -131,7 +131,9 @@ export function Queue({
               />
             </span>
             <span className="r">
-              <Link to={`/orders/${row.order_id}`}>#{row.order_number}</Link>
+              <Link to={`/orders/${row.order_id}`} className="ge-link">
+                #{row.order_number}
+              </Link>
             </span>
             <span className="ge-cell--wrap">{row.contractor ?? '—'}</span>
             <span className="ge-cell--wrap">{row.name}</span>

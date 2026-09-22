@@ -214,6 +214,9 @@ class AccessScreenTest extends TestCase
 
         // Uprawnienie w module bez dostepu do modulu — jeden problem.
         $this->assertSame(1, $row['issues']);
+        // I od razu wiadomo, czego dotyczy: „2 problemy" bez nazwy kaze
+        // wejsc i sprawdzic, a to jest praca, ktorej da sie uniknac.
+        $this->assertSame(['Zlecenia'], $row['issue_labels']);
     }
 
     #[Test]

@@ -8,6 +8,53 @@
    ponad ekran, zeby dokument zaczal sie przewijac pod spodem powloki —
    a wtedy po przewinieciu widac bialy pas tam, gdzie powloka sie
    skonczyla. */
+/* ---------- odnosniki ----------
+
+   Aplikacja **nie miala zadnej reguly dla `a`**, wiec kazdy ekran musial
+   ostylowac swoje linki sam — a tam, gdzie nikt tego nie zrobil, wychodzil
+   domyslny styl przegladarki: niebieski z podkresleniem i fioletowy po
+   odwiedzeniu. W projekcie bez ani jednego fioletu wygladalo to na usterke,
+   bo nia bylo. Siedzialo tak na pieciu ekranach (hartownia, produkcja,
+   magazyn, oferty) i nikt tego nie zglosil, dopoki nie pojawil sie szosty.
+
+   Domyslnie odnosnik **dziedziczy kolor** i nie ma podkreslenia. Kto chce,
+   zeby cos wygladalo na link, bierze `.ge-link` — swiadomie, a nie
+   przypadkiem. Stan odwiedzony celowo nie istnieje: w aplikacji biurowej
+   „bylem tu wczoraj" nie jest informacja, ktora ma zmieniac kolor. */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Odnosnik, ktory ma wygladac na odnosnik: kolor tekstu, grubsza kreska,
+   akcent i podkreslenie dopiero pod kursorem. */
+.ge-link {
+  color: var(--ge-text);
+  font-weight: 600;
+}
+.ge-link:hover {
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  text-decoration: underline;
+}
+
+/* Powrot o poziom wyzej. Stoi nad tytulem we wlasnym wierszu, a nie
+   w slocie nadtytulu (`ge-head__kicker`): tamten jest wersalikowa,
+   akcentowana **etykieta**, wiec link w nim udawal naglowek i przegrywal
+   z tytulem zamiast go poprzedzac. */
+.ge-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  /* neutral-800, nie 700: powrot ma byc **znajdowalny**, tylko nie ma
+     konkurowac z tytulem. Wyciszenie go do szarosci podpisu zamienia
+     jeden problem (zly akcent) na drugi (nie widac). */
+  color: var(--ge-neutral-800);
+  padding-bottom: 4px;
+}
+.ge-back:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+.ge-back svg { width: 14px; height: 14px; }
+
 .ge-shell {
   display: flex;
   height: 100vh;

@@ -349,7 +349,9 @@ function BatchCard({
       {card.items.map((item) => (
         <div className="ge-temp__grid" key={item.id}>
           <span className="r">
-            <Link to={`/orders/${item.order_id}`}>#{item.order_number}</Link>
+            <Link to={`/orders/${item.order_id}`} className="ge-link">
+              #{item.order_number}
+            </Link>
           </span>
           <span className="ge-cell--wrap">{item.name}</span>
           <span className="r ge-quiet">
