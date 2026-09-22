@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Location;
 use App\Enum\Permission;
 use App\Models\Contractor;
+use App\Support\PhoneSearch;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -58,8 +59,47 @@ final readonly class SearchService
     }
 
     /**
+     * Pola zlecenia przeszukiwane po treści, w kolejności, w jakiej
+     * pokazujemy dopasowanie. Etykieta jest po to, żeby trafienie
+     * mówiło, **skąd** się wzięło: „#23908 · Kowalski" nic nie tłumaczy,
+     * gdy ktoś szukał słowa „balustrada".
+     *
+     * Bramką jest to samo uprawnienie, co dla karty zlecenia, a karta
+     * pokazuje wszystkie te pola — łącznie z uwagą księgowości
+     * i komentarzem dla montażysty. Szukanie w nich nie odsłania więc
+     * niczego, czego uprawniony i tak by nie zobaczył.
+     */
+    private const ORDER_TEXT = [
+        'short_note' => 'krótka uwaga',
+        'production_comment' => 'komentarz do zlecenia',
+        'installer_comment' => 'komentarz dla montażysty',
+        'offer_comment' => 'komentarz do oferty',
+        'accounting_note' => 'uwaga księgowości',
+        'hold_reason' => 'powód wstrzymania',
+        'cancellation_reason' => 'powód anulowania',
+        'delivery_address' => 'adres dostawy',
+        'delivery_contact' => 'kontakt do dostawy',
+        'buyer_name' => 'nabywca',
+    ];
+
+    /** Ile znaków treści pokazać wokół dopasowania. */
+    private const SNIPPET = 70;
+
+    /**
+     * Od ilu znaków szukamy w treści.
+     *
+     * Wyżej niż `MIN_LENGTH`, bo `LIKE '%xx%'` po dziesięciu kolumnach
+     * nie skorzysta z żadnego indeksu i przy dwóch znakach przeczesuje
+     * całą tabelę przy każdym naciśnięciu klawisza. Numer i kontrahent
+     * zostają od dwóch znaków — tam wzorzec jest przedrostkowy albo
+     * pole jest krótkie.
+     */
+    private const MIN_TEXT_LENGTH = 3;
+
+    /**
      * Numer zlecenia to pierwsze, czego szuka biuro — i jedyne, co klient
-     * podaje przez telefon. Dlatego ta grupa stoi na górze.
+     * podaje przez telefon. Dlatego ta grupa stoi na górze, a dokładne
+     * trafienie w numer wyprzedza trafienie w treść.
      *
      * @return array<string, mixed>|null
      */
@@ -73,10 +113,41 @@ final readonly class SearchService
 
         $orders = Order::query()
             ->with(['contractor', 'status'])
-            ->when(
-                $digits !== '',
-                static fn(Builder $query): Builder => $query->where('number', 'like', $digits . '%'),
-                static fn(Builder $query): Builder => $query->whereRaw('1 = 0'),
+            ->where(static function (Builder $query) use ($needle, $digits): void {
+                if ($digits !== '') {
+                    $query->orWhere('number', 'like', $digits . '%');
+                }
+
+                if (mb_strlen($needle) >= self::MIN_TEXT_LENGTH) {
+                    foreach (array_keys(self::ORDER_TEXT) as $column) {
+                        $query->orWhere($column, 'like', '%' . $needle . '%');
+                    }
+                }
+
+                // Kontrahent jest tym, po czym biuro szuka najczesciej
+                // zaraz po numerze — a telefon podaje klient, nie my.
+                $query->orWhereHas(
+                    'contractor',
+                    static function (Builder $inner) use ($needle, $digits): void {
+                        $inner
+                            ->where('name', 'like', '%' . $needle . '%')
+                            ->orWhere('short_name', 'like', '%' . $needle . '%');
+
+                        if (mb_strlen($digits) >= 3) {
+                            // Numer lezy w bazie tak, jak go wpisano —
+                            // ze spacjami. Porownanie po samych cyfrach
+                            // po obu stronach.
+                            PhoneSearch::apply($inner, 'phone', $digits);
+                        }
+                    },
+                );
+            })
+            // Trafienie w numer na gore: reszta i tak jest posortowana
+            // od najnowszych, wiec bez tego dokladny numer potrafilby
+            // zniknac pod zleceniami, ktore maja go w komentarzu.
+            ->orderByRaw(
+                $digits === '' ? '1' : 'CASE WHEN number = ? THEN 0 ELSE 1 END',
+                $digits === '' ? [] : [(int) $digits],
             )
             ->orderByDesc('number')
             ->limit(self::PER_GROUP)
@@ -85,12 +156,15 @@ final readonly class SearchService
         $hits = [];
 
         foreach ($orders as $order) {
+            $where = $this->matchedText($order, $needle);
+
             $hits[] = [
                 'id' => (int) $order->getKey(),
                 'title' => '#' . $order->number,
                 'subtitle' => trim(implode(' · ', array_filter([
                     $order->contractor?->displayName(),
                     $order->status?->name,
+                    $where,
                 ]))),
                 'path' => '/orders/' . $order->getKey(),
             ];
@@ -120,9 +194,9 @@ final readonly class SearchService
                 // NIP i telefon wpisuje sie ze spacjami albo bez, wiec
                 // szukamy po samych cyfrach.
                 if (mb_strlen($digits) >= 3) {
-                    $query
-                        ->orWhere('tax_id', 'like', $digits . '%')
-                        ->orWhere('phone', 'like', '%' . $digits . '%');
+                    $query->orWhere('tax_id', 'like', $digits . '%');
+
+                    PhoneSearch::apply($query, 'phone', $digits);
                 }
             })
             ->orderByDesc('is_active')
@@ -256,6 +330,61 @@ final readonly class SearchService
         }
 
         return $this->group('locations', 'Lokalizacje', 'adm', $hits);
+    }
+
+    /**
+     * Które pole zlecenia pasowało i co w nim stoi.
+     *
+     * `null`, gdy dopasowanie poszło przez numer albo kontrahenta —
+     * wtedy widać je już w tytule i podtytule, a powtarzanie tego
+     * trzeci raz zabiera miejsce.
+     */
+    private function matchedText(Order $order, string $needle): ?string
+    {
+        foreach (self::ORDER_TEXT as $column => $label) {
+            /** @var string|null $value */
+            $value = $order->{$column};
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $at = mb_stripos($value, $needle);
+
+            if ($at === false) {
+                continue;
+            }
+
+            return $label . ': ' . $this->snippet($value, $at);
+        }
+
+        return null;
+    }
+
+    /**
+     * Wycinek wokół dopasowania.
+     *
+     * Ucinamy na granicy słowa, bo urwane w połowie wyrazu czyta się
+     * gorzej niż o kilka znaków dłuższe.
+     */
+    private function snippet(string $value, int $at): string
+    {
+        $value = trim((string) preg_replace('/\s+/u', ' ', $value));
+
+        if (mb_strlen($value) <= self::SNIPPET) {
+            return $value;
+        }
+
+        $start = max(0, $at - (int) (self::SNIPPET / 3));
+        $cut = mb_substr($value, $start, self::SNIPPET);
+
+        if ($start > 0) {
+            $space = mb_strpos($cut, ' ');
+            $cut = $space === false ? $cut : mb_substr($cut, $space + 1);
+            $cut = '…' . $cut;
+        }
+
+        return $cut . '…';
     }
 
     /**
