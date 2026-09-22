@@ -98,12 +98,17 @@ final readonly class OrderValue
      * sekcji. To jest cena, którą klient zapłaciłby po wyborze tego
      * wariantu, a nie udział w kwocie, której wariant nie tworzy.
      *
-     * @return array<int, array{net: float, included: bool}>
+     * Brutto jest `null`, gdy stawki listy nie znamy — oferta brutto
+     * nie ma wtedy czego wydrukować i sama się o to upomina.
+     *
+     * @return array<int, array{net: float, included: bool, vat: float|null, gross: float|null, rates: list<int>}>
      */
     public function perList(Order $order): array
     {
         $percents = $this->percents($order);
         $included = $this->listNets($this->listBases($order), $percents);
+        $split = $this->split->for($order);
+        $default = $order->invoiceType?->vat_rate;
 
         $rows = [];
 
@@ -112,26 +117,49 @@ final readonly class OrderValue
             $id = (int) $list->getKey();
 
             if ($list->is_included) {
-                $rows[$id] = ['net' => $included[$id] ?? 0.0, 'included' => true];
+                $net = $included[$id] ?? 0.0;
+            } else {
+                $net = 0.0;
 
-                continue;
-            }
+                /** @var OrderItem $item */
+                foreach ($list->items as $item) {
+                    $amount = (float) $item->amount;
 
-            $net = 0.0;
+                    foreach ($item->processes as $process) {
+                        $amount += (float) $process->amount;
+                    }
 
-            /** @var OrderItem $item */
-            foreach ($list->items as $item) {
-                $amount = (float) $item->amount;
-
-                foreach ($item->processes as $process) {
-                    $amount += (float) $process->amount;
+                    $percent = $percents[$item->section->value] ?? 0.0;
+                    $net += $amount - round($amount * $percent / 100, 2);
                 }
 
-                $percent = $percents[$item->section->value] ?? 0.0;
-                $net += $amount - round($amount * $percent / 100, 2);
+                $net = round($net, 2);
             }
 
-            $rows[$id] = ['net' => round($net, 2), 'included' => false];
+            $share = $this->shareOf($net, $list->vat_rate ?? $default, $split);
+            $vat = null;
+
+            if ($share['unknown'] === 0.0) {
+                $vat = 0.0;
+
+                foreach ($share['buckets'] as $rate => $amount) {
+                    $vat += round($amount * $rate / 100, 2);
+                }
+
+                $vat = round($vat, 2);
+            }
+
+            /** @var list<int> $rates */
+            $rates = array_map('intval', array_keys($share['buckets']));
+            rsort($rates);
+
+            $rows[$id] = [
+                'net' => $net,
+                'included' => (bool) $list->is_included,
+                'vat' => $vat,
+                'gross' => $vat === null ? null : round($net + $vat, 2),
+                'rates' => $rates,
+            ];
         }
 
         return $rows;
@@ -172,41 +200,16 @@ final readonly class OrderValue
                 continue;
             }
 
-            $rate = $list->vat_rate ?? $default;
+            $share = $this->shareOf($listNet, $list->vat_rate ?? $default, $split);
 
-            if ($rate === null) {
-                $unknown += $listNet;
-                $reason ??= 'Zlecenie nie ma typu faktury, a lista nie ma własnej stawki.';
-
-                continue;
+            if ($share['unknown'] !== 0.0) {
+                $unknown += $share['unknown'];
+                $reason ??= $share['reason'];
             }
 
-            // Podzial dotyczy wylacznie list ze stawka obnizona. Szklo
-            // na 23 % nie ma czego dzielic — limit powierzchni odnosi
-            // sie do preferencji, nie do calej sprzedazy.
-            if ($split !== null && $rate === $split->reducedRate) {
-                if ($split->share === null) {
-                    $unknown += $listNet;
-                    $reason ??= $split->reason;
-
-                    continue;
-                }
-
-                $reducedNet = round($listNet * $split->share, 2);
-                $buckets[$split->reducedRate] = ($buckets[$split->reducedRate] ?? 0.0) + $reducedNet;
-
-                // Reszta, a nie druga proporcja: inaczej suma dwoch
-                // zaokraglen rozjezdza sie z netto listy o grosz.
-                $standardNet = round($listNet - $reducedNet, 2);
-
-                if ($standardNet !== 0.0) {
-                    $buckets[$split->standardRate] = ($buckets[$split->standardRate] ?? 0.0) + $standardNet;
-                }
-
-                continue;
+            foreach ($share['buckets'] as $rate => $amount) {
+                $buckets[$rate] = ($buckets[$rate] ?? 0.0) + $amount;
             }
-
-            $buckets[$rate] = ($buckets[$rate] ?? 0.0) + $listNet;
         }
 
         krsort($buckets);
@@ -261,6 +264,50 @@ final readonly class OrderValue
             vatLines: $lines,
             sections: $sections,
         );
+    }
+
+    /**
+     * Rozbicie jednej kwoty netto na stawki VAT.
+     *
+     * Jedno miejsce dla zlecenia i dla pojedynczej listy: oferta brutto
+     * musi pokazać kwotę wariantu, który do zlecenia nie wchodzi, a
+     * druga kopia tej logiki rozjechałaby się przy pierwszej poprawce.
+     *
+     * @return array{buckets: array<int, float>, unknown: float, reason: string|null}
+     */
+    private function shareOf(float $net, ?int $rate, ?InvestmentVat $split): array
+    {
+        if ($rate === null) {
+            return [
+                'buckets' => [],
+                'unknown' => $net,
+                'reason' => 'Zlecenie nie ma typu faktury, a lista nie ma własnej stawki.',
+            ];
+        }
+
+        // Podzial dotyczy wylacznie list ze stawka obnizona. Szklo na
+        // 23 % nie ma czego dzielic — limit powierzchni odnosi sie do
+        // preferencji, nie do calej sprzedazy.
+        if ($split === null || $rate !== $split->reducedRate) {
+            return ['buckets' => [$rate => $net], 'unknown' => 0.0, 'reason' => null];
+        }
+
+        if ($split->share === null) {
+            return ['buckets' => [], 'unknown' => $net, 'reason' => $split->reason];
+        }
+
+        $reduced = round($net * $split->share, 2);
+        // Reszta, a nie druga proporcja: inaczej suma dwoch zaokraglen
+        // rozjezdza sie z netto listy o grosz.
+        $standard = round($net - $reduced, 2);
+
+        $buckets = [$split->reducedRate => $reduced];
+
+        if ($standard !== 0.0) {
+            $buckets[$split->standardRate] = ($buckets[$split->standardRate] ?? 0.0) + $standard;
+        }
+
+        return ['buckets' => $buckets, 'unknown' => 0.0, 'reason' => null];
     }
 
     /**

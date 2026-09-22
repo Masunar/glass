@@ -11,6 +11,7 @@ import type { OfferRow, OrderOffersBoard } from '@app/api/OffersApi';
 import { OffersApi } from '@app/api/OffersApi';
 
 import OfferDrawer from '../_components/OfferDrawer';
+import OfferMailDrawer from '../_components/OfferMailDrawer';
 
 const money = (value: string | null) =>
   value === null
@@ -38,6 +39,7 @@ export default function Page() {
 
   const [board, setBoard] = useState<OrderOffersBoard | null>(null);
   const [issueOpen, setIssueOpen] = useState(false);
+  const [mailFor, setMailFor] = useState<OfferRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
@@ -220,6 +222,25 @@ export default function Page() {
                   </span>
 
                   <span className="ge-offers__actions">
+                    <a
+                      href={OffersApi.pdfUrl(id, row.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t('page.orders.offers.pdf')}
+                    </a>
+                    {row.status !== 'rejected' && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setMailFor(row)}
+                      >
+                        {t('page.orders.offers.send')}
+                      </button>
+                    )}
+                    {/* Oznaczenie recznie zostaje obok wysylki: ofertę
+                        wydrukowana i wreczona na miejscu tez trzeba umiec
+                        odnotowac. */}
                     {row.status === 'issued' && (
                       <button
                         type="button"
@@ -377,6 +398,17 @@ export default function Page() {
           </section>
         </aside>
       </div>
+
+      <OfferMailDrawer
+        orderId={id}
+        offer={mailFor}
+        open={mailFor !== null}
+        onClose={() => setMailFor(null)}
+        onSent={() => {
+          setMailFor(null);
+          void load();
+        }}
+      />
 
       <OfferDrawer
         orderId={id}

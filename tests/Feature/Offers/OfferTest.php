@@ -194,9 +194,9 @@ class OfferTest extends TestCase
         $offer = Offer::query()->firstOrFail();
 
         $this->assertSame('1400.00', $offer->snapshot['sum']['net']);
-        // Brutto zostaje nieznane: alternatywy nie maja policzonego
-        // VAT-u, bo nie wchodza do kwoty zlecenia.
-        $this->assertNull($offer->snapshot['sum']['gross']);
+        // Brutto liczy sie z brutt poszczegolnych list, bo alternatywy
+        // nie wchodza do brutto zlecenia: 1230 + 492.
+        $this->assertSame('1722.00', $offer->snapshot['sum']['gross']);
     }
 
     #[Test]

@@ -151,6 +151,9 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     // po `/offers`, wiec stalych czlonow nie ma jak pomylic z id.
     Route::get('/{order}/offers', [OfferController::class, 'forOrder'])->name('offers');
     Route::post('/{order}/offers', [OfferController::class, 'issue'])->name('offer_issue');
+    Route::get('/{order}/offers/{offer}/pdf', [OfferController::class, 'pdf'])->name('offer_pdf');
+    Route::get('/{order}/offers/{offer}/mail', [OfferController::class, 'mailPreview'])->name('offer_mail');
+    Route::post('/{order}/offers/{offer}/send', [OfferController::class, 'send'])->name('offer_send');
     Route::post('/{order}/offers/{offer}/sent', [OfferController::class, 'markSent'])->name('offer_sent');
     Route::post('/{order}/offers/{offer}/accept', [OfferController::class, 'accept'])->name('offer_accept');
     Route::post('/{order}/offers/{offer}/reject', [OfferController::class, 'reject'])->name('offer_reject');

@@ -1043,7 +1043,21 @@
       "filter_sent": "Wysłane",
       "filter_accepted": "Przyjęte",
       "filter_rejected": "Odrzucone",
-      "contractor": "Kontrahent"
+      "contractor": "Kontrahent",
+      "pdf": "PDF",
+      "send": "Wyślij",
+      "send_title": "Wyślij ofertę {{number}}",
+      "sent_to": "Oferta wysłana na {{address}}.",
+      "mail_to": "Adres odbiorcy",
+      "mail_to_hint": "np. biuro@klient.pl",
+      "mail_to_note": "Podpowiedziany z kartoteki kontrahenta. Możesz go zmienić — użyty adres zapisze się w dzienniku zlecenia.",
+      "mail_to_missing": "Kontrahent nie ma adresu w kartotece — wpisz go tutaj albo uzupełnij kartotekę.",
+      "mail_subject": "Temat",
+      "mail_body": "Treść",
+      "mail_body_note": "Treść przychodzi z szablonu z podstawionym numerem i terminem ważności. Możesz ją poprawić — do klienta pójdzie to, co widzisz.",
+      "mail_attachment": "Załącznik",
+      "mail_reply_to": "Odpowiedź do",
+      "mail_no_reply_to": "brak adresu w Twoim profilu — klient odpisze na skrzynkę firmową"
     }
   },
   "production": {

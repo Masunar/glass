@@ -745,3 +745,28 @@
 }
 .ge-offers__ask .ge-uf { flex: 1; min-width: 260px; }
 .ge-offers__ask-end { display: flex; gap: 8px; margin-left: auto; }
+
+/* Odnosnik do PDF-u wyglada jak akcja, a nie jak link w tresci —
+   stoi w tym samym rzedzie co przyciski wiersza. */
+.ge-offers__actions a {
+  font-size: 13px;
+  color: var(--ge-neutral-700);
+  text-decoration: none;
+}
+.ge-offers__actions a:hover {
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+}
+
+/* Tresc maila jest do czytania i poprawiania, nie do wpisania jednej
+   linijki — stad monospace i wysokosc na kilkanascie wierszy. */
+.ge-mail__body {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.ge-mail__meta {
+  border-top: 1px solid var(--ge-divider);
+  padding-top: 10px;
+  margin-top: 4px;
+}

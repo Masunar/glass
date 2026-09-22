@@ -70,6 +70,16 @@ export type OrderOffersBoard = {
   variants: OfferVariant[];
 };
 
+export type OfferMailPreview = {
+  /** `null`, gdy kontrahent nie ma adresu — wtedy trzeba go wpisać. */
+  to: string | null;
+  subject: string;
+  body: string;
+  attachment: string;
+  /** Adres, na który klient odpisze. */
+  reply_to: string | null;
+};
+
 export type OffersBoard = {
   offers: OfferRow[];
   counts: Record<string, number>;
@@ -96,6 +106,33 @@ export class OffersApi extends ApiRequest {
     data: Record<string, unknown>,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.post(`/orders/${orderId}/offers`, data);
+  }
+
+  /**
+   * Adres pobrania PDF-u — zwykły link, nie zapytanie.
+   *
+   * Plik idzie przez to samo uwierzytelnienie co reszta API, więc
+   * przeglądarka pobiera go sama; przepuszczanie go przez axios
+   * i sklejanie bloba nie dałoby nic poza kodem do utrzymania.
+   */
+  public static pdfUrl(orderId: number, offerId: number): string {
+    return `${this.baseUrl ?? ''}/orders/${orderId}/offers/${offerId}/pdf`;
+  }
+
+  /** Gotowa treść wiadomości do pokazania przed wysłaniem. */
+  public static async mailPreview(
+    orderId: number,
+    offerId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/orders/${orderId}/offers/${offerId}/mail`);
+  }
+
+  public static async send(
+    orderId: number,
+    offerId: number,
+    data: { to: string; subject: string; body: string },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/orders/${orderId}/offers/${offerId}/send`, data);
   }
 
   public static async markSent(

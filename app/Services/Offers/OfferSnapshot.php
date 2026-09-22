@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\OrderList;
 use App\Enum\OfferSumMode;
 use App\Models\GlobalParameter;
+use App\Support\ParameterTemplate;
 use App\Enum\OfferDetailLevel;
 use App\Enum\OfferPriceDisplay;
 use App\Services\Orders\OrderValue;
@@ -73,7 +74,13 @@ final readonly class OfferSnapshot
         /** @var OrderList $list */
         foreach ($order->lists->sortBy('number') as $list) {
             $id = (int) $list->getKey();
-            $row = $perList[$id] ?? ['net' => 0.0, 'included' => (bool) $list->is_included];
+            $row = $perList[$id] ?? [
+                'net' => 0.0,
+                'included' => (bool) $list->is_included,
+                'vat' => null,
+                'gross' => null,
+                'rates' => [],
+            ];
 
             $lists[] = [
                 'id' => $id,
@@ -83,6 +90,13 @@ final readonly class OfferSnapshot
                 'is_included' => $row['included'],
                 'vat_rate' => $list->vat_rate,
                 'net' => $this->money($row['net']),
+                // Stawki listy po podziale z limitu powierzchni: lista
+                // na 8 % przy inwestycji ponad limit ma ich dwie.
+                'rates' => $row['rates'],
+                'vat' => $row['vat'] === null ? null : $this->money($row['vat']),
+                // `null` znaczy, ze stawki nie znamy — oferta brutto
+                // nie ma wtedy czego wydrukowac.
+                'gross' => $row['gross'] === null ? null : $this->money($row['gross']),
                 'comment' => $list->comment,
                 // Pozycje trafiaja do migawki wylacznie przy ofercie
                 // szczegolowej. Zapisywanie ich „na wszelki wypadek"
@@ -110,7 +124,10 @@ final readonly class OfferSnapshot
             'lists' => $lists,
             'totals' => $totals->toArray(),
             'sum' => $this->sum($lists, $sumMode, $totals->net, $totals->gross),
-            'texts' => $this->parameters(self::TEXTS, $on),
+            // Teksty **wyrenderowane**, nie szablony: podstawienie
+            // w chwili wystawienia, bo oferta z lutego nie ma sie
+            // zmieniac, gdy w marcu ktos poprawi numer rachunku.
+            'texts' => $this->texts($on),
         ];
     }
 
@@ -121,9 +138,9 @@ final readonly class OfferSnapshot
      * bo `OrderValue` liczy wyłącznie listy wliczone. `ALL` dokłada
      * alternatywy, `NONE` nie pokazuje nic.
      *
-     * Przy `ALL` brutto zostaje `null`: alternatywy nie mają policzonego
-     * VAT-u, bo nie wchodzą do kwoty zlecenia, a doliczenie ich netto
-     * do gotowego brutto dałoby kwotę, której nie ma żadna stawka.
+     * Przy `ALL` brutto liczy się z brutt poszczególnych list, bo
+     * alternatywy nie wchodzą do brutto zlecenia. Gdy którejkolwiek
+     * listy nie da się policzyć, całość zostaje nieznana.
      *
      * @param list<array<string, mixed>> $lists
      * @return array{mode: string, is_shown: bool, net: string|null, gross: string|null}
@@ -139,16 +156,30 @@ final readonly class OfferSnapshot
         }
 
         $total = 0.0;
+        $totalGross = 0.0;
+        $grossKnown = true;
 
         foreach ($lists as $list) {
             $total += (float) ($list['net'] ?? 0);
+
+            if (($list['gross'] ?? null) === null) {
+                $grossKnown = false;
+
+                continue;
+            }
+
+            $totalGross += (float) $list['gross'];
         }
 
         return [
             'mode' => $mode->value,
             'is_shown' => true,
             'net' => $this->money($total),
-            'gross' => null,
+            // Brutto sumy wszystkiego liczy sie z brutt poszczegolnych
+            // list, a nie z brutto zlecenia: alternatywy do niego nie
+            // wchodza. Gdy ktorejkolwiek listy nie da sie policzyc,
+            // calosc zostaje nieznana — suma z dziura nie jest suma.
+            'gross' => $grossKnown ? $this->money($totalGross) : null,
         ];
     }
 
@@ -202,6 +233,30 @@ final readonly class OfferSnapshot
             'address' => $order->buyer_address,
             'contact' => $contractor?->phone,
         ];
+    }
+
+    /**
+     * Teksty ofertowe z podstawionymi wartościami.
+     *
+     * Tekst, którego nie da się wypełnić w całości, **nie powstaje** —
+     * `ParameterTemplate` zwraca wtedy `null`, a wydruk pomija wiersz.
+     * Zdanie urwane w pół wygląda na kompletne i tym jest gorsze od
+     * jego braku.
+     *
+     * @return array<string, string|null>
+     */
+    private function texts(Carbon $on): array
+    {
+        $values = [];
+
+        foreach (self::TEXTS as $key => $parameter) {
+            $values[$key] = ParameterTemplate::render(
+                GlobalParameter::value($parameter, $on),
+                $on,
+            );
+        }
+
+        return $values;
     }
 
     /**
