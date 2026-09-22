@@ -6,6 +6,7 @@ namespace Tests\Feature\Access;
 
 use Tests\TestCase;
 use App\Models\Role;
+use App\Models\User;
 use App\Models\PermissionPackage;
 use App\Services\Access\AccessBoard;
 use App\Services\Access\AccessService;
@@ -17,9 +18,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 /**
  * Ekran konfiguracji roli i paczek.
  *
- * Pilnowane są tu trzy rzeczy, które są **spłatą** za wybory z planu,
- * a nie ozdobą ekranu: bilans zapisu, zasięg zmiany paczki i to, że
- * roli nadrzędnej nie da się konfigurować.
+ * Pilnowane są tu rzeczy, które są **spłatą** za wybory z planu,
+ * a nie ozdobą ekranu: bilans zapisu, zasięg zmiany paczki, to, że
+ * roli nadrzędnej nie da się konfigurować, i że nadanie przy
+ * użytkowniku dokłada się do roli, zamiast ją dublować.
  */
 class AccessScreenTest extends TestCase
 {
@@ -230,8 +232,156 @@ class AccessScreenTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Edytor paczki
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function edytor_paczki_podaje_zasieg_przed_zapisem(): void
+    {
+        $package = $this->package('Sprzedaż', ['orders.list']);
+        $this->role('Rola A')->packages()->attach($package->getKey());
+        $this->role('Rola B')->packages()->attach($package->getKey());
+
+        $board = $this->board->package((int) $package->getKey());
+
+        // Zasieg **przed** kliknieciem, nie w bilansie po fakcie —
+        // to jedyna operacja dzialajaca na kogos spoza ekranu.
+        $this->assertSame(['Rola A', 'Rola B'], $board['package']['roles']);
+    }
+
+    #[Test]
+    public function edytor_paczki_nie_podpisuje_uprawnien_wlasna_paczka(): void
+    {
+        $package = $this->package('Sprzedaż', ['orders.list']);
+
+        $groups = collect($this->board->package((int) $package->getKey())['groups'])
+            ->keyBy('key');
+        $item = collect($groups['orders']['items'])->firstWhere('name', 'orders.list');
+
+        $this->assertTrue($item['granted']);
+        // Wewnatrz wlasnej paczki napis „paczka Sprzedaz" przy kazdym
+        // wierszu bylby samym szumem.
+        $this->assertNull($item['origin']);
+    }
+
+    #[Test]
+    public function nowa_paczka_zaczyna_od_pustego_drzewa(): void
+    {
+        $board = $this->board->package(null);
+
+        $this->assertNull($board['package']);
+        $granted = collect($board['groups'])->sum('granted');
+        $this->assertSame(0, $granted);
+    }
+
+    // ---------------------------------------------------------------
+    // Uprawnienia ponad rolę
+    // ---------------------------------------------------------------
+
+    #[Test]
+    public function uzytkownik_dostaje_uprawnienie_ponad_role(): void
+    {
+        $user = $this->user('ponad@test.pl', 'Rola A');
+
+        $result = $this->service->saveUser((int) $user->getKey(), [
+            'permissions' => ['warehouse.list'],
+        ]);
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(1, $result['balance']['granted']);
+        $this->assertTrue($user->fresh()?->hasDirectPermission('warehouse.list'));
+    }
+
+    #[Test]
+    public function to_co_daje_rola_nie_zapisuje_sie_drugi_raz(): void
+    {
+        $role = $this->role('Rola A');
+        $role->givePermissionTo('orders.list');
+
+        $user = $this->user('dubel@test.pl', 'Rola A');
+
+        $result = $this->service->saveUser((int) $user->getKey(), [
+            'permissions' => ['orders.list', 'warehouse.list'],
+        ]);
+
+        // Zostawione, przezyloby odebranie uprawnienia roli — i tak
+        // powstaja konta, ktore po degradacji dalej wszystko widza.
+        $this->assertSame(1, $result['balance']['skipped']);
+        $this->assertSame(['warehouse.list'], $user->fresh()?->permissions->pluck('name')->all());
+    }
+
+    #[Test]
+    public function uzytkownikowi_z_rola_nadrzedna_nie_da_sie_nic_nadac(): void
+    {
+        $user = $this->user('admin@test.pl', RoleSeeder::ADMINISTRATOR);
+
+        $result = $this->service->saveUser((int) $user->getKey(), [
+            'permissions' => ['warehouse.list'],
+        ]);
+
+        $this->assertArrayHasKey('user', $result['errors']);
+    }
+
+    #[Test]
+    public function ekran_uzytkownika_oddziela_nadane_wprost_od_roli(): void
+    {
+        $role = $this->role('Rola A');
+        $role->givePermissionTo('orders.list');
+
+        $user = $this->user('mieszane@test.pl', 'Rola A');
+        $user->givePermissionTo('warehouse.list');
+
+        $board = $this->board->user((int) $user->getKey());
+
+        // Tylko nadane wprost da sie tu odznaczyc — reszta nalezy do
+        // roli i odbiera sie ja przy roli.
+        $this->assertSame(['warehouse.list'], $board['direct']);
+
+        $groups = collect($board['groups'])->keyBy('key');
+        $fromRole = collect($groups['orders']['items'])->firstWhere('name', 'orders.list');
+        $this->assertSame('rola Rola A', $fromRole['origin']);
+    }
+
+    #[Test]
+    public function zapis_przy_uzytkowniku_zostawia_slad(): void
+    {
+        $user = $this->user('slad@test.pl', 'Rola A');
+
+        $this->service->saveUser((int) $user->getKey(), [
+            'permissions' => ['warehouse.list'],
+        ]);
+
+        $this->assertDatabaseHas('audit_entries', [
+            'auditable_type' => User::class,
+            'auditable_id' => $user->getKey(),
+            'event' => 'user_permissions_changed',
+        ]);
+    }
+
+    // ---------------------------------------------------------------
     // Pomocnicze
     // ---------------------------------------------------------------
+
+    private function user(string $email, string $roleName): User
+    {
+        /** @var User $user */
+        $user = User::query()->create([
+            'first_name' => 'Jan',
+            'last_name' => 'Testowy',
+            'email' => $email,
+            'password' => 'x',
+            'is_active' => true,
+        ]);
+
+        $user->roles()->attach(
+            Role::query()->firstOrCreate(
+                ['name' => $roleName, 'guard_name' => 'web'],
+                ['name' => $roleName, 'guard_name' => 'web'],
+            ),
+        );
+
+        return $user->fresh() ?? $user;
+    }
 
     private function role(string $name): Role
     {

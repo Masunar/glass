@@ -195,6 +195,97 @@ class AccessCoverageTest extends TestCase
     }
 
     /**
+     * Każde uprawnienie sprawdzane przez kontroler istnieje w rejestrze.
+     *
+     * To jest ta sama rodzina co sieroty, tylko z drugiej strony:
+     * `protect()` na nazwie spoza rejestru nie daje odmowy, tylko
+     * **wyjątek** — spatie rzuca `PermissionDoesNotExist`, więc każdy
+     * poza rolą nadrzędną dostaje błąd serwera zamiast „brak dostępu".
+     * Awaria cicha do chwili, gdy pierwszy nie-administrator kliknie.
+     *
+     * Czytamy zarejestrowane pośredniki, nie kod źródłowy: `protect()`
+     * bywa wołane z `$this->permission`, więc regexp po plikach
+     * zgadywałby wartość, którą kontener zna na pewno.
+     */
+    #[Test]
+    public function kontrolery_chronia_sie_uprawnieniami_z_rejestru(): void
+    {
+        $known = AccessRegistry::names();
+        $unknown = [];
+        $broken = [];
+
+        foreach ($this->controllers() as $class) {
+            try {
+                $controller = app($class);
+            } catch (\Throwable $exception) {
+                $broken[] = $class . ': ' . $exception->getMessage();
+
+                continue;
+            }
+
+            if (!method_exists($controller, 'getMiddleware')) {
+                continue;
+            }
+
+            /** @var list<array{middleware: mixed}> $middleware */
+            $middleware = $controller->getMiddleware();
+
+            foreach ($middleware as $entry) {
+                $name = $entry['middleware'];
+
+                if (!is_string($name) || !str_starts_with($name, 'permission:')) {
+                    continue;
+                }
+
+                $permission = substr($name, strlen('permission:'));
+
+                if (!in_array($permission, $known, true)) {
+                    $unknown[] = $class . ' → ' . $permission;
+                }
+            }
+        }
+
+        $this->assertSame([], $broken, 'Kontrolerów nie dało się utworzyć.');
+        $this->assertSame(
+            [],
+            $unknown,
+            'Uprawnienia sprawdzane przez kontroler, których nie ma w rejestrze. '
+            . 'Takie `protect()` daje błąd serwera, nie odmowę.',
+        );
+    }
+
+    /**
+     * Klasy kontrolerów aplikacji.
+     *
+     * @return list<class-string>
+     */
+    private function controllers(): array
+    {
+        /** @var list<string> $files */
+        $files = glob(app_path('Http/Controllers/*.php')) ?: [];
+        $classes = [];
+
+        foreach ($files as $file) {
+            /** @var class-string $class */
+            $class = 'App\\Http\\Controllers\\' . basename($file, '.php');
+
+            if (!class_exists($class)) {
+                continue;
+            }
+
+            $reflection = new \ReflectionClass($class);
+
+            if ($reflection->isAbstract()) {
+                continue;
+            }
+
+            $classes[] = $class;
+        }
+
+        return $classes;
+    }
+
+    /**
      * Ścieżki tras odczytane z `app-router.ts`.
      *
      * Parsowanie pliku frontu z testu PHP wygląda na hack i nim jest —

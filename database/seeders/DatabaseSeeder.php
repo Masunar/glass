@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
         Core\RoleSeeder::class,
         // Po rolach, bo paczki i nadania wisza na rolach.
         Core\PermissionSeeder::class,
+        // Po uprawnieniach, bo paczka wiaze istniejace wiersze.
+        Core\PermissionPackageSeeder::class,
         Core\StatusSeeder::class,
         Core\ProcessSeeder::class,
         Core\GlassCatalogSeeder::class,

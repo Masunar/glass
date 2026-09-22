@@ -128,7 +128,9 @@ final readonly class AccessRegistry
         ],
         Permission::TEMPERING->value => [
             'module' => 'prod', 'label' => 'Hartownia',
-            'subs' => ['list', 'create', 'update'],
+            // `delete` chroni wyjecie formatki z partii
+            // (`TemperingController::removeItem`).
+            'subs' => ['list', 'create', 'update', 'delete'],
             'page' => 'tempering', 'state' => self::ACTIVE, 'note' => '',
         ],
         Permission::WAREHOUSE->value => [
@@ -138,7 +140,13 @@ final readonly class AccessRegistry
         ],
         Permission::USERS->value => [
             'module' => 'adm', 'label' => 'Użytkownicy',
-            'subs' => ['list', 'create', 'update', 'delete'],
+            // `read` i `restore` nie sa ozdoba: `Route::crud()` zaklada
+            // trasy `GET /users/{id}` i `PUT /users/{id}/restore`,
+            // a `ApiCrudController` chroni je automatycznie. Bez wpisu
+            // uprawnienie nie powstawalo przy zasiewie, a spatie rzuca
+            // wyjatkiem na nieistniejacym — czyli kazdy poza rola
+            // nadrzedna dostawal blad zamiast odmowy.
+            'subs' => ['list', 'read', 'create', 'update', 'delete', 'restore'],
             'page' => 'users', 'state' => self::ACTIVE, 'note' => '',
         ],
         Permission::DICTIONARIES->value => [

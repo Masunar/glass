@@ -5,17 +5,24 @@ declare(strict_types=1);
 namespace App\Services\Access;
 
 use App\Models\Role;
+use App\Models\User;
 use App\Models\AppPage;
 use App\Support\AccessRegistry;
 use App\Models\PermissionPackage;
 
 /**
- * Ekrany ról, uprawnień i paczek.
+ * Ekrany ról, uprawnień, paczek i odstępstw przy użytkowniku.
  *
  * Kształt wzięty ze wzorca: kafelki modułów z licznikiem pokrycia,
  * pod nimi strony, a przy każdym zasobie grupa uprawnień z licznikiem.
  * Licznik jest tu treścią, nie ozdobą — „Strony: 6 z 18" mówi w jednym
  * spojrzeniu to, czego osiemnaście przełączników nie powie wcale.
+ *
+ * Trzy ekrany czytają **ten sam** zestaw uprawnień: rola, paczka
+ * i użytkownik. Różnią się wyłącznie tym, skąd bierze się mapa nadań,
+ * więc `surface()` i `groups()` stoją osobno — gdyby każdy ekran liczył
+ * pokrycie po swojemu, trzy liczniki rozjechałyby się przy pierwszej
+ * nowej stronie.
  */
 final readonly class AccessBoard
 {
@@ -54,7 +61,11 @@ final readonly class AccessBoard
             ];
         }
 
-        return ['roles' => $rows, 'system' => $this->audit->system()];
+        return [
+            'roles' => $rows,
+            'packages' => $this->packageRows(),
+            'system' => $this->audit->system(),
+        ];
     }
 
     /**
@@ -68,15 +79,126 @@ final readonly class AccessBoard
         $role = Role::query()->with(['permissions', 'packages.permissions'])->findOrFail($roleId);
 
         $granted = $this->resolver->forRole($role);
+        $surface = $this->surface($granted);
 
+        return [
+            'role' => [
+                'id' => (int) $role->getKey(),
+                'name' => $role->name,
+                // Rola nadrzedna omija sprawdzanie w calosci, wiec ekran
+                // ma o tym powiedziec, zamiast pokazywac wszystko
+                // zaznaczone i udawac, ze da sie to odznaczyc.
+                'is_superuser' => (bool) $role->is_superuser,
+            ],
+            'modules' => $surface['modules'],
+            'pages' => $surface['pages'],
+            'groups' => $this->groups($granted),
+            'packages' => $this->packagesFor($role),
+            'issues' => $this->audit->forRole($role),
+        ];
+    }
+
+    /**
+     * Zawartość jednej paczki — albo pusty formularz nowej.
+     *
+     * `roles` nie jest ozdobą: paczka jest **wiązaniem**, więc zapis
+     * zmienia każdą rolę, która ją ma. Ekran musi pokazać zasięg,
+     * zanim ktoś kliknie „zapisz", a nie dopiero w bilansie po fakcie.
+     *
+     * @return array<string, mixed>
+     */
+    public function package(?int $packageId): array
+    {
+        $package = $packageId === null
+            ? null
+            : PermissionPackage::query()->with(['permissions', 'roles'])->findOrFail($packageId);
+
+        /** @var array<string, list<array{from: string, name: string|null}>> $granted */
+        $granted = [];
+
+        if ($package !== null) {
+            foreach ($package->permissions as $permission) {
+                // Pusta lista pochodzen: wewnatrz wlasnej paczki napis
+                // „paczka X" przy kazdym wierszu bylby samym szumem.
+                $granted[$permission->name] = [];
+            }
+        }
+
+        $surface = $this->surface($granted);
+
+        return [
+            'package' => $package === null ? null : [
+                'id' => (int) $package->getKey(),
+                'name' => $package->name,
+                'description' => $package->description,
+                'roles' => $package->roles->pluck('name')->all(),
+            ],
+            'modules' => $surface['modules'],
+            'pages' => $surface['pages'],
+            'groups' => $this->groups($granted),
+        ];
+    }
+
+    /**
+     * Uprawnienia użytkownika — z ról i ponad nie.
+     *
+     * Nadania się **dokładają** (U-05): przy użytkowniku da się dodać,
+     * nie da się odebrać. Dlatego to, co daje rola, przychodzi tu
+     * zablokowane razem z pochodzeniem — odznaczalne wygląda na
+     * odbieranie, którego ten model nie robi.
+     *
+     * @return array<string, mixed>
+     */
+    public function user(int $userId): array
+    {
+        /** @var User $user */
+        $user = User::query()
+            ->with(['roles.permissions', 'roles.packages.permissions', 'permissions'])
+            ->findOrFail($userId);
+
+        $granted = $this->resolver->forUser($user);
+        $surface = $this->surface($granted);
+
+        $direct = [];
+
+        foreach ($user->permissions as $permission) {
+            $direct[] = $permission->name;
+        }
+
+        return [
+            'user' => [
+                'id' => (int) $user->getKey(),
+                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'email' => $user->email,
+                'roles' => $user->roles->pluck('name')->all(),
+                // Rola nadrzedna omija sprawdzanie przez Gate::before,
+                // wiec nadawanie jej czegokolwiek ponad role jest puste.
+                'is_superuser' => $user->isSuperUser(),
+            ],
+            'direct' => $direct,
+            'modules' => $surface['modules'],
+            'pages' => $surface['pages'],
+            'groups' => $this->groups($granted),
+        ];
+    }
+
+    /**
+     * Moduły z pokryciem stron i lista stron — dla każdego z ekranów.
+     *
+     * @param array<string, list<array{from: string, name: string|null}>> $granted
+     * @return array{modules: list<array<string, mixed>>, pages: list<array<string, mixed>>}
+     */
+    private function surface(array $granted): array
+    {
         /** @var array<string, int> $pagesByModule */
         $pagesByModule = [];
         /** @var array<string, int> $coveredByModule */
         $coveredByModule = [];
 
+        $pageRows = [];
+
         /** @var iterable<AppPage> $pages */
         $pages = AppPage::query()->with('permission')->orderBy('position')->get();
-        $pageRows = [];
 
         foreach ($pages as $page) {
             $module = $page->module;
@@ -121,21 +243,7 @@ final readonly class AccessBoard
             ];
         }
 
-        return [
-            'role' => [
-                'id' => (int) $role->getKey(),
-                'name' => $role->name,
-                // Rola nadrzedna omija sprawdzanie w calosci, wiec ekran
-                // ma o tym powiedziec, zamiast pokazywac wszystko
-                // zaznaczone i udawac, ze da sie to odznaczyc.
-                'is_superuser' => (bool) $role->is_superuser,
-            ],
-            'modules' => $modules,
-            'pages' => $pageRows,
-            'groups' => $this->groups($granted),
-            'packages' => $this->packagesFor($role),
-            'issues' => $this->audit->forRole($role),
-        ];
+        return ['modules' => $modules, 'pages' => $pageRows];
     }
 
     /**
@@ -186,11 +294,49 @@ final readonly class AccessBoard
      */
     private function origin(array $granted, string $name): ?string
     {
-        if (!array_key_exists($name, $granted)) {
+        $origins = $granted[$name] ?? null;
+
+        // Brak pochodzenia to brak napisu, nie pusty napis: ekran
+        // paczki nadaje uprawnienia bez zrodla i pusty span zostawialby
+        // tam dziure po czyms, czego nigdy nie bylo.
+        if ($origins === null || $origins === []) {
             return null;
         }
 
-        return $this->resolver->describe($granted[$name]);
+        return $this->resolver->describe($origins);
+    }
+
+    /**
+     * Wszystkie paczki — lista na ekranie uprawnień.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function packageRows(): array
+    {
+        $rows = [];
+
+        /** @var iterable<PermissionPackage> $packages */
+        $packages = PermissionPackage::query()
+            ->with('roles')
+            ->withCount('permissions')
+            ->orderBy('name')
+            ->get();
+
+        foreach ($packages as $package) {
+            $rows[] = [
+                'id' => (int) $package->getKey(),
+                'name' => $package->name,
+                'description' => $package->description,
+                'permissions' => (int) ($package->permissions_count ?? 0),
+                'roles' => $package->roles->count(),
+                // Nazwy, nie liczba: „dotyczy 3 rol" kaze zgadywac,
+                // ktorych — a to jest dokladnie to pytanie, ktore sie
+                // zadaje przed zmiana paczki.
+                'role_names' => $package->roles->pluck('name')->all(),
+            ];
+        }
+
+        return $rows;
     }
 
     /**

@@ -1,11 +1,15 @@
+import PackageDrawer from './_components/PackageDrawer';
 import { useEffect, useState } from 'react';
-import { PiWarningCircle } from 'react-icons/pi';
+import { PiPlus, PiWarningCircle } from 'react-icons/pi';
 import { Link } from 'react-router';
 
+import { Button } from '@salvon/components/button';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
 import type { RolesBoard } from '@app/api/AccessApi';
 import { AccessApi } from '@app/api/AccessApi';
+import HasPermission from '@app/components/HasPermission';
+import { Permission, SubPermission } from '@app/config/permission';
 
 /**
  * Role i stan konfiguracji uprawnień.
@@ -18,16 +22,22 @@ import { AccessApi } from '@app/api/AccessApi';
 export default function Page() {
   const t = useTranslation();
   const [board, setBoard] = useState<RolesBoard | null>(null);
+  const [drawer, setDrawer] = useState<{ open: boolean; id: number | null }>({
+    open: false,
+    id: null,
+  });
+
+  const load = async () => {
+    const { content } = await AccessApi.roles();
+    const data: RolesBoard | undefined = content?.data;
+
+    if (data) {
+      setBoard(data);
+    }
+  };
 
   useEffect(() => {
-    void (async () => {
-      const { content } = await AccessApi.roles();
-      const data: RolesBoard | undefined = content?.data;
-
-      if (data) {
-        setBoard(data);
-      }
-    })();
+    void load();
   }, []);
 
   if (!board) {
@@ -88,6 +98,66 @@ export default function Page() {
         ))}
       </section>
 
+      <section className="ge-section">
+        <div className="ge-section__head ge-section__head--strong">
+          {t('page.access.packages')}
+          <span className="ge-section__end">
+            <HasPermission
+              permission={Permission.PERMISSIONS}
+              sub={SubPermission.UPDATE}
+            >
+              <Button
+                variant="text"
+                size="small"
+                icon={<PiPlus />}
+                onClick={() => setDrawer({ open: true, id: null })}
+              >
+                {t('page.access.package_new')}
+              </Button>
+            </HasPermission>
+          </span>
+        </div>
+        <div className="ge-quiet">{t('page.access.packages_note')}</div>
+
+        {board.packages.length === 0 ? (
+          <div className="ge-quiet">{t('page.access.packages_empty')}</div>
+        ) : (
+          <div className="ge-acc__head">
+            <span>{t('page.access.package_name')}</span>
+            <span className="r">{t('page.access.permissions')}</span>
+            <span className="r">{t('page.access.role')}</span>
+            <span>{t('page.access.package_roles')}</span>
+          </div>
+        )}
+
+        {board.packages.length > 0 &&
+          board.packages.map((row) => (
+            <div className="ge-acc__row" key={row.id}>
+              <span>
+                <button
+                  type="button"
+                  className="ge-link ge-acc__as-link"
+                  onClick={() => setDrawer({ open: true, id: row.id })}
+                >
+                  {row.name}
+                </button>
+                {row.description && (
+                  <span className="ge-quiet"> — {row.description}</span>
+                )}
+              </span>
+              <span className="r">{row.permissions}</span>
+              <span className="r">{row.roles > 0 ? row.roles : '—'}</span>
+              {/* Nazwy rol, nie liczba: zmiana paczki dziala na nie
+                  wszystkie, wiec to jest pytanie zadawane przed. */}
+              <span className="ge-quiet">
+                {row.role_names.length > 0
+                  ? row.role_names.join(', ')
+                  : t('page.access.package_unused')}
+              </span>
+            </div>
+          ))}
+      </section>
+
       {board.system.length > 0 && (
         <section className="ge-section">
           <div className="ge-section__head">{t('page.access.system')}</div>
@@ -101,6 +171,16 @@ export default function Page() {
           ))}
         </section>
       )}
+
+      <PackageDrawer
+        id={drawer.id}
+        open={drawer.open}
+        onClose={() => setDrawer({ open: false, id: null })}
+        onSaved={() => {
+          setDrawer({ open: false, id: null });
+          void load();
+        }}
+      />
     </>
   );
 }

@@ -798,6 +798,19 @@
 }
 .ge-acc__row .r { text-align: right; }
 
+/* Nazwa paczki otwiera panel, nie adres — przycisk, ktory ma wygladac
+   i zachowywac sie jak odnosnik, bo sasiaduje z nazwami rol, ktore
+   odnosnikami sa. Bez tego jeden wiersz listy wygladalby na klikalny,
+   a drugi nie, mimo ze oba otwieraja szczegoly. */
+.ge-acc__as-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 /* Kafelek modulu: nazwa, przelacznik i licznik pokrycia. Licznik jest
    trescia kafelka, nie podpisem — „6 z 18" mowi to, czego osiemnascie
    przelacznikow nie powie wcale. */
