@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Spatie\Permission\Models\Role as SpatieRole;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Rola użytkownika.
@@ -36,6 +37,25 @@ class Role extends SpatieRole
             ...parent::casts(),
             'is_superuser' => 'boolean',
         ];
+    }
+
+    /**
+     * Paczki uprawnień nadane tej roli.
+     *
+     * Paczka jest **wiązaniem**: uprawnienia roli to suma nadanych
+     * wprost i tych z paczek, liczona przy każdym pytaniu, a nie
+     * skopiowana w chwili nadania. Zmiana paczki zmienia rolę.
+     *
+     * @return BelongsToMany<PermissionPackage, $this>
+     */
+    public function packages(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            PermissionPackage::class,
+            'role_permission_packages',
+            'role_id',
+            'permission_package_id',
+        );
     }
 
     /**

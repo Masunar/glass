@@ -11,6 +11,8 @@ class DatabaseSeeder extends Seeder
     protected array $seeders = [
         Core\LocationSeeder::class,
         Core\RoleSeeder::class,
+        // Po rolach, bo paczki i nadania wisza na rolach.
+        Core\PermissionSeeder::class,
         Core\StatusSeeder::class,
         Core\ProcessSeeder::class,
         Core\GlassCatalogSeeder::class,
