@@ -770,3 +770,85 @@
   padding-top: 10px;
   margin-top: 4px;
 }
+
+/* ---------- role i uprawnienia ---------- */
+
+.ge-acc__head,
+.ge-acc__row {
+  display: grid;
+  grid-template-columns: 1fr 140px 110px 260px;
+  gap: 16px;
+  align-items: baseline;
+  padding: 9px 0;
+}
+.ge-acc__head {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ge-neutral-800);
+  border-bottom: 1px solid var(--ge-neutral-400);
+}
+.ge-acc__row {
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-acc__row .r { text-align: right; }
+
+/* Kafelek modulu: nazwa, przelacznik i licznik pokrycia. Licznik jest
+   trescia kafelka, nie podpisem — „6 z 18" mowi to, czego osiemnascie
+   przelacznikow nie powie wcale. */
+.ge-acc__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  padding-top: 8px;
+}
+.ge-acc__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--ge-neutral-400);
+  cursor: pointer;
+}
+.ge-acc__tile:hover { border-color: var(--ge-mod); }
+.ge-acc__tile-head { display: flex; align-items: center; gap: 8px; }
+
+.ge-acc__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.ge-acc__item input:disabled { cursor: default; }
+.ge-acc__item code { font-size: 12px; }
+.ge-acc__origin { margin-left: auto; text-align: right; }
+
+.ge-acc__all {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+  margin-left: 12px;
+}
+.ge-acc__all:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+
+.ge-acc__page {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.ge-acc__page code { font-size: 11.5px; }
+
+.ge-acc__issue { padding: 6px 0; border-bottom: 1px solid var(--ge-divider); }
+.ge-acc__issue-label { display: block; font-weight: 600; font-size: 13.5px; }
+.ge-acc__banner { margin-bottom: 12px; }

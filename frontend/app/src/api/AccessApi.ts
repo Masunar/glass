@@ -1,0 +1,128 @@
+import { ApiRequest } from './ApiRequest';
+
+import type { ResponseContent, ResponseProps } from '@salvon/request';
+
+export type AccessIssue = {
+  kind: 'module_without_access' | 'page_without_permission' | 'permission_planned';
+  module: string | null;
+  label: string;
+  detail: string;
+};
+
+export type RoleRow = {
+  id: number;
+  name: string;
+  /** Omija sprawdzanie w całości — nie da się jej konfigurować. */
+  is_superuser: boolean;
+  permissions: number;
+  packages: number;
+  issues: number;
+};
+
+export type AccessModule = {
+  key: string;
+  label: string;
+  access_permission: string;
+  has_access: boolean;
+  /** Skąd rola ma dostęp: rola, paczka, nadane wprost. */
+  access_origin: string | null;
+  pages: number;
+  pages_covered: number;
+};
+
+export type AccessPage = {
+  code: string;
+  path: string;
+  module: string | null;
+  label: string;
+  permission: string | null;
+  is_open: boolean;
+  /** Strona bez uprawnienia — otwiera ją każdy zalogowany. */
+  is_public: boolean;
+};
+
+export type AccessGroupItem = {
+  name: string;
+  sub: string;
+  granted: boolean;
+  origin: string | null;
+};
+
+export type AccessGroup = {
+  key: string;
+  label: string;
+  module: string;
+  page: string | null;
+  /** `planned` = uprawnienie istnieje, ale żaden ekran go nie sprawdza. */
+  state: 'active' | 'planned';
+  note: string;
+  granted: number;
+  total: number;
+  items: AccessGroupItem[];
+};
+
+export type AccessPackage = {
+  id: number;
+  name: string;
+  description: string | null;
+  permissions: number;
+  /** Ile ról tę paczkę ma — czyli kogo dotknie jej zmiana. */
+  roles: number;
+  attached: boolean;
+};
+
+export type RolesBoard = {
+  roles: RoleRow[];
+  system: AccessIssue[];
+};
+
+export type RoleBoard = {
+  role: { id: number; name: string; is_superuser: boolean };
+  modules: AccessModule[];
+  pages: AccessPage[];
+  groups: AccessGroup[];
+  packages: AccessPackage[];
+  issues: AccessIssue[];
+};
+
+export type AccessBalance = {
+  granted: number;
+  added: number;
+  removed: number;
+  roles?: number;
+};
+
+export class AccessApi extends ApiRequest {
+  static prefix: string = '/access';
+
+  public static async roles(): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/roles');
+  }
+
+  public static async role(id: number): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/roles/${id}`);
+  }
+
+  public static async saveRole(
+    id: number,
+    permissions: string[],
+    packages: number[],
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/roles/${id}`, { permissions, packages });
+  }
+
+  public static async savePackage(
+    id: number | null,
+    data: { name: string; description: string | null; permissions: string[] },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return id === null
+      ? await this.post('/packages', data)
+      : await this.put(`/packages/${id}`, data);
+  }
+
+  public static async deletePackage(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/packages/${id}`);
+  }
+}
