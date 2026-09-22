@@ -50,7 +50,34 @@ class EmailTemplateSeeder extends Seeder
                 $this->userMfaSetup(),
                 ['imie', 'kod'],
             ],
+            [
+                EmailTemplateCode::OFFER,
+                'Oferta {{numer_oferty}}',
+                $this->offer(),
+                ['numer_oferty', 'kontrahent', 'wazna_do', 'handlowiec', 'firma'],
+            ],
         ];
+    }
+
+    /**
+     * Treść domyślna, do poprawienia.
+     *
+     * Handlowiec widzi ją gotową przed wysłaniem i może dopisać zdanie —
+     * po rozmowie telefonicznej zwykle chce. Szablon ma pilnować tylko
+     * tego, żeby w mailu **zawsze** znalazł się numer oferty i termin
+     * ważności; reszta jest do przepisania pod Waszym językiem.
+     */
+    private function offer(): string
+    {
+        return <<<'HTML'
+<div class="wrapper-container">
+    <h4 class="header">Dzień dobry,</h4>
+    <p>w załączeniu przesyłamy ofertę nr <strong>{{numer_oferty}}</strong> dla: {{kontrahent}}.</p>
+    <p>Oferta jest ważna do {{wazna_do}}.</p>
+    <p>W razie pytań proszę o kontakt — odpowiedź na tę wiadomość trafi wprost do mnie.</p>
+    <p>Pozdrawiam,<br>{{handlowiec}}<br>{{firma}}</p>
+</div>
+HTML;
     }
 
     private function resetPassword(): string
