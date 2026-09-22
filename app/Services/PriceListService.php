@@ -152,6 +152,85 @@ final readonly class PriceListService
     }
 
     /**
+     * Przeliczenie cennika po zmianie ceny zakupu.
+     *
+     * Nie liczy niczego po swojemu: dla każdej obowiązującej pozycji
+     * cennika wskazanych produktów przepuszcza przez `update()` ten sam
+     * współczynnik i tę samą cenę ręczną. Cena wyliczona bierze się
+     * wtedy z **aktualnej** ceny zakupu, a wersjonowanie robi się samo.
+     *
+     * **Cena ręczna zostaje ręczna.** Zmienia się wyłącznie to, co i tak
+     * wynikało ze współczynnika. Wiersz mimo to dostaje nową wersję —
+     * i to jest ślad, którego się tu szuka: „tego dnia, przy tej cenie
+     * zakupu, zostawiliśmy cenę ręczną".
+     *
+     * @param list<int> $productIds
+     * @return array{recalculated: int, skipped: int}
+     */
+    public function recalculate(array $productIds, ?Carbon $date = null): array
+    {
+        $today = $date ?? Carbon::today();
+
+        if ($productIds === []) {
+            return ['recalculated' => 0, 'skipped' => 0];
+        }
+
+        /** @var iterable<PriceListItem> $items */
+        $items = PriceListItem::query()
+            ->whereIn('product_id', $productIds)
+            ->whereDate('valid_from', '<=', $today)
+            ->where(static function (Builder $query) use ($today): void {
+                $query->whereNull('valid_to')->orWhereDate('valid_to', '>=', $today);
+            })
+            ->get();
+
+        $cells = [];
+        $skipped = 0;
+
+        foreach ($items as $item) {
+            // Pozycja bez wspolczynnika nie ma z czego sie przeliczyc —
+            // jej cena nie zalezy od ceny zakupu.
+            if ((float) $item->coefficient <= 0) {
+                $skipped++;
+
+                continue;
+            }
+
+            $cells[] = [
+                'product_id' => (int) $item->product_id,
+                'price_section_id' => (int) $item->price_section_id,
+                'coefficient' => (string) $item->coefficient,
+                'manual_net_price' => $item->manual_net_price,
+            ];
+        }
+
+        if ($cells !== []) {
+            $this->update($cells, $today);
+        }
+
+        return ['recalculated' => count($cells), 'skipped' => $skipped];
+    }
+
+    /**
+     * Cena sprzedaży, jaka wyjdzie po przeliczeniu.
+     *
+     * Potrzebna **przed** naciśnięciem „przelicz": bez niej decyzja jest
+     * skokiem w ciemno. `null` znaczy, że nie ma czego liczyć — brak
+     * współczynnika albo brak ceny zakupu.
+     */
+    public function previewFor(int $productId, int $priceSectionId, ?Carbon $date = null): ?string
+    {
+        $today = $date ?? Carbon::today();
+        $item = $this->itemAt($productId, $priceSectionId, $today);
+
+        if ($item === null || (float) $item->coefficient <= 0) {
+            return null;
+        }
+
+        return $this->computeFromPurchasePrice($productId, (string) $item->coefficient, $today);
+    }
+
+    /**
      * @param Collection<int, PriceSection> $columns
      * @return list<array<string, mixed>>
      */

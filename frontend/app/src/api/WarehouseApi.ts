@@ -117,6 +117,10 @@ export type DriftRow = {
   priced_at: string;
   coefficient: string;
   list_net_price: string | null;
+  /** Cena, jaka wyjdzie po przeliczeniu. `null` = nie ma z czego. */
+  new_list_price: string | null;
+  /** Cena ręczna nie zmieni się po przeliczeniu. */
+  is_manual: boolean;
 };
 
 export type DriftBoard = {
@@ -232,5 +236,17 @@ export class WarehouseApi extends ApiRequest {
   /** Produkty, których cena zakupu wyprzedziła cennik sprzedaży. */
   public static async priceDrift(): Promise<ResponseProps<ResponseContent>> {
     return await this.get('/price-drift', {});
+  }
+
+  /**
+   * Przeliczenie cennika dla wskazanych produktów.
+   *
+   * Wymaga uprawnienia do **cennika**, nie do magazynu — ekran stoi
+   * w magazynie, ale akcja zmienia ceny sprzedaży.
+   */
+  public static async recalculatePrices(
+    productIds: number[],
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post('/price-drift/recalculate', { product_ids: productIds });
   }
 }

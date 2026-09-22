@@ -173,6 +173,18 @@ final readonly class StockBoard
                 'priced_at' => $pricedAt->valid_from->toDateString(),
                 'coefficient' => $pricedAt->coefficient,
                 'list_net_price' => $pricedAt->effectiveNetPrice(),
+                // Cena, jaka wyjdzie po przeliczeniu — potrzebna
+                // **przed** nacisnieciem „przelicz", bo inaczej decyzja
+                // jest skokiem w ciemno. Ten sam wzor, co w cenniku.
+                'new_list_price' => (float) $pricedAt->coefficient <= 0
+                    ? null
+                    : PriceListItem::computePrice(
+                        $newest->net_price,
+                        (string) $pricedAt->coefficient,
+                    ),
+                // Cena reczna nie zmieni sie po przeliczeniu — zmienia
+                // sie tylko to, co wynikalo ze wspolczynnika.
+                'is_manual' => $pricedAt->manual_net_price !== null,
             ];
         }
 

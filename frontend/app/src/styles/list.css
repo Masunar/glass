@@ -542,7 +542,7 @@
   --cols: 74px minmax(160px, 1fr) 150px 110px 110px 60px 110px 110px 110px;
 }
 .ge-stock--drift {
-  --cols: 120px minmax(180px, 1fr) 100px 100px 110px 90px 110px 110px;
+  --cols: 28px 120px minmax(180px, 1fr) 100px 100px 110px 80px 100px 110px 110px;
 }
 /* Kolumna zaznaczenia przed kodem — reszta bez zmian. */
 .ge-stock--pick {

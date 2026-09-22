@@ -46,6 +46,7 @@ export default function Page() {
   const [shortages, setShortages] = useState(false);
   const [status, setStatus] = useState('open');
   const [selected, setSelected] = useState<number[]>([]);
+  const [driftPicked, setDriftPicked] = useState<number[]>([]);
 
   const loadLevels = useCallback(async () => {
     const { content } = await WarehouseApi.levels(query, shortages);
@@ -209,6 +210,36 @@ export default function Page() {
     setStatus('draft');
   };
 
+  /**
+   * Przeliczenie cennika po zmianie ceny zakupu.
+   *
+   * Odpowiedź niesie świeży rozjazd, więc lista odświeża się z niej,
+   * a nie kolejnym zapytaniem — przeliczone wiersze mają zniknąć
+   * w tej samej chwili, w której akcja się udała.
+   */
+  const recalculate = async () => {
+    const { response, content } = await WarehouseApi.recalculatePrices(driftPicked);
+
+    if (!response.success) {
+      notifyError(t('api.ise'));
+
+      return;
+    }
+
+    const data = content?.data as
+      | { recalculated: number; skipped: number; drift: DriftBoard }
+      | undefined;
+
+    if (data) {
+      setDrift(data.drift);
+      notifySuccess(
+        t('page.warehouse.recalculated', { count: data.recalculated }),
+      );
+    }
+
+    setDriftPicked([]);
+  };
+
   const tabs: { key: Tab; label: string; count: number | null }[] = [
     {
       key: 'levels',
@@ -309,7 +340,22 @@ export default function Page() {
         />
       )}
 
-      {tab === 'drift' && <PriceDrift board={drift} t={t} />}
+      {tab === 'drift' && (
+        <PriceDrift
+          board={drift}
+          t={t}
+          selected={driftPicked}
+          onToggle={(productId) =>
+            setDriftPicked((current) =>
+              current.includes(productId)
+                ? current.filter((id) => id !== productId)
+                : [...current, productId],
+            )
+          }
+          onClear={() => setDriftPicked([])}
+          onRecalculate={() => void recalculate()}
+        />
+      )}
     </>
   );
 }
