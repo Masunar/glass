@@ -73,9 +73,48 @@ export type AccessPackage = {
   attached: boolean;
 };
 
+export type PackageRow = {
+  id: number;
+  name: string;
+  description: string | null;
+  permissions: number;
+  roles: number;
+  /** Nazwy ról, nie sama liczba — to jest pytanie przed zmianą paczki. */
+  role_names: string[];
+};
+
 export type RolesBoard = {
   roles: RoleRow[];
+  packages: PackageRow[];
   system: AccessIssue[];
+};
+
+export type PackageBoard = {
+  package: {
+    id: number;
+    name: string;
+    description: string | null;
+    /** Kogo dotknie zapis — zasięg przed kliknięciem, nie po. */
+    roles: string[];
+  } | null;
+  modules: AccessModule[];
+  pages: AccessPage[];
+  groups: AccessGroup[];
+};
+
+export type UserAccessBoard = {
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    roles: string[];
+    is_superuser: boolean;
+  };
+  /** Nadane wprost, ponad rolę — tylko te da się tu odznaczyć. */
+  direct: string[];
+  modules: AccessModule[];
+  pages: AccessPage[];
+  groups: AccessGroup[];
 };
 
 export type RoleBoard = {
@@ -92,6 +131,8 @@ export type AccessBalance = {
   added: number;
   removed: number;
   roles?: number;
+  /** Pominięte, bo rola i tak je daje — nie błąd, ale nie cisza. */
+  skipped?: number;
 };
 
 export class AccessApi extends ApiRequest {
@@ -111,6 +152,23 @@ export class AccessApi extends ApiRequest {
     packages: number[],
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.put(`/roles/${id}`, { permissions, packages });
+  }
+
+  public static async package(
+    id: number | null,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(id === null ? '/packages/new' : `/packages/${id}`);
+  }
+
+  public static async user(id: number): Promise<ResponseProps<ResponseContent>> {
+    return await this.get(`/users/${id}`);
+  }
+
+  public static async saveUser(
+    id: number,
+    permissions: string[],
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/users/${id}`, { permissions });
   }
 
   public static async savePackage(

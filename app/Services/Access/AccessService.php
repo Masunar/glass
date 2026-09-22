@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Access;
 
 use App\Models\Role;
+use App\Models\User;
 use App\Services\AuditTrail;
 use App\Support\AccessRegistry;
 use App\Models\PermissionPackage;
@@ -13,7 +14,7 @@ use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * Zapis uprawnień roli i paczek.
+ * Zapis uprawnień roli, paczek i nadań ponad rolę.
  *
  * Każdy zapis wraca z **bilansem** — ile nadanych, ile doszło, ile
  * zniknęło. „Zapisano" nie mówi nic o operacji, po której chce się
@@ -22,12 +23,14 @@ use Illuminate\Support\Facades\Validator;
  *
  * Roli nadrzędnej nie da się konfigurować. Omija sprawdzanie przez
  * `Gate::before`, więc odznaczanie jej uprawnień byłoby teatrem:
- * ekran pokazywałby brak, a człowiek dalej by wchodził wszędzie.
+ * ekran pokazywałby brak, a człowiek dalej by wchodził wszędzie. To
+ * samo dotyczy użytkownika, który taką rolę ma.
  */
 final readonly class AccessService
 {
     public function __construct(
         private AuditTrail $audit = new AuditTrail(),
+        private AccessResolver $resolver = new AccessResolver(),
     ) {
     }
 
@@ -105,6 +108,98 @@ final readonly class AccessService
                 'granted' => count($wanted),
                 'added' => count($added),
                 'removed' => count($removed),
+            ],
+        ];
+    }
+
+    /**
+     * Uprawnienia nadane użytkownikowi **ponad rolę** (U-05).
+     *
+     * Suma, nie różnica: przy użytkowniku da się dodać, nie da się
+     * odebrać. Mieszanie obu kierunków dałoby stan, w którym o dostępie
+     * decyduje kolejność czytania reguł — a wtedy na pytanie „dlaczego
+     * on to widzi" nie da się odpowiedzieć bez czytania kodu.
+     *
+     * Nadanie tego, co i tak daje rola, jest **odrzucane w ciszy**:
+     * zostawione, zamieniłoby się w drugie źródło tego samego dostępu,
+     * które przetrwa odebranie uprawnienia roli. Tak powstają konta,
+     * które po degradacji dalej wszystko widzą.
+     *
+     * @param array<string, mixed> $input
+     * @return array{errors: array<string, list<string>>, balance: array{granted: int, added: int, removed: int, skipped: int}|null}
+     */
+    public function saveUser(int $userId, array $input): array
+    {
+        /** @var User $user */
+        $user = User::query()
+            ->with(['roles.permissions', 'roles.packages.permissions', 'permissions'])
+            ->findOrFail($userId);
+
+        if ($user->isSuperUser()) {
+            return [
+                'errors' => ['user' => [
+                    'Ten użytkownik ma rolę nadrzędną, która omija sprawdzanie uprawnień — nadanie czegokolwiek ponad nią niczego by nie zmieniło.',
+                ]],
+                'balance' => null,
+            ];
+        }
+
+        $validator = Validator::make($input, [
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['string'],
+        ]);
+
+        if ($validator->fails()) {
+            /** @var array<string, list<string>> $messages */
+            $messages = $validator->errors()->messages();
+
+            return ['errors' => $messages, 'balance' => null];
+        }
+
+        /** @var list<string> $wanted */
+        $wanted = array_values(array_unique(array_map('strval', (array) $input['permissions'])));
+        $unknown = array_diff($wanted, AccessRegistry::names());
+
+        if ($unknown !== []) {
+            return [
+                'errors' => ['permissions' => [
+                    'Nieznane uprawnienia: ' . implode(', ', $unknown),
+                ]],
+                'balance' => null,
+            ];
+        }
+
+        $fromRoles = [];
+
+        foreach ($user->roles as $role) {
+            foreach (array_keys($this->resolver->forRole($role)) as $name) {
+                $fromRoles[] = $name;
+            }
+        }
+
+        $kept = array_values(array_diff($wanted, $fromRoles));
+        $skipped = count($wanted) - count($kept);
+
+        $before = $user->permissions->pluck('name')->all();
+
+        $user->syncPermissions($kept);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $added = array_values(array_diff($kept, $before));
+        $removed = array_values(array_diff($before, $kept));
+
+        $this->writeUser($user, count($before), count($kept), $added, $removed);
+
+        return [
+            'errors' => [],
+            'balance' => [
+                'granted' => count($kept),
+                'added' => count($added),
+                'removed' => count($removed),
+                // Pominiete nie sa bledem, ale milczenie o nich
+                // wygladaloby jak zgubiony klik.
+                'skipped' => $skipped,
             ],
         ];
     }
@@ -236,6 +331,29 @@ final readonly class AccessService
         }
 
         $this->audit->write(Role::class, (int) $role->getKey(), $changes, 'role_permissions_changed');
+    }
+
+    /**
+     * @param list<string> $added
+     * @param list<string> $removed
+     */
+    private function writeUser(User $user, int $before, int $after, array $added, array $removed): void
+    {
+        $changes = [[
+            'field' => 'uprawnienia ponad rolę',
+            'before' => $before . ' nadanych',
+            'after' => $after . ' nadanych',
+        ]];
+
+        if ($added !== []) {
+            $changes[] = ['field' => 'dodane', 'before' => null, 'after' => implode(', ', $added)];
+        }
+
+        if ($removed !== []) {
+            $changes[] = ['field' => 'usunięte', 'before' => implode(', ', $removed), 'after' => null];
+        }
+
+        $this->audit->write(User::class, (int) $user->getKey(), $changes, 'user_permissions_changed');
     }
 
     /**

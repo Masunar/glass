@@ -8,6 +8,7 @@ import { notifyError, notifySuccess } from '@salvon/utils/notify';
 
 import type { RoleBoard } from '@app/api/AccessApi';
 import { AccessApi } from '@app/api/AccessApi';
+import PermissionTree from '@app/components/access/PermissionTree';
 
 /**
  * Konfiguracja roli.
@@ -184,90 +185,15 @@ export default function Page() {
 
       <div className="ge-card">
         <div className="ge-card__main">
-          <section className="ge-section">
-            <div className="ge-section__head ge-section__head--strong">
-              {t('page.access.modules')}
-            </div>
-            <div className="ge-quiet">{t('page.access.modules_note')}</div>
-
-            <div className="ge-acc__tiles">
-              {board.modules.map((module) => (
-                <label className="ge-acc__tile" key={module.key}>
-                  <span className="ge-acc__tile-head">
-                    <input
-                      type="checkbox"
-                      disabled={board.role.is_superuser}
-                      checked={checked.has(module.access_permission)}
-                      onChange={() => toggle(module.access_permission)}
-                    />
-                    <strong>{module.label}</strong>
-                  </span>
-                  {/* Licznik pokrycia zamiast osiemnastu przelacznikow:
-                      „6 z 18" mowi to samo w jednym spojrzeniu. */}
-                  <span className="ge-quiet">
-                    {t('page.access.pages_covered', {
-                      covered: module.pages_covered,
-                      total: module.pages,
-                    })}
-                  </span>
-                  {module.access_origin && (
-                    <span className="ge-quiet">{module.access_origin}</span>
-                  )}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          {board.groups.map((group) => (
-            <section className="ge-section" key={group.key}>
-              <div className="ge-section__head">
-                {group.label}
-                <span className="ge-section__end ge-quiet">
-                  <code>{group.key}</code> · {group.granted}/{group.total}
-                  {!board.role.is_superuser && (
-                    <button
-                      type="button"
-                      className="ge-acc__all"
-                      onClick={() =>
-                        toggleGroup(
-                          group.items.map((i) => i.name),
-                          group.granted < group.total,
-                        )
-                      }
-                    >
-                      {group.granted < group.total
-                        ? t('page.access.check_all')
-                        : t('page.access.uncheck_all')}
-                    </button>
-                  )}
-                </span>
-              </div>
-
-              {/* Uprawnienie zaplanowane zostaje widoczne z powodem —
-                  ukrycie go zamienialoby przeoczenie w tajemnice. */}
-              {group.state === 'planned' && (
-                <div className="ge-note ge-note--warn">
-                  {t('page.access.planned')}: {group.note}
-                </div>
-              )}
-
-              {group.items.map((item) => (
-                <label className="ge-acc__item" key={item.name}>
-                  <input
-                    type="checkbox"
-                    disabled={board.role.is_superuser || fromPackages.has(item.name)}
-                    checked={checked.has(item.name)}
-                    onChange={() => toggle(item.name)}
-                  />
-                  <span>{t(`page.access.sub.${item.sub}`)}</span>
-                  <code className="ge-quiet">{item.name}</code>
-                  {item.origin && (
-                    <span className="ge-quiet ge-acc__origin">{item.origin}</span>
-                  )}
-                </label>
-              ))}
-            </section>
-          ))}
+          <PermissionTree
+            modules={board.modules}
+            groups={board.groups}
+            checked={checked}
+            locked={fromPackages}
+            disabled={board.role.is_superuser}
+            onToggle={toggle}
+            onToggleGroup={toggleGroup}
+          />
         </div>
 
         <aside className="ge-card__side ge-card__side--right">

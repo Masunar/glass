@@ -1,6 +1,12 @@
+import UserAccessDrawer from './_components/UserAccessDrawer';
 import UserDrawer from './_components/UserDrawer';
 import { useEffect, useMemo, useState } from 'react';
-import { PiEnvelopeSimple, PiPencilSimple, PiPlus } from 'react-icons/pi';
+import {
+  PiEnvelopeSimple,
+  PiPencilSimple,
+  PiPlus,
+  PiShieldCheck,
+} from 'react-icons/pi';
 
 import { Button } from '@salvon/components/button';
 import { Flex } from '@salvon/components/div';
@@ -33,7 +39,7 @@ const columns: Column[] = [
   { labelKey: 'page.users.column.last_login', width: '168px' },
   { labelKey: 'role', width: '150px' },
   { labelKey: 'page.users.column.access', width: '104px' },
-  { labelKey: 'page.users.column.actions', width: '150px' },
+  { labelKey: 'page.users.column.actions', width: '230px' },
 ];
 
 type Filter = 'all' | UserGroupKey;
@@ -74,6 +80,10 @@ export default function Page() {
   const [drawer, setDrawer] = useState<{ open: boolean; user: UserRow | null }>(
     { open: false, user: null },
   );
+  const [access, setAccess] = useState<{ open: boolean; id: number | null }>({
+    open: false,
+    id: null,
+  });
 
   const load = async () => {
     const { content } = await UsersApi.board();
@@ -298,6 +308,25 @@ export default function Page() {
                       </Button>
                     </HasPermission>
 
+                    <HasPermission
+                      permission={Permission.USERS}
+                      sub={SubPermission.READ}
+                    >
+                      {/* Rola nadrzedna omija sprawdzanie w calosci,
+                          wiec nadawanie jej czegokolwiek ponad role
+                          bylo by teatrem — panel tego nie oferuje. */}
+                      {!row.is_superuser && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          icon={<PiShieldCheck />}
+                          onClick={() => setAccess({ open: true, id: row.id })}
+                        >
+                          {t('page.users.access_action')}
+                        </Button>
+                      )}
+                    </HasPermission>
+
                     {group.key === 'invited' && (
                       <HasPermission
                         permission={Permission.USERS}
@@ -329,6 +358,12 @@ export default function Page() {
           setDrawer({ open: false, user: null });
           void load();
         }}
+      />
+
+      <UserAccessDrawer
+        userId={access.id}
+        open={access.open}
+        onClose={() => setAccess({ open: false, id: null })}
       />
     </>
   );

@@ -126,9 +126,14 @@ Route::prefix('/access')->name('access_')->group(static function (): void {
     Route::put('/roles/{role}', [AccessController::class, 'saveRole'])->name('role_save');
     // Stala „packages" przed trasa z parametrem nie koliduje, bo
     // parametr jest liczba — ale kolejnosc zostaje dla czytelnosci.
+    Route::get('/packages/new', [AccessController::class, 'package'])->name('package_new');
+    Route::get('/packages/{package}', [AccessController::class, 'package'])->name('package');
     Route::post('/packages', [AccessController::class, 'savePackage'])->name('package_create');
     Route::put('/packages/{package}', [AccessController::class, 'savePackage'])->name('package_update');
     Route::delete('/packages/{package}', [AccessController::class, 'deletePackage'])->name('package_delete');
+    // Odstepstwa przy uzytkowniku: nadania ponad role (U-05).
+    Route::get('/users/{user}', [AccessController::class, 'user'])->name('user');
+    Route::put('/users/{user}', [AccessController::class, 'saveUser'])->name('user_save');
 });
 
 Route::prefix('/orders')->name('orders_')->group(static function (): void {

@@ -253,7 +253,13 @@
     "meta_roles_one": "{{count}} rola",
     "meta_roles_few": "{{count}} role",
     "meta_roles_many": "{{count}} ról",
-    "meta_roles_other": "{{count}} ról"
+    "meta_roles_other": "{{count}} ról",
+    "access_action": "Dostęp",
+    "access_kicker": "Uprawnienia ponad rolę",
+    "access_title": "Dostęp użytkownika",
+    "access_note": "Tu się dokłada, nie odbiera. Uprawnienia z roli są zaznaczone i zablokowane — odebrać je można tylko przy roli.",
+    "access_superuser": "Ten użytkownik ma rolę nadrzędną, która omija sprawdzanie uprawnień w całości. Nadanie czegokolwiek ponad nią niczego by nie zmieniło.",
+    "access_saved": "Zapisane. Nadane wprost: {{granted}} · dodane: {{added}} · usunięte: {{removed}}."
   },
   "parameters": {
     "title": "Parametry wyceny",
@@ -1312,6 +1318,18 @@
       "delete": "Usuwanie",
       "restore": "Przywracanie"
     },
-    "role_lead": "Zaznacz, co ta rola ma widzieć i móc zrobić. Dostęp do modułu jest osobny od dostępu do strony."
+    "role_lead": "Zaznacz, co ta rola ma widzieć i móc zrobić. Dostęp do modułu jest osobny od dostępu do strony.",
+    "package_new": "Nowa paczka",
+    "package_edit": "Paczka uprawnień",
+    "package_name": "Nazwa i opis",
+    "package_hint": "Nazwa ma powiedzieć, komu paczka służy — bez niej nie da się jej nadać świadomie.",
+    "package_saved": "Zapisane. Nadane: {{granted}} · dodane: {{added}} · usunięte: {{removed}}. Dotyczy ról: {{roles}}.",
+    "package_deleted": "Paczka usunięta.",
+    "package_reach_one": "Zmiana dotknie {{count}} rolę",
+    "package_reach_few": "Zmiana dotknie {{count}} role",
+    "package_reach_many": "Zmiana dotknie {{count}} ról",
+    "package_reach_other": "Zmiana dotknie {{count}} ról",
+    "package_unused": "nienadana żadnej roli",
+    "package_roles": "Nadana rolom"
   }
 }
