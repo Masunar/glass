@@ -31,6 +31,12 @@ use App\Enum\GlobalParameterType;
  *    kilkuset złotych na pozycji. Wartości domyślne odpowiadają
  *    zachowaniu odczytanemu z opisu wzoru; gdy odtworzymy je z danych
  *    starego systemu, poprawka będzie zmianą wiersza, nie kodu.
+ * 5. Doszły stawki VAT i limity powierzchni. Stary system nie miał ich
+ *    nigdzie — stawkę brał z typu faktury, a zlecenie mieszane
+ *    obchodził pozycją „uzgodnione netto 50/50" ze stawką 12 %, której
+ *    polski VAT nie zna. Wartości limitów są ustawowe (300 m² dom,
+ *    150 m² lokal), ale stoją tu, a nie w kodzie, bo ustawa się zmienia
+ *    częściej niż schemat bazy.
  */
 class GlobalParameterSeeder extends Seeder
 {
@@ -55,6 +61,15 @@ class GlobalParameterSeeder extends Seeder
             ['max_pane_height_mm', GlobalParameterType::NUMBER, '2250', 'Maksymalna wysokość formatki — wymiar standardowej tafli'],
             ['offer_validity_days', GlobalParameterType::NUMBER, '10', 'Ważność oferty w dniach'],
             ['assembly_duration_days', GlobalParameterType::NUMBER, '7', 'Czas montażu w dniach'],
+
+            // VAT: stawki i limity powierzchni z art. 41 ust. 12b ustawy
+            // o VAT. Limity są parametrem, a nie stałą w kodzie, bo to
+            // liczby ustawowe — zmieniały się i zmienią się znowu, a
+            // wtedy poprawka ma być wpisem w słowniku, nie wdrożeniem.
+            ['vat_reduced_rate', GlobalParameterType::PERCENT, '8', 'Stawka obniżona — budownictwo objęte społecznym programem mieszkaniowym'],
+            ['vat_standard_rate', GlobalParameterType::PERCENT, '23', 'Stawka podstawowa — na nią idzie nadwyżka ponad limit powierzchni'],
+            ['vat_limit_m2_house', GlobalParameterType::NUMBER, '300', 'Limit powierzchni użytkowej domu jednorodzinnego (art. 41 ust. 12b pkt 1)'],
+            ['vat_limit_m2_flat', GlobalParameterType::NUMBER, '150', 'Limit powierzchni użytkowej lokalu mieszkalnego (art. 41 ust. 12b pkt 2)'],
             ['bank_account_iban', GlobalParameterType::IBAN, null, 'Rachunek do przedpłat — do uzupełnienia, nie przenoszę z pola tekstowego starego systemu'],
             ['offer_payment_terms', GlobalParameterType::TEMPLATE, 'Warunki płatności: przedpłata na rachunek {{bank_account_iban}}', 'Tekst na ofercie'],
             ['offer_delivery_time', GlobalParameterType::TEMPLATE, 'Termin realizacji: do 30 dni roboczych', 'Tekst na ofercie'],

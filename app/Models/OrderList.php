@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ListRole $role
  * @property bool $is_included
  * @property bool $is_on_hold
+ * @property int|null $vat_rate
  * @property string|null $comment
  * @property-read Collection<int, OrderItem> $items
  */
@@ -32,7 +33,7 @@ class OrderList extends Dateable
 
     protected $fillable = [
         'order_id', 'number', 'name', 'role', 'start_type',
-        'is_included', 'is_on_hold', 'comment',
+        'is_included', 'is_on_hold', 'vat_rate', 'comment',
     ];
 
     protected function casts(): array
@@ -42,6 +43,7 @@ class OrderList extends Dateable
             'role' => ListRole::class,
             'is_included' => 'boolean',
             'is_on_hold' => 'boolean',
+            'vat_rate' => 'integer',
         ];
     }
 

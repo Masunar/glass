@@ -86,6 +86,8 @@ export type OrderCardList = {
   /** Wyłączona nie należy do zlecenia; wstrzymana należy, ale nie idzie dalej. */
   is_included: boolean;
   is_on_hold: boolean;
+  /** `null` = jak w typie faktury. Nie to samo co `0`. */
+  vat_rate: number | null;
   comment: string | null;
   net: string;
   items: OrderCardItem[];
@@ -156,6 +158,8 @@ export type OrderCard = {
       buyer_address: string | null;
       accounting_note: string | null;
     };
+    /** `null` = zwykła sprzedaż, bez budownictwa mieszkaniowego. */
+    investment: InvestmentVat | null;
     deadline: {
       client: string | null;
       production: string | null;
@@ -302,6 +306,8 @@ export type OrderItemsList = {
   role: 'component' | 'alternative';
   is_included: boolean;
   is_on_hold: boolean;
+  /** `null` = jak w typie faktury. Nie to samo co `0`. */
+  vat_rate: number | null;
   comment: string | null;
   net: string;
   /** Najdłuższa formatka listy — formatki idą przez halę równolegle. */
@@ -323,6 +329,31 @@ export type OrderFittingRow = OrderPaneRow & {
   code?: string | null;
 };
 
+/**
+ * Podział stawki obniżonej dla inwestycji mieszkaniowej.
+ *
+ * `share === null` znaczy **nie wiemy** — nie „zero" i nie „całość".
+ * `reason` mówi, czego brakuje, żeby ekran nie musiał zgadywać.
+ */
+export type InvestmentVat = {
+  type: 'house' | 'flat';
+  type_label: string;
+  reduced_rate: number;
+  standard_rate: number;
+  limit_m2: number | null;
+  area_m2: number | null;
+  share: number | null;
+  is_split: boolean;
+  reason: string | null;
+};
+
+export type OrderVatLine = {
+  rate: number;
+  net: string;
+  vat: string;
+  gross: string;
+};
+
 export type OrderTotals = {
   /** Suma pozycji przed rabatem. */
   base: string;
@@ -330,9 +361,15 @@ export type OrderTotals = {
   discount: string;
   net: string;
   excluded_net: string;
+  /** Jedyna stawka zlecenia. `null` przy kilku stawkach albo gdy którejś nie znamy. */
   vat_rate: number | null;
   vat: string | null;
   gross: string | null;
+  /** Netto bez znanej stawki — powód, dla którego brutto jest `null`. */
+  unknown_net: string;
+  unknown_reason: string | null;
+  mixed_vat: boolean;
+  vat_lines: OrderVatLine[];
   sections: {
     section: string;
     base: string;
@@ -366,6 +403,12 @@ export type OrderItemsBoard = {
     days: number | null;
   };
   discounts: OrderDiscountRow[];
+  vat: {
+    /** Stawka z typu faktury — to znaczy `vat_rate: null` na liście. */
+    default_rate: number | null;
+    rates: number[];
+    investment: InvestmentVat | null;
+  };
   catalogue: {
     products: {
       id: number;
@@ -610,6 +653,17 @@ export class OrdersApi extends ApiRequest {
     return await this.put(`/${id}/items/${itemId}/list`, {
       order_list_id: listId,
     });
+  }
+
+  /** Rodzaj obiektu i powierzchnia użytkowa — od nich zależy stawka VAT. */
+  public static async saveInvestment(
+    id: number,
+    data: {
+      investment_type: string | null;
+      investment_area_m2: string | number | null;
+    },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/investment`, data);
   }
 
   public static async saveDiscounts(

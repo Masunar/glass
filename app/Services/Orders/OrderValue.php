@@ -10,9 +10,10 @@ use App\Models\OrderItem;
 use App\Models\OrderList;
 use App\Models\OrderDiscount;
 use App\DTO\Orders\OrderTotals;
+use App\DTO\Orders\InvestmentVat;
 
 /**
- * Wartość zlecenia: sumy pozycji i rabat na zleceniu.
+ * Wartość zlecenia: sumy pozycji, rabat i VAT.
  *
  * Rabat to **czwarty i ostatni poziom ceny** (`10-zlecenia.md` §5.2):
  * katalog → sekcja cenowa kontrahenta → cena indywidualna → rabat na
@@ -28,20 +29,201 @@ use App\DTO\Orders\OrderTotals;
  * Rabaty per sekcja **nie sumują się procentowo**: 10 % na szkle i 5 %
  * na usługach to nie jest 15 % na zleceniu. Stąd rabat łączny wychodzi
  * wyłącznie kwotowo.
+ *
+ * ## VAT
+ *
+ * Stawka siedzi na liście, nie na zleceniu: montaż w budynku
+ * mieszkalnym idzie na 8 %, a szkło w tym samym zleceniu na 23 %.
+ * `order_lists.vat_rate = null` znaczy „jak w typie faktury", nie
+ * „zero". Gdy i typu faktury nie ma, kwota trafia do koszyka
+ * „stawka nieznana" i brutto całego zlecenia jest `null` — bo sumy
+ * z dziurą podać się nie da.
+ *
+ * Rabat jest liczony na sekcję, a stawka na listę, więc rabat sekcji
+ * trzeba **rozdzielić na listy** proporcjonalnie do ich udziału w tej
+ * sekcji. Reszta z zaokrągleń ląduje na ostatniej liście danej sekcji,
+ * żeby suma netto list zgadzała się z netto zlecenia co do grosza.
  */
 final readonly class OrderValue
 {
+    public function __construct(
+        private VatSplit $split = new VatSplit(),
+    ) {
+    }
+
     public function totals(Order $order): OrderTotals
     {
         $percents = $this->percents($order);
-        $bases = $this->bases($order);
+        $listBases = $this->listBases($order);
 
-        $sections = [];
+        [$sections, $base, $discount] = $this->sections($listBases, $percents);
+
+        $net = round($base - $discount, 2);
+        $listNets = $this->listNets($listBases, $percents);
+
+        return $this->withVat(
+            $order,
+            $listNets,
+            base: $base,
+            discount: $discount,
+            net: $net,
+            sections: $sections,
+        );
+    }
+
+    /** Sama kwota netto po rabacie — dla list i warunków przejść. */
+    public function net(Order $order): string
+    {
+        return $this->totals($order)->net;
+    }
+
+    /** Podział stawki obniżonej albo `null`, gdy zlecenie nie ma inwestycji. */
+    public function investmentVat(Order $order): ?InvestmentVat
+    {
+        return $this->split->for($order);
+    }
+
+    /**
+     * Sumy per stawka. Zaokrąglamy raz na stawkę, a nie na listę:
+     * tak liczy się VAT na fakturze i tak zgadza się z księgowością.
+     *
+     * @param array<int, float> $listNets
+     * @param list<array{section: string, base: string, percent: string, discount: string, net: string}> $sections
+     */
+    private function withVat(
+        Order $order,
+        array $listNets,
+        float $base,
+        float $discount,
+        float $net,
+        array $sections,
+    ): OrderTotals {
+        $split = $this->split->for($order);
+        $default = $order->invoiceType?->vat_rate;
+
+        /** @var array<int, float> $buckets */
+        $buckets = [];
+        $unknown = 0.0;
+        $reason = null;
+
+        /** @var OrderList $list */
+        foreach ($order->lists as $list) {
+            if (!$list->is_included) {
+                continue;
+            }
+
+            $listNet = $listNets[(int) $list->getKey()] ?? 0.0;
+
+            if ($listNet === 0.0) {
+                continue;
+            }
+
+            $rate = $list->vat_rate ?? $default;
+
+            if ($rate === null) {
+                $unknown += $listNet;
+                $reason ??= 'Zlecenie nie ma typu faktury, a lista nie ma własnej stawki.';
+
+                continue;
+            }
+
+            // Podzial dotyczy wylacznie list ze stawka obnizona. Szklo
+            // na 23 % nie ma czego dzielic — limit powierzchni odnosi
+            // sie do preferencji, nie do calej sprzedazy.
+            if ($split !== null && $rate === $split->reducedRate) {
+                if ($split->share === null) {
+                    $unknown += $listNet;
+                    $reason ??= $split->reason;
+
+                    continue;
+                }
+
+                $reducedNet = round($listNet * $split->share, 2);
+                $buckets[$split->reducedRate] = ($buckets[$split->reducedRate] ?? 0.0) + $reducedNet;
+
+                // Reszta, a nie druga proporcja: inaczej suma dwoch
+                // zaokraglen rozjezdza sie z netto listy o grosz.
+                $standardNet = round($listNet - $reducedNet, 2);
+
+                if ($standardNet !== 0.0) {
+                    $buckets[$split->standardRate] = ($buckets[$split->standardRate] ?? 0.0) + $standardNet;
+                }
+
+                continue;
+            }
+
+            $buckets[$rate] = ($buckets[$rate] ?? 0.0) + $listNet;
+        }
+
+        krsort($buckets);
+
+        $lines = [];
+        $vat = 0.0;
+
+        foreach ($buckets as $rate => $bucketNet) {
+            $bucketNet = round($bucketNet, 2);
+            $bucketVat = round($bucketNet * $rate / 100, 2);
+            $vat += $bucketVat;
+
+            $lines[] = [
+                'rate' => (int) $rate,
+                'net' => $this->money($bucketNet),
+                'vat' => $this->money($bucketVat),
+                'gross' => $this->money($bucketNet + $bucketVat),
+            ];
+        }
+
+        $unknown = round($unknown, 2);
+
+        // Puste zlecenie z typem faktury ma stawke, tylko nie ma od
+        // czego jej policzyc. Zero to wtedy prawdziwa odpowiedz, a nie
+        // brak danych — inaczej nowo zalozone zlecenie mowiloby, ze nie
+        // zna swojego brutto.
+        $isKnown = $unknown === 0.0 && ($lines !== [] || $default !== null);
+
+        // Bez `?? null` przy `$lines[0]`: gałąź `$lines === []` stoi
+        // wyżej, więc tutaj lista jest już niepusta. Domyślka broniłaby
+        // przed przypadkiem, którego typ nie dopuszcza.
+        $single = match (true) {
+            !$isKnown => null,
+            $lines === [] => $default,
+            count($lines) === 1 => $lines[0]['rate'],
+            default => null,
+        };
+
+        return new OrderTotals(
+            base: $this->money($base),
+            discount: $this->money($discount),
+            net: $this->money($net),
+            excludedNet: $this->money($this->sum($order, false)),
+            // Jedna stawka to jedna stawka. Przy kilku `null` nie znaczy
+            // „nie wiemy" — od tego jest `unknownNet`.
+            vatRate: $single,
+            vat: $isKnown ? $this->money($vat) : null,
+            gross: $isKnown ? $this->money($net + $vat) : null,
+            unknownNet: $this->money($unknown),
+            unknownReason: $unknown === 0.0 ? null : $reason,
+            mixedVat: count($lines) > 1,
+            vatLines: $lines,
+            sections: $sections,
+        );
+    }
+
+    /**
+     * Wiersze podsumowania per sekcja plus podstawa i rabat łączny.
+     *
+     * @param array<int, array<string, float>> $listBases
+     * @param array<string, float> $percents
+     * @return array{0: list<array{section: string, base: string, percent: string, discount: string, net: string}>, 1: float, 2: float}
+     */
+    private function sections(array $listBases, array $percents): array
+    {
+        $rows = [];
         $base = 0.0;
         $discount = 0.0;
 
         foreach (Section::cases() as $section) {
-            $sectionBase = $bases[$section->value] ?? 0.0;
+            $sectionBase = $this->sectionBase($listBases, $section->value);
             $percent = $percents[$section->value] ?? 0.0;
 
             // Sekcja bez pozycji i bez rabatu nie zasluguje na wiersz
@@ -56,7 +238,7 @@ final readonly class OrderValue
             $base += $sectionBase;
             $discount += $sectionDiscount;
 
-            $sections[] = [
+            $rows[] = [
                 'section' => $section->value,
                 'base' => $this->money($sectionBase),
                 'percent' => $this->percent($percent),
@@ -65,35 +247,71 @@ final readonly class OrderValue
             ];
         }
 
-        $net = round($base - $discount, 2);
-        $vatRate = $order->invoiceType?->vat_rate;
-        $vat = $vatRate === null ? null : round($net * $vatRate / 100, 2);
-
-        return new OrderTotals(
-            base: $this->money($base),
-            discount: $this->money($discount),
-            net: $this->money($net),
-            excludedNet: $this->money($this->sum($order, false)),
-            vatRate: $vatRate,
-            vat: $vat === null ? null : $this->money($vat),
-            gross: $vat === null ? null : $this->money($net + $vat),
-            sections: $sections,
-        );
-    }
-
-    /** Sama kwota netto po rabacie — dla list i warunków przejść. */
-    public function net(Order $order): string
-    {
-        return $this->totals($order)->net;
+        return [$rows, $base, $discount];
     }
 
     /**
-     * Podstawa rabatu w podziale na sekcje asortymentu, z list
-     * wliczonych do zlecenia.
+     * Netto każdej wliczonej listy po rozdzieleniu rabatów sekcji.
      *
-     * @return array<string, float>
+     * @param array<int, array<string, float>> $listBases
+     * @param array<string, float> $percents
+     * @return array<int, float>
      */
-    private function bases(Order $order): array
+    private function listNets(array $listBases, array $percents): array
+    {
+        $nets = [];
+
+        foreach ($listBases as $listId => $bySection) {
+            $nets[$listId] = round(array_sum($bySection), 2);
+        }
+
+        foreach (Section::cases() as $section) {
+            $key = $section->value;
+            $sectionBase = $this->sectionBase($listBases, $key);
+            $percent = $percents[$key] ?? 0.0;
+
+            if ($sectionBase === 0.0 || $percent === 0.0) {
+                continue;
+            }
+
+            $sectionDiscount = round($sectionBase * $percent / 100, 2);
+
+            /** @var list<int> $ids */
+            $ids = [];
+
+            foreach ($listBases as $listId => $bySection) {
+                if (($bySection[$key] ?? 0.0) !== 0.0) {
+                    $ids[] = $listId;
+                }
+            }
+
+            $allocated = 0.0;
+            $last = count($ids) - 1;
+
+            foreach ($ids as $index => $listId) {
+                // Ostatnia lista sekcji dostaje reszte, a nie swoja
+                // proporcje: suma groszy musi sie zgadzac z rabatem
+                // sekcji, bo inaczej netto zlecenia i suma netto list
+                // to dwie rozne kwoty.
+                $part = $index === $last
+                    ? round($sectionDiscount - $allocated, 2)
+                    : round($sectionDiscount * $listBases[$listId][$key] / $sectionBase, 2);
+
+                $allocated += $part;
+                $nets[$listId] = round($nets[$listId] - $part, 2);
+            }
+        }
+
+        return $nets;
+    }
+
+    /**
+     * Podstawa rabatu w rozbiciu na listę i sekcję asortymentu,
+     * z list wliczonych do zlecenia.
+     *
+     * @return array<int, array<string, float>>
+     */
+    private function listBases(Order $order): array
     {
         $bases = [];
 
@@ -102,6 +320,9 @@ final readonly class OrderValue
             if (!$list->is_included) {
                 continue;
             }
+
+            $listId = (int) $list->getKey();
+            $bases[$listId] ??= [];
 
             /** @var OrderItem $item */
             foreach ($list->items as $item) {
@@ -112,11 +333,25 @@ final readonly class OrderValue
                     $amount += (float) $process->amount;
                 }
 
-                $bases[$key] = ($bases[$key] ?? 0.0) + $amount;
+                $bases[$listId][$key] = ($bases[$listId][$key] ?? 0.0) + $amount;
             }
         }
 
         return $bases;
+    }
+
+    /**
+     * @param array<int, array<string, float>> $listBases
+     */
+    private function sectionBase(array $listBases, string $section): float
+    {
+        $total = 0.0;
+
+        foreach ($listBases as $bySection) {
+            $total += $bySection[$section] ?? 0.0;
+        }
+
+        return $total;
     }
 
     /**

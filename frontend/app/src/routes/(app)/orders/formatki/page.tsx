@@ -1,5 +1,7 @@
 import DiscountPanel from '../_components/DiscountPanel';
 import ListDrawer from '../_components/ListDrawer';
+import VatLines from '../_components/VatLines';
+import { vatNote } from '../_components/vat';
 import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
 import FittingDrawer from '../_components/FittingDrawer';
@@ -95,6 +97,7 @@ export default function Page() {
   }
 
   const totals = board.totals;
+  const note = vatNote(totals, t);
 
   return (
     <>
@@ -185,15 +188,8 @@ export default function Page() {
               variant="money"
               label={t('page.orders.panes.total_net')}
               value={money(totals.net)}
-              noteWarn={totals.vat_rate === null}
-              note={
-                totals.gross === null
-                  ? t('page.orders.card.no_invoice_type')
-                  : t('page.orders.card.value_note', {
-                      vat: totals.vat_rate,
-                      gross: money(totals.gross),
-                    })
-              }
+              noteWarn={note.warn}
+              note={note.text}
             />
 
             {/* Rabat pokazany osobno, nie wtopiony w kwote — klient
@@ -217,6 +213,8 @@ export default function Page() {
               </div>
             )}
           </div>
+
+          <VatLines totals={totals} t={t} />
 
           <DiscountPanel
             orderId={id}
@@ -288,6 +286,7 @@ export default function Page() {
       <ListDrawer
         orderId={id}
         list={list}
+        vat={board.vat}
         removable={board.lists.length > 1}
         open={listOpen}
         onClose={() => setListOpen(false)}

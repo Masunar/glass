@@ -283,7 +283,11 @@
       "bank_account_iban": "Rachunek do przedpłat",
       "surcharge_mode": "Łączenie dopłat za kształt i gabaryt",
       "min_price_check": "Sprawdzenie progu minimalnej ceny",
-      "urgent_surcharge_percent": "Dopłata za formatkę pilną"
+      "urgent_surcharge_percent": "Dopłata za formatkę pilną",
+      "vat_reduced_rate": "Stawka obniżona",
+      "vat_standard_rate": "Stawka podstawowa",
+      "vat_limit_m2_house": "Limit powierzchni — dom jednorodzinny",
+      "vat_limit_m2_flat": "Limit powierzchni — lokal mieszkalny"
     },
     "method_lead": "Dokumentacja nie rozstrzyga, jak łączą się dopłaty ani kiedy sprawdzany jest próg minimalnej ceny. Na formatce 0,2 m² o nieregularnym kształcie różnica wynosi 105,30 zł wobec 70,20 zł, więc ustawienie zostaje tutaj do czasu potwierdzenia na danych ze starego systemu.",
     "option": {
@@ -322,7 +326,8 @@
       "pane": "Wzór formatki",
       "limits": "Limity i czasy",
       "offer": "Oferta",
-      "changed": "Zmienione"
+      "changed": "Zmienione",
+      "vat": "VAT"
     },
     "column": {
       "parameter": "Parametr",
@@ -337,7 +342,9 @@
       "surcharge": "Dopłaty",
       "surcharge_lead": "naliczane po cenie bazowej, jedna po drugiej — dwie dopłaty składają się, a nie sumują",
       "limits": "Progi i limity",
-      "offer": "Oferta"
+      "offer": "Oferta",
+      "vat": "VAT i budownictwo mieszkaniowe",
+      "vat_lead": "limity ustawowe (art. 41 ust. 12b): powyżej nich stawka obniżona obejmuje tylko część kwoty, resztę liczymy podstawową"
     },
     "applies": {
       "min_billable_m2_tempered": "szkło hartowane, wszystkie grubości",
@@ -356,7 +363,11 @@
       "offer_validity_text": "druk oferty",
       "offer_payment_terms": "druk oferty",
       "offer_delivery_time": "druk oferty",
-      "bank_account_iban": "druk oferty i przedpłaty"
+      "bank_account_iban": "druk oferty i przedpłaty",
+      "vat_reduced_rate": "listy oznaczone stawką obniżoną",
+      "vat_standard_rate": "nadwyżka ponad limit powierzchni inwestycji",
+      "vat_limit_m2_house": "zlecenia z inwestycją w domu jednorodzinnym",
+      "vat_limit_m2_flat": "zlecenia z inwestycją w lokalu mieszkalnym"
     }
   },
   "price_list": {
@@ -687,7 +698,11 @@
       "tempering_note": "U podwykonawcy {{sent}}, w kolejce {{queued}}.",
       "tempering_broken": "Stłuczka: {{count}} — szkło trzeba zrobić od nowa.",
       "tempering_batch": "Partia {{number}}",
-      "tempering_link": "Hartownia"
+      "tempering_link": "Hartownia",
+      "vat_split": "Rozbicie na stawki",
+      "vat_none": "bez stawki",
+      "vat_mixed": "brutto {{gross}} zł — stawki {{rates}}",
+      "vat_unknown": "{{amount}} zł bez znanej stawki — brutto nie do policzenia"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -927,8 +942,32 @@
       "section": {
         "what": "Co to za lista",
         "state": "Stan",
-        "note": "Dla produkcji"
-      }
+        "note": "Dla produkcji",
+        "vat": "Stawka"
+      },
+      "vat_rate": "Stawka VAT",
+      "vat_default": "jak w typie faktury ({{rate}}%)",
+      "vat_default_unknown": "jak w typie faktury (zlecenie go nie ma)",
+      "vat_note": "Stawka przy liście, a nie przy zleceniu: montaż w budynku mieszkalnym idzie na inną stawkę niż szkło. Puste znaczy „jak w typie faktury”, a nie zero.",
+      "vat_split": "Inwestycja przekracza limit — na stawce {{reduced}}% liczy się {{percent}}% kwoty tej listy, reszta na {{standard}}%.",
+      "vat_within_limit": "Inwestycja mieści się w limicie {{limit}} m² — cała lista na {{reduced}}%."
+    },
+    "investment": {
+      "kicker": "Zlecenie",
+      "title": "Inwestycja",
+      "what": "Obiekt",
+      "none": "nie dotyczy",
+      "edit": "Zmień dane inwestycji",
+      "type": "Rodzaj obiektu",
+      "type_none": "nie dotyczy — zwykła sprzedaż",
+      "house": "Dom jednorodzinny",
+      "flat": "Lokal mieszkalny",
+      "type_note": "Rodzaj obiektu wybiera limit powierzchni z ustawy o VAT. „Nie dotyczy” znaczy, że całe zlecenie idzie na stawkę z typu faktury.",
+      "area": "Powierzchnia użytkowa",
+      "area_hint": "np. 420,5",
+      "area_note": "Powierzchnia użytkowa całej inwestycji w m², nie powierzchnia szyb. Bez niej nie da się policzyć proporcji i brutto zostanie nieznane.",
+      "split": "Limit przekroczony — {{percent}}% kwoty na {{reduced}}%, reszta na {{standard}}%.",
+      "within": "Mieści się w limicie {{limit}} m² — cała kwota na {{reduced}}%."
     }
   },
   "production": {

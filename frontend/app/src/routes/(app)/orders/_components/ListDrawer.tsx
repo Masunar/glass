@@ -7,7 +7,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import { validationCompleted } from '@salvon/utils/api-validation';
 import { notifyError, notifySuccess } from '@salvon/utils/notify';
 
-import type { OrderItemsList } from '@app/api/OrdersApi';
+import type { OrderItemsBoard, OrderItemsList } from '@app/api/OrdersApi';
 import { OrdersApi } from '@app/api/OrdersApi';
 import Drawer, { DrawerColumn } from '@app/components/drawer/Drawer';
 import Field, { Choice, Toggle } from '@app/components/drawer/Field';
@@ -16,6 +16,8 @@ import Fieldset, { FieldNote } from '@app/components/drawer/Fieldset';
 type Props = {
   orderId: number;
   list: OrderItemsList | null;
+  /** Stawki do wyboru i to, co znaczy „jak w typie faktury" w tym zleceniu. */
+  vat: OrderItemsBoard['vat'];
   /** Czy da się usunąć — ostatniej listy i listy z pozycjami nie kasujemy. */
   removable: boolean;
   open: boolean;
@@ -34,6 +36,7 @@ type Props = {
 export default function ListDrawer({
   orderId,
   list,
+  vat,
   removable,
   open,
   onClose,
@@ -54,6 +57,9 @@ export default function ListDrawer({
       comment: list?.comment ?? '',
       is_included: list?.is_included ?? true,
       is_on_hold: list?.is_on_hold ?? false,
+      vat_rate: list?.vat_rate === null || list?.vat_rate === undefined
+        ? ''
+        : String(list.vat_rate),
     });
   }, [open, list?.id]);
 
@@ -62,7 +68,10 @@ export default function ListDrawer({
 
     const { content, response } = await OrdersApi.saveList(
       orderId,
-      data,
+      // Pusty wybor to `null`, czyli „jak w typie faktury". Gdyby
+      // poleciala pusta struna, walidator zobaczylby 0 % — inna stawke,
+      // nie brak stawki.
+      { ...data, vat_rate: data.vat_rate === '' ? null : Number(data.vat_rate) },
       list?.id,
     );
 
@@ -164,6 +173,47 @@ export default function ListDrawer({
             <FieldNote>{t('page.orders.lists.included_note')}</FieldNote>
             <Toggle name="is_on_hold" label={t('page.orders.lists.on_hold')} />
             <FieldNote>{t('page.orders.lists.on_hold_note')}</FieldNote>
+          </Fieldset>
+
+          <Fieldset tone="terms" label={t('page.orders.lists.section.vat')}>
+            <Choice
+              name="vat_rate"
+              label={t('page.orders.lists.vat_rate')}
+              options={[
+                {
+                  value: '',
+                  label:
+                    vat.default_rate === null
+                      ? t('page.orders.lists.vat_default_unknown')
+                      : t('page.orders.lists.vat_default', {
+                          rate: vat.default_rate,
+                        }),
+                },
+                ...vat.rates.map((rate) => ({
+                  value: String(rate),
+                  label: `${rate}%`,
+                })),
+              ]}
+            />
+            <FieldNote>{t('page.orders.lists.vat_note')}</FieldNote>
+            {/* Proporcja dotyka wylacznie list na stawce obnizonej —
+                bez tego zdania nikt nie polaczy metrazu domu z ta lista. */}
+            {vat.investment !== null && (
+              <FieldNote>
+                {vat.investment.share === null
+                  ? (vat.investment.reason ?? '')
+                  : vat.investment.is_split
+                    ? t('page.orders.lists.vat_split', {
+                        reduced: vat.investment.reduced_rate,
+                        standard: vat.investment.standard_rate,
+                        percent: Math.round(vat.investment.share * 100),
+                      })
+                    : t('page.orders.lists.vat_within_limit', {
+                        reduced: vat.investment.reduced_rate,
+                        limit: vat.investment.limit_m2 ?? 0,
+                      })}
+              </FieldNote>
+            )}
           </Fieldset>
 
           <Fieldset tone="contact" label={t('page.orders.lists.section.note')}>

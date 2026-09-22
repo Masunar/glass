@@ -6,6 +6,7 @@ namespace App\Services\Orders;
 
 use App\Enum\Section;
 use App\Models\Order;
+use App\Models\InvoiceType;
 use App\Models\Process;
 use App\Models\Product;
 use App\Models\OrderList;
@@ -127,6 +128,9 @@ final readonly class OrderItemService
                 'role' => $list->role->value,
                 'is_included' => (bool) $list->is_included,
                 'is_on_hold' => (bool) $list->is_on_hold,
+                // `null` znaczy „jak w typie faktury" — ekran musi
+                // umiec pokazac te roznice, bo 0 % to inna decyzja.
+                'vat_rate' => $list->vat_rate,
                 'comment' => $list->comment,
                 'net' => $this->money($listNet),
                 'glass' => $glass,
@@ -155,6 +159,14 @@ final readonly class OrderItemService
                 'days' => $this->schedule->days($order),
             ],
             'discounts' => $this->discounts->board($order),
+            // Stawki do wyboru na liscie i to, czego stawka `null`
+            // znaczy w tym zleceniu. Bez domyslnej ekran musialby
+            // napisac „jak w typie faktury" bez podania jakiej.
+            'vat' => [
+                'default_rate' => $order->invoiceType?->vat_rate,
+                'rates' => $this->vatRates(),
+                'investment' => $this->value->investmentVat($order)?->toArray(),
+            ],
             'catalogue' => [
                 'products' => $this->glassCatalogue(),
                 'processes' => $this->processCatalogue(),
@@ -165,6 +177,23 @@ final readonly class OrderItemService
         ];
     }
 
+
+    /**
+     * Stawki VAT do wyboru na liście — te, które są w słowniku typów
+     * faktur. Druga lista w kodzie rozjechałaby się z księgowością.
+     *
+     * @return list<int>
+     */
+    private function vatRates(): array
+    {
+        /** @var list<int> */
+        return InvoiceType::query()
+            ->distinct()
+            ->orderBy('vat_rate')
+            ->pluck('vat_rate')
+            ->map(static fn(mixed $rate): int => (int) $rate)
+            ->all();
+    }
 
     /**
      * Wycena formatki **bez zapisu** — podgląd na żywo w panelu.

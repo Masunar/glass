@@ -8,8 +8,10 @@ use App\Enum\ListRole;
 use App\Models\Order;
 use App\Models\OrderList;
 use App\Models\OrderItem;
+use App\Models\InvoiceType;
 use App\Support\Normalize;
 use App\Services\AuditTrail;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -57,9 +59,14 @@ final readonly class OrderListService
             'role' => ['nullable', 'string', 'in:component,alternative'],
             'is_included' => ['nullable', 'boolean'],
             'is_on_hold' => ['nullable', 'boolean'],
+            // `null` znaczy „jak w typie faktury", a nie „zero" — 0 %
+            // to prawdziwa stawka (eksport, odwrotne obciazenie), wiec
+            // bez rozroznienia nie da sie wystawic ani jednej z nich.
+            'vat_rate' => ['nullable', 'integer', Rule::in($this->rates())],
         ], [
             'name.max' => 'Nazwa listy jest za długa.',
             'comment.max' => 'Komentarz jest za długi.',
+            'vat_rate.in' => 'Takiej stawki nie ma w słowniku typów faktur.',
         ]);
 
         if ($validator->fails()) {
@@ -96,6 +103,7 @@ final readonly class OrderListService
                 // dolicza sie do kwoty w chwili powstania, to dokladnie
                 // ten blad, przed ktorym rola ma chronic.
                 'is_included' => $role === ListRole::COMPONENT,
+                'vat_rate' => $this->rate($input),
                 'comment' => Normalize::text($input['comment'] ?? null),
             ]);
         } else {
@@ -104,6 +112,9 @@ final readonly class OrderListService
                 'role' => $role->value,
                 'is_included' => (bool) ($input['is_included'] ?? $list->is_included),
                 'is_on_hold' => (bool) ($input['is_on_hold'] ?? $list->is_on_hold),
+                'vat_rate' => array_key_exists('vat_rate', $input)
+                    ? $this->rate($input)
+                    : $list->vat_rate,
                 'comment' => Normalize::text($input['comment'] ?? null),
             ]);
         }
@@ -256,9 +267,40 @@ final readonly class OrderListService
             ->max('position')) + 10;
     }
 
+    /**
+     * Stawki dopuszczalne na liscie to te, ktore sa w slowniku typow
+     * faktur. Slownik jest miejscem, gdzie ksiegowosc trzyma stawki —
+     * druga, wlasna lista w kodzie rozjechalaby sie z nia po pierwszej
+     * zmianie przepisow.
+     *
+     * @return list<int>
+     */
+    private function rates(): array
+    {
+        /** @var list<int> */
+        return InvoiceType::query()
+            ->distinct()
+            ->orderBy('vat_rate')
+            ->pluck('vat_rate')
+            ->map(static fn(mixed $rate): int => (int) $rate)
+            ->all();
+    }
+
+    /** @param array<string, mixed> $input */
+    private function rate(array $input): ?int
+    {
+        $value = $input['vat_rate'] ?? null;
+
+        return $value === null || $value === '' ? null : (int) $value;
+    }
+
     private function describe(OrderList $list): string
     {
         $parts = [$list->name ?? 'bez nazwy', $list->role->value];
+
+        if ($list->vat_rate !== null) {
+            $parts[] = 'VAT ' . $list->vat_rate . '%';
+        }
 
         if (!$list->is_included) {
             $parts[] = 'nie wchodzi do kwoty';
