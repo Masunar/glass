@@ -68,7 +68,8 @@
     "tempering": "Hartownia",
     "workload": "Obciążenie stanowisk",
     "warehouse": "Magazyn",
-    "supplier_orders": "Zamówienia"
+    "supplier_orders": "Zamówienia",
+    "access": "Role i uprawnienia"
   },
   "user_account": {
     "mfa": {
@@ -1268,5 +1269,48 @@
     "urgent": "pilne",
     "load_of": "z {{payload}} kg ({{percent}}%)",
     "over_payload": "Przeładowane o {{over}} kg wobec „{{vehicle}}\". Można wysłać, ale warto rozbić na dwa kursy."
+  },
+  "access": {
+    "lead": "Rola decyduje, co człowiek widzi i co może zrobić. Paczka to nazwany zestaw uprawnień — jej zmiana działa od razu we wszystkich rolach, które ją mają.",
+    "role": "Rola",
+    "role_count_one": "{{count}} rola",
+    "role_count_few": "{{count}} role",
+    "role_count_many": "{{count}} ról",
+    "role_count_other": "{{count}} ról",
+    "permissions": "Uprawnienia",
+    "packages": "Paczki",
+    "state": "Stan",
+    "all": "wszystkie",
+    "ok": "bez zastrzeżeń",
+    "superuser": "rola nadrzędna",
+    "superuser_note": "Ta rola omija sprawdzanie uprawnień w całości. Odznaczanie czegokolwiek nic by nie zmieniło — dlatego pola są wyłączone.",
+    "issue_count_one": "{{count}} problem",
+    "issue_count_few": "{{count}} problemy",
+    "issue_count_many": "{{count}} problemów",
+    "issue_count_other": "{{count}} problemów",
+    "issues": "Co nie zadziała",
+    "system": "Stan konfiguracji",
+    "system_note": "Rzeczy niezależne od roli. Uprawnienie bez ekranu nie jest błędem samo w sobie — jest błędem, gdy nikt nie wie, że tak zostało.",
+    "modules": "Moduły",
+    "modules_note": "Dostęp do modułu jest osobny od dostępu do strony. Bez niego uprawnienia stron w tym module nic nie zrobią.",
+    "pages": "Strony",
+    "pages_covered": "{{covered}} z {{total}} stron",
+    "public": "dla każdego zalogowanego",
+    "packages_note": "Paczka jest wiązaniem, nie kopią: zmiana paczki zmienia każdą rolę, która ją ma.",
+    "packages_empty": "Nie ma jeszcze żadnej paczki.",
+    "package_scope": "{{permissions}} uprawnień · w {{roles}} rolach",
+    "check_all": "Zaznacz wszystko",
+    "uncheck_all": "Odznacz wszystko",
+    "planned": "Uprawnienie zaplanowane",
+    "saved": "Zapisane. Nadane: {{granted}} · dodane: {{added}} · usunięte: {{removed}}.",
+    "sub": {
+      "access": "Dostęp do modułu",
+      "list": "Lista",
+      "read": "Podgląd",
+      "create": "Dodawanie",
+      "update": "Edycja",
+      "delete": "Usuwanie",
+      "restore": "Przywracanie"
+    }
   }
 }

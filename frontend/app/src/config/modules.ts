@@ -128,6 +128,14 @@ export const appModules: AppModule[] = [
         },
       },
       {
+        labelKey: 'page.menu.access',
+        path: appRoutes.access.path,
+        permission: {
+          permission: Permission.ROLES,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      {
         labelKey: 'page.menu.dictionaries',
         path: appRoutes.dictionaries.path,
         permission: {

@@ -20,8 +20,9 @@ use Salvon\Enum\SubPermission;
  * Nasze mają wywalać CI (`AccessCoverageTest`), a nie lądować w kafelku
  * „nie udało się powiązać".
  *
- * ⚠️ **Sześciu uprawnień z enuma nie sprawdza żaden kontroler**:
- * `ROLES`, `PERMISSIONS`, `LOCATIONS`, `STATUSES`, `ALERTS`, `AUDIT`.
+ * ⚠️ **Czterech uprawnień z enuma nie sprawdza żaden kontroler**:
+ * `LOCATIONS`, `STATUSES`, `ALERTS`, `AUDIT`. Było sześć — `ROLES`
+ * i `PERMISSIONS` dostały ekran i przeszły do działających.
  * Stoją tu jako `PLANNED` razem z powodem — nie po to, żeby je ukryć,
  * tylko żeby nikt nie musiał zgadywać, czy to przeoczenie, czy plan.
  */
@@ -83,6 +84,8 @@ final readonly class AccessRegistry
         'warehouse' => ['path' => '/magazyn', 'module' => 'mag', 'label' => 'Magazyn', 'permission' => 'warehouse.list'],
 
         'users' => ['path' => '/users', 'module' => 'adm', 'label' => 'Użytkownicy', 'permission' => 'users.list'],
+        'access' => ['path' => '/access', 'module' => 'adm', 'label' => 'Role i uprawnienia', 'permission' => 'roles.list'],
+        'access_role' => ['path' => '/access/roles/:id', 'module' => 'adm', 'label' => 'Konfiguracja roli', 'permission' => 'roles.list'],
         'dictionaries' => ['path' => '/dictionaries', 'module' => 'adm', 'label' => 'Słowniki', 'permission' => 'dictionaries.list'],
         'parameters' => ['path' => '/parameters', 'module' => 'adm', 'label' => 'Parametry wyceny', 'permission' => 'parameters.list'],
     ];
@@ -160,14 +163,12 @@ final readonly class AccessRegistry
         Permission::ROLES->value => [
             'module' => 'adm', 'label' => 'Role',
             'subs' => ['list', 'create', 'update', 'delete'],
-            'page' => null, 'state' => self::PLANNED,
-            'note' => 'Ekran ról powstaje w drugiej gałęzi tego modułu.',
+            'page' => 'access', 'state' => self::ACTIVE, 'note' => '',
         ],
         Permission::PERMISSIONS->value => [
-            'module' => 'adm', 'label' => 'Uprawnienia',
+            'module' => 'adm', 'label' => 'Uprawnienia i paczki',
             'subs' => ['list', 'update'],
-            'page' => null, 'state' => self::PLANNED,
-            'note' => 'Ekran uprawnień powstaje w drugiej gałęzi tego modułu.',
+            'page' => 'access', 'state' => self::ACTIVE, 'note' => '',
         ],
         Permission::AUDIT->value => [
             'module' => 'adm', 'label' => 'Dziennik zmian',

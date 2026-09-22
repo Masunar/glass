@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\AccessController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -118,6 +119,17 @@ Route::prefix('/production')->name('production_')->group(static function (): voi
 });
 
 Route::get('/offers', [OfferController::class, 'index'])->name('offers_index');
+
+Route::prefix('/access')->name('access_')->group(static function (): void {
+    Route::get('/roles', [AccessController::class, 'roles'])->name('roles');
+    Route::get('/roles/{role}', [AccessController::class, 'role'])->name('role');
+    Route::put('/roles/{role}', [AccessController::class, 'saveRole'])->name('role_save');
+    // Stala „packages" przed trasa z parametrem nie koliduje, bo
+    // parametr jest liczba — ale kolejnosc zostaje dla czytelnosci.
+    Route::post('/packages', [AccessController::class, 'savePackage'])->name('package_create');
+    Route::put('/packages/{package}', [AccessController::class, 'savePackage'])->name('package_update');
+    Route::delete('/packages/{package}', [AccessController::class, 'deletePackage'])->name('package_delete');
+});
 
 Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/', [OrderController::class, 'board'])->name('board');

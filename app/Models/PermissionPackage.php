@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  *
  * @property string $name
  * @property string|null $description
+ * @property int|null $permissions_count
+ * @property int|null $roles_count
  * @property-read Collection<int, Permission> $permissions
  * @property-read Collection<int, Role> $roles
  */

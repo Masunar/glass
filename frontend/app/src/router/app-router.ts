@@ -55,6 +55,20 @@ export const appRoutes = {
       { permission: Permission.ORDERS, subPermission: SubPermission.LIST },
     ],
   },
+  access: {
+    path: '/access',
+    file: 'access',
+    permissions: [
+      { permission: Permission.ROLES, subPermission: SubPermission.LIST },
+    ],
+  },
+  accessRole: {
+    path: '/access/roles/:id',
+    file: 'access/role',
+    permissions: [
+      { permission: Permission.ROLES, subPermission: SubPermission.LIST },
+    ],
+  },
   orderOffers: {
     path: '/orders/:id/oferty',
     file: 'orders/oferty',
