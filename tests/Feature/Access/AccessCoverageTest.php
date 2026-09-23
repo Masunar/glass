@@ -195,6 +195,45 @@ class AccessCoverageTest extends TestCase
     }
 
     /**
+     * Strona należy do tego samego modułu po obu stronach.
+     *
+     * Przypisanie „strona → moduł" żyje w dwóch miejscach: w rejestrze
+     * PHP i w `app-router.ts`, bo powłoka musi wiedzieć, o który
+     * `*.access` zapytać, zanim zapyta serwera. Dwa źródła prawdy
+     * rozjeżdżają się przy pierwszej nowej trasie — i to jest rozjazd
+     * bez objawów: ekran otwiera się normalnie, tylko chowa się albo
+     * nie chowa niezgodnie z konfiguracją roli.
+     */
+    #[Test]
+    public function strona_nalezy_do_tego_samego_modulu_po_obu_stronach(): void
+    {
+        $router = $this->routerModules();
+        $mismatch = [];
+
+        foreach (AccessRegistry::pages() as $code => $page) {
+            $inRouter = $router[$page['path']] ?? null;
+
+            if ($inRouter === $page['module']) {
+                continue;
+            }
+
+            $mismatch[] = sprintf(
+                '%s (%s): rejestr "%s", router "%s"',
+                $code,
+                $page['path'],
+                $page['module'] ?? '—',
+                $inRouter ?? '—',
+            );
+        }
+
+        $this->assertSame(
+            [],
+            $mismatch,
+            'Strony przypisane do różnych modułów w rejestrze i w app-router.ts.',
+        );
+    }
+
+    /**
      * Każde uprawnienie sprawdzane przez kontroler istnieje w rejestrze.
      *
      * To jest ta sama rodzina co sieroty, tylko z drugiej strony:
@@ -283,6 +322,37 @@ class AccessCoverageTest extends TestCase
         }
 
         return $classes;
+    }
+
+    /**
+     * Moduły tras odczytane z `app-router.ts`.
+     *
+     * Kawałek po każdym `path:` sięga do następnego `path:`, więc
+     * `module:` znaleziony w środku należy do tej właśnie trasy.
+     * `null` znaczy trasę bez modułu — dziś tylko pulpit.
+     *
+     * @return array<string, string|null>
+     */
+    private function routerModules(): array
+    {
+        $source = (string) file_get_contents(base_path(self::ROUTER));
+
+        preg_match_all(
+            "/path:\s*'([^']+)',(.*?)(?=\n\s+path:|\z)/s",
+            $source,
+            $matches,
+            PREG_SET_ORDER,
+        );
+
+        $modules = [];
+
+        foreach ($matches as $match) {
+            $modules[$match[1]] = preg_match("/module:\s*'([^']+)'/", $match[2], $found) === 1
+                ? $found[1]
+                : null;
+        }
+
+        return $modules;
     }
 
     /**

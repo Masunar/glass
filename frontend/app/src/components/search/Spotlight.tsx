@@ -17,7 +17,7 @@ import {
 import { isMac } from '@salvon/utils/operating-system';
 
 import { SearchApi, type SearchGroup } from '@app/api/SearchApi';
-import { appModules } from '@app/config/modules';
+import { appModules, moduleAccessPermission } from '@app/config/modules';
 import { useHasPermission } from '@app/hook/use-permissions';
 
 const RECENT_KEY = 'ge.spotlight.recent';
@@ -138,7 +138,12 @@ export default function Spotlight({ open, onClose }: Props) {
   const screens = useMemo(
     () =>
       appModules.flatMap((module) =>
-        module.links
+        // Bez dostepu do modulu jego ekrany nie moga wychodzic
+        // w wyszukiwarce: skrot omijalby listwe, ktora je chowa.
+        (hasPermissionTo(moduleAccessPermission(module.key))
+          ? module.links
+          : []
+        )
           .filter(
             (link) =>
               link.path !== undefined &&

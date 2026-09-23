@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'require_mfa' => App\Middleware\RequireMfa::class,
+            'require_module' => App\Middleware\RequireModuleAccess::class,
             'permission' => Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
     })

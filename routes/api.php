@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Salvon\Facade\Route;
 
-Route::middleware('require_mfa')->group(function () {
+// `require_module` po `require_mfa`: dostep do modulu (U-04) jest
+// pietrem nad uprawnieniem do zasobu, ale pod uwierzytelnieniem.
+Route::middleware(['require_mfa', 'require_module'])->group(function () {
     Route::loadApiDir(__DIR__);
 });
 

@@ -155,6 +155,17 @@ export const appModules: AppModule[] = [
   },
 ];
 
+/**
+ * Uprawnienie otwierające moduł — `zlec.access`.
+ *
+ * Wyprowadzone z klucza, nie wpisane przy module. Wpisane rozjechałoby
+ * się z `AccessRegistry::MODULES` po stronie PHP, a to jest ten rodzaj
+ * rozjazdu, którego nikt nie zauważa: obie strony wyglądają poprawnie,
+ * a moduł po prostu przestaje się komuś otwierać.
+ */
+export const moduleAccessPermission = (key: ModuleKey): string =>
+  `${key}.access`;
+
 export const hasScreens = (module: AppModule): boolean =>
   module.links.some((link) => link.path !== undefined);
 
