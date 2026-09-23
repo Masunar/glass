@@ -1069,7 +1069,10 @@
       "mail_body_note": "Treść przychodzi z szablonu z podstawionym numerem i terminem ważności. Możesz ją poprawić — do klienta pójdzie to, co widzisz.",
       "mail_attachment": "Załącznik",
       "mail_reply_to": "Odpowiedź do",
-      "mail_no_reply_to": "brak adresu w Twoim profilu — klient odpisze na skrzynkę firmową"
+      "mail_no_reply_to": "brak adresu w Twoim profilu — klient odpisze na skrzynkę firmową",
+      "preview": "Podgląd",
+      "preview_note": "Podgląd pokazuje dokładnie ten dokument, który powstanie — bez numeru i bez zapisu. Otwiera się w nowej karcie.",
+      "preview_blocked": "Przeglądarka zablokowała nową kartę. Pozwól na wyskakujące okna dla tej strony i spróbuj jeszcze raz."
     },
     "load_failed": "Nie udało się pobrać listy zleceń. Spróbuj ponownie.",
     "alerts_title": "Zlecenia wymagające reakcji"

@@ -180,6 +180,8 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     // po `/offers`, wiec stalych czlonow nie ma jak pomylic z id.
     Route::get('/{order}/offers', [OfferController::class, 'forOrder'])->name('offers');
     Route::post('/{order}/offers', [OfferController::class, 'issue'])->name('offer_issue');
+    // Przed trasami z `{offer}`: „preview" to staly czlon, nie numer.
+    Route::post('/{order}/offers/preview', [OfferController::class, 'preview'])->name('offer_preview');
     Route::get('/{order}/offers/{offer}/pdf', [OfferController::class, 'pdf'])->name('offer_pdf');
     Route::get('/{order}/offers/{offer}/mail', [OfferController::class, 'mailPreview'])->name('offer_mail');
     Route::post('/{order}/offers/{offer}/send', [OfferController::class, 'send'])->name('offer_send');

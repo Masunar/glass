@@ -53,7 +53,81 @@ final readonly class OfferService
     public function issue(int $orderId, array $input): array
     {
         $order = $this->order($orderId);
+        $draft = $this->draft($order, $input);
 
+        if ($draft['errors'] !== []) {
+            return ['errors' => $draft['errors'], 'id' => null, 'number' => null];
+        }
+
+        /** @var array<string, mixed> $attributes */
+        $attributes = $draft['attributes'];
+
+        /** @var Offer $offer */
+        $offer = Offer::query()->create([
+            ...$attributes,
+            // Trzy rzeczy, ktorych podglad nie ma i miec nie moze:
+            // numer w obrebie zlecenia, autor i chwila wystawienia.
+            'sequence' => $this->nextSequence($order),
+            'issued_by' => Auth::id(),
+            'issued_at' => now(),
+        ]);
+
+        $this->write($order, 'oferta ' . $offer->number(), null, $this->describe($offer), 'offer_issued');
+
+        return ['errors' => [], 'id' => (int) $offer->getKey(), 'number' => $offer->number()];
+    }
+
+    /**
+     * Podgląd oferty **przed** wystawieniem.
+     *
+     * Idzie tą samą drogą co zapis: ta sama walidacja, te same domyślne
+     * opcje, ta sama migawka. Gdyby podgląd budował dokument własnym
+     * kodem, byłby drugą implementacją tej samej rzeczy i rozjechałby
+     * się przy pierwszej zmianie — a rozjazd zobaczyłby dopiero klient,
+     * bo obie strony wyglądałyby poprawnie.
+     *
+     * Zwracana oferta **nie jest zapisana i nie ma numeru**. Numer
+     * powstaje w chwili wystawienia; pokazanie go wcześniej byłoby
+     * zmyśleniem, bo dwie osoby robiące podgląd naraz zobaczyłyby ten
+     * sam, a nada się tylko jednej.
+     *
+     * @param array<string, mixed> $input
+     * @return array{errors: array<string, list<string>>, offer: Offer|null}
+     */
+    public function preview(int $orderId, array $input): array
+    {
+        $order = $this->order($orderId);
+        $draft = $this->draft($order, $input);
+
+        if ($draft['errors'] !== []) {
+            return ['errors' => $draft['errors'], 'offer' => null];
+        }
+
+        /** @var array<string, mixed> $attributes */
+        $attributes = $draft['attributes'];
+
+        $offer = new Offer();
+        $offer->fill([...$attributes, 'issued_at' => now()]);
+        // Relacja ustawiona recznie: obiekt nie jest zapisany, wiec
+        // Eloquent nie ma czego doladowac, a wydruk pyta o zlecenie.
+        $offer->setRelation('order', $order);
+
+        return ['errors' => [], 'offer' => $offer];
+    }
+
+    /**
+     * Wspólny środek wystawienia i podglądu.
+     *
+     * Wszystko poza numerem, autorem i chwilą wystawienia: sprawdzenia,
+     * domyślne opcje, sumy i migawka. To jest miejsce, w którym
+     * zapadają decyzje o treści oferty — jedno, żeby podgląd nie mógł
+     * pokazać czegoś innego niż to, co się zapisze.
+     *
+     * @param array<string, mixed> $input
+     * @return array{errors: array<string, list<string>>, attributes: array<string, mixed>}
+     */
+    private function draft(Order $order, array $input): array
+    {
         $validator = Validator::make($input, [
             'detail_level' => ['nullable', 'string', 'in:summary,detailed'],
             'sum_mode' => ['nullable', 'string', 'in:components,all,none'],
@@ -67,7 +141,7 @@ final readonly class OfferService
             /** @var array<string, list<string>> $messages */
             $messages = $validator->errors()->messages();
 
-            return ['errors' => $messages, 'id' => null, 'number' => null];
+            return ['errors' => $messages, 'attributes' => []];
         }
 
         // Nieszczegolowa jest domyslna (Z-Z-05): rozpiska pokazuje
@@ -89,8 +163,7 @@ final readonly class OfferService
         if ($this->isEmpty($order)) {
             return [
                 'errors' => ['offer' => ['Zlecenie nie ma ani jednej pozycji — nie ma czego zaoferować.']],
-                'id' => null,
-                'number' => null,
+                'attributes' => [],
             ];
         }
 
@@ -102,18 +175,15 @@ final readonly class OfferService
                     $totals->unknownReason
                         ?? 'Zlecenie nie ma znanej stawki VAT, więc oferty brutto nie da się wystawić.',
                 ]],
-                'id' => null,
-                'number' => null,
+                'attributes' => [],
             ];
         }
 
         $on = Carbon::today();
         $days = GlobalParameter::number('offer_validity_days', $on);
 
-        /** @var Offer $offer */
-        $offer = Offer::query()->create([
+        return ['errors' => [], 'attributes' => [
             'order_id' => (int) $order->getKey(),
-            'sequence' => $this->nextSequence($order),
             'status' => OfferStatus::ISSUED->value,
             'detail_level' => $detail->value,
             'sum_mode' => $sumMode->value,
@@ -128,13 +198,7 @@ final readonly class OfferService
             'gross' => $totals->gross,
             'snapshot' => $this->snapshot->build($order, $detail, $sumMode, $display, $on),
             'comment' => Normalize::text($input['comment'] ?? null),
-            'issued_by' => Auth::id(),
-            'issued_at' => now(),
-        ]);
-
-        $this->write($order, 'oferta ' . $offer->number(), null, $this->describe($offer), 'offer_issued');
-
-        return ['errors' => [], 'id' => (int) $offer->getKey(), 'number' => $offer->number()];
+        ]];
     }
 
     /**

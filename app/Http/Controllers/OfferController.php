@@ -37,8 +37,11 @@ class OfferController extends ApiController
             Permission::OFFERS->value,
             SubPermission::LIST->value,
         );
+        // Podglad chodzi na tym samym uprawnieniu, co wystawienie:
+        // pokazuje dokladnie ten dokument, ktory powstanie, i jest
+        // czescia wystawiania, a nie osobnym odczytem.
         $this->protect(
-            ['issue'],
+            ['issue', 'preview'],
             Permission::OFFERS->value,
             SubPermission::CREATE->value,
         );
@@ -104,6 +107,38 @@ class OfferController extends ApiController
                     echo $this->document->render($row);
                 },
                 $this->document->fileName($row),
+                ['Content-Type' => 'application/pdf'],
+            );
+        });
+    }
+
+    /**
+     * Podglad oferty przed wystawieniem.
+     *
+     * POST, bo niesie caly formularz — ale niczego nie zmienia: nie
+     * zapisuje oferty i nie zuzywa numeru. Odmawia dokladnie tam, gdzie
+     * odmowiloby wystawienie, bo idzie ta sama droga.
+     */
+    public function preview(Request $request, int $order): HttpResponse
+    {
+        return $this->secure(function () use ($request, $order): HttpResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->service->preview($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            /** @var Offer $offer */
+            $offer = $result['offer'];
+
+            return response()->streamDownload(
+                function () use ($offer): void {
+                    echo $this->document->render($offer, true);
+                },
+                $this->document->previewFileName($offer),
                 ['Content-Type' => 'application/pdf'],
             );
         });
