@@ -50,6 +50,7 @@ import {
 import { lightTheme } from '@app/config/theme';
 import { userHasPermission } from '@app/hook/use-permissions';
 import { useUser } from '@app/hook/use-user';
+import HomePanel from '@app/layout/app/_components/shell/HomePanel';
 import ModulePanel from '@app/layout/app/_components/shell/ModulePanel';
 import Rail from '@app/layout/app/_components/shell/Rail';
 import UserProvider from '@app/provider/UserProvider';
@@ -206,6 +207,20 @@ function Template({
 
   const handleLogout = () => navigate(redirectRoutes.logout.path);
 
+  const panelFoot = (
+    <>
+      {/* Kto pracuje — na dole panelu, nie w kafelku inicjalow, ktory
+          tego nie miesci. */}
+      <div className="ge-panel__who">
+        {[user?.first_name, user?.last_name].filter(Boolean).join(' ')}
+      </div>
+      <Flex align="center" justify="space-between" gap={1}>
+        <ChangeLanguage locales={locales} />
+        <Logout logout={handleLogout} />
+      </Flex>
+    </>
+  );
+
   const initials = [user?.first_name, user?.last_name]
     .filter(Boolean)
     .map((part) => String(part).charAt(0).toUpperCase())
@@ -232,26 +247,19 @@ function Template({
         onUserClick={() => {}}
       />
 
-      <ModulePanel
-        module={module}
-        footer={
-          <>
-            {/* Kto jest zalogowany i gdzie — na dole panelu, nie
-                w kafelku inicjalow, ktory tego nie miesci. */}
-            <div className="ge-panel__who">
-              {[user?.first_name, user?.last_name].filter(Boolean).join(' ')}
-            </div>
-            <Flex align="center" justify="space-between" gap={1}>
-              <ChangeLanguage locales={locales} />
-              <Logout logout={handleLogout} />
-            </Flex>
-          </>
-        }
-      >
-        <Div sx={{ px: '20px', py: '10px' }}>
-          <SpotlightOpener onOpen={() => setSearchOpen(true)} />
-        </Div>
-      </ModulePanel>
+      {isHome ? (
+        <HomePanel footer={panelFoot}>
+          <Div sx={{ px: '20px', py: '10px' }}>
+            <SpotlightOpener onOpen={() => setSearchOpen(true)} />
+          </Div>
+        </HomePanel>
+      ) : (
+        <ModulePanel module={module} footer={panelFoot}>
+          <Div sx={{ px: '20px', py: '10px' }}>
+            <SpotlightOpener onOpen={() => setSearchOpen(true)} />
+          </Div>
+        </ModulePanel>
+      )}
 
       <div className="ge-shell__content">
         <SimpleBar

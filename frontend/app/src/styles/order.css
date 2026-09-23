@@ -981,6 +981,14 @@
 
 /* --- Pulpit -------------------------------------------------------- */
 
+/* Pulpit jest obszarem roboczym, nie karta na tle: bialy idzie do dolu
+   okna i do prawej krawedzi. Szare tlo powloki zostaje tam, gdzie ma
+   sens — pod ekranami zlozonymi z kart. */
+.ge-home-screen {
+  min-height: 100%;
+  background: var(--ge-surface);
+}
+
 .ge-home__head { align-items: flex-start; }
 
 /* Pas liczb: sześć komórek rozdzielonych włosem, bez wypełnień.
@@ -994,7 +1002,7 @@
   margin-bottom: 0;
 }
 .ge-kpi {
-  padding: 12px 20px 14px;
+  padding: 10px 18px 12px;
   border-left: 1px solid var(--ge-divider);
 }
 .ge-kpi:first-child { border-left: 0; }
@@ -1007,7 +1015,7 @@
 }
 .ge-kpi__value {
   font-family: var(--ge-font-heading);
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   padding-top: 4px;
@@ -1034,7 +1042,10 @@
    wiersza i wypychal akcje na drugi koniec ekranu. */
 .ge-task {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) 110px minmax(0, 220px);
+  /* Nadmiar szerokosci bierze kontrahent, a termin i akcja stoja obok
+     siebie przy prawej krawedzi. Gdy pustke dostawala kolumna terminu,
+     miedzy numerem a akcja robilo sie pol metra niczego. */
+  grid-template-columns: 84px minmax(0, 1fr) 110px 220px;
   align-items: center;
   gap: 14px;
   padding: 9px 24px;
@@ -1051,7 +1062,11 @@
 
 .ge-task__number { font-weight: 600; font-variant-numeric: tabular-nums; }
 .ge-task__party { color: var(--ge-text); }
-.ge-task__due { font-size: 13px; color: var(--ge-neutral-800); }
+.ge-task__due {
+  font-size: 13px;
+  color: var(--ge-neutral-800);
+  text-align: right;
+}
 .ge-task__due.is-late { color: var(--m-alert); font-weight: 600; }
 
 .ge-task__action {

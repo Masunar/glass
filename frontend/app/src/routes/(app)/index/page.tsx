@@ -103,14 +103,18 @@ export default function Page() {
   };
 
   const { summary, counters, top, blocked, shortages } = board;
-  const day = new Date(board.as_of).toLocaleDateString('pl-PL', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+  // Bez przecinka miedzy dniem tygodnia a data: „sroda 23 wrzesnia"
+  // czyta sie jak nadtytul, „sroda, 23 wrzesnia" jak zdanie.
+  const day = new Date(board.as_of)
+    .toLocaleDateString('pl-PL', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    })
+    .replace(',', '');
 
   return (
-    <>
+    <div className="ge-home-screen">
       <header className="ge-head ge-home__head">
         <div>
           <div className="ge-head__kicker">
@@ -316,7 +320,7 @@ export default function Page() {
           )}
         </aside>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -340,7 +344,11 @@ function Kpi({
             : `ge-kpi__value ge-kpi__value--${tone}`
         }
       >
-        {value === null ? '—' : value}
+        {/* Kreska i przy braku dostepu, i przy zerze: na pulpicie oba
+            znacza „nie ma sie tu czym zajmowac". Rozroznienie zostaje
+            po stronie serwera, gdzie decyduje o tym, czy sekcja w ogole
+            przychodzi. */}
+        {value === null || value === 0 ? '—' : value}
       </div>
     </div>
   );

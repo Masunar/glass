@@ -2,11 +2,7 @@ import { NavLink } from 'react-router';
 
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
-import {
-  type AppModule,
-  HOME,
-  moduleAccessPermission,
-} from '@app/config/modules';
+import { type AppModule, moduleAccessPermission } from '@app/config/modules';
 import { useHasPermission } from '@app/hook/use-permissions';
 
 type Props = {
@@ -56,18 +52,6 @@ export default function ModulePanel({ module, meta, children, footer }: Props) {
       </div>
 
       {children}
-
-      {/* Pulpit nad ekranami modulu: powrot ma byc wszedzie, nie tylko
-          w logo. Nie nalezy do modulu, wiec stoi nad naglowkiem grupy. */}
-      <NavLink
-        to={HOME}
-        end
-        className={({ isActive }) =>
-          isActive ? 'ge-panel__link is-active' : 'ge-panel__link'
-        }
-      >
-        {t('page.home.title')}
-      </NavLink>
 
       {links.length > 0 && (
         <>

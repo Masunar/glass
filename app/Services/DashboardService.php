@@ -150,11 +150,22 @@ final readonly class DashboardService
             $tasks[] = $row;
         }
 
+        // Najpierw pasmo, potem **to, co da sie ruszyc**, dopiero na
+        // koncu dlugosc spoznienia. Zlecenie stojace trzydziesci dni
+        // bez zadnego dostepnego przejscia nie jest dobrym poczatkiem
+        // dnia — jest na nie za pozno, zeby zaczynac od niego.
         usort($tasks, static function (array $a, array $b): int {
             $order = ['overdue' => 0, 'today' => 1, 'later' => 2];
 
-            return [$order[$a['band']], $a['days_left'] ?? PHP_INT_MAX]
-                <=> [$order[$b['band']], $b['days_left'] ?? PHP_INT_MAX];
+            return [
+                $order[$a['band']],
+                $a['next_step'] === null ? 1 : 0,
+                $a['days_left'] ?? PHP_INT_MAX,
+            ] <=> [
+                $order[$b['band']],
+                $b['next_step'] === null ? 1 : 0,
+                $b['days_left'] ?? PHP_INT_MAX,
+            ];
         });
 
         return $tasks;

@@ -240,7 +240,13 @@ a {
   text-decoration: none;
 }
 .ge-panel__link:hover { background: color-mix(in srgb, var(--ge-mod) 8%, transparent); }
-.ge-panel__link.is-active { font-weight: 500; box-shadow: inset 4px 0 0 var(--ge-mod); }
+/* Aktywna pozycja: pasek i podbarwienie. Sam pasek gubil sie w panelu,
+   w ktorym kazda pozycja jest tej samej wagi. */
+.ge-panel__link.is-active {
+  font-weight: 500;
+  box-shadow: inset 4px 0 0 var(--ge-mod);
+  background: color-mix(in srgb, var(--ge-mod) 8%, transparent);
+}
 
 .ge-panel__foot {
   margin-top: auto;
