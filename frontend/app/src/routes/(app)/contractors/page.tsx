@@ -37,6 +37,7 @@ export default function Page() {
   const t = useTranslation();
   const [rows, setRows] = useState<ContractorRow[]>([]);
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [card, setCard] = useState<ContractorCard | null>(null);
@@ -48,8 +49,11 @@ export default function Page() {
     search: string = query,
     inactive: boolean = includeInactive,
   ) => {
+    setLoading(true);
+
     const { content } = await ContractorsApi.search(search, inactive);
 
+    setLoading(false);
     setRows(content?.data?.contractors ?? []);
     setTotal(Number(content?.data?.total ?? 0));
   };
@@ -162,7 +166,11 @@ export default function Page() {
         </span>
       </div>
 
-      <DataList columns={columns}>
+      <DataList
+        columns={columns}
+        loading={loading}
+        empty={rows.length === 0 ? t('page.contractors.empty') : undefined}
+      >
         <ListHead columns={columns} translate={t} />
 
         {rows.map((row) => (

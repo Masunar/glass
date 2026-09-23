@@ -655,3 +655,49 @@
 }
 .ge-po__plan button:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
 .ge-po__hint { flex-basis: 100%; font-size: 12.5px; }
+
+/* Sygnal pobierania — dwa piksele nad lista.
+   Wysokosc jest stala, a znika sam kolor: pasek pojawiajacy sie
+   z niczego przesuwalby liste w dol przy kazdym kliknieciu. */
+.ge-wait {
+  height: 2px;
+  background: transparent;
+  overflow: hidden;
+  position: relative;
+}
+.ge-wait.is-on { background: var(--ge-divider); }
+.ge-wait.is-on::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 28%;
+  background: var(--ge-mod);
+  animation: ge-wait-slide 1s linear infinite;
+}
+@keyframes ge-wait-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(460%); }
+}
+
+/* Lista w trakcie pobierania: przygaszona i nieklikalna. Wiersz, ktory
+   za chwile zniknie, nie powinien dac sie otworzyc. */
+.ge-list.is-loading {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+/* Pusto to osobny stan, nie brak wierszy. Bez tego „filtr nic nie
+   znalazl" wyglada tak samo jak „jeszcze sie laduje". */
+.ge-list__empty {
+  padding: 28px 0;
+  text-align: center;
+  color: var(--ge-neutral-800);
+  font-size: 13.5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ge-wait.is-on::after { animation: none; width: 100%; opacity: 0.5; }
+}

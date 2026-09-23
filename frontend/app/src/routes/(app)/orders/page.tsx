@@ -56,6 +56,7 @@ export default function Page() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -63,12 +64,23 @@ export default function Page() {
     nextQuery: string = query,
     nextStatus: string | null = status,
   ) => {
+    setLoading(true);
+
     const { content } = await OrdersApi.board(nextQuery, nextStatus);
     const data: OrderBoard | undefined = content?.data;
 
-    if (data) {
-      setBoard(data);
+    setLoading(false);
+
+    if (!data) {
+      // Bez tego nieudane pobranie zostawialo na ekranie poprzednia
+      // liste — czyli odpowiedz na pytanie, ktorego juz nie zadano.
+      setError(t('page.orders.load_failed'));
+
+      return;
     }
+
+    setError(null);
+    setBoard(data);
   };
 
   useEffect(() => {
@@ -244,7 +256,11 @@ export default function Page() {
         }}
       />
 
-      <DataList columns={columns}>
+      <DataList
+        columns={columns}
+        loading={loading}
+        empty={bands.length === 0 ? t('page.orders.empty') : undefined}
+      >
         <ListHead columns={columns} translate={t} />
 
         {bands.map((band) => (

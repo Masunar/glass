@@ -463,7 +463,7 @@
     "search": "Szukaj: nazwa, NIP, telefon…",
     "add": "Nowy kontrahent",
     "filters": "Filtry kartoteki",
-    "empty": "Nic nie pasuje do tego zapytania.",
+    "empty": "Żaden kontrahent nie pasuje do tego wyszukania.",
     "shown": "pokazane: {{count}}",
     "prepaid": "przedpłata",
     "limit": "limit {{value}}",
@@ -592,7 +592,7 @@
     "add": "Nowe zlecenie",
     "filters": "Statusy",
     "sorted_by": "Sortowanie: pilność",
-    "empty": "Nic nie pasuje do tego zapytania.",
+    "empty": "Żadne zlecenie nie pasuje do tego filtra.",
     "today": "dziś",
     "no_deadline": "bez terminu",
     "shifted": "termin przesunięty",
@@ -1066,7 +1066,8 @@
       "mail_attachment": "Załącznik",
       "mail_reply_to": "Odpowiedź do",
       "mail_no_reply_to": "brak adresu w Twoim profilu — klient odpisze na skrzynkę firmową"
-    }
+    },
+    "load_failed": "Nie udało się pobrać listy zleceń. Spróbuj ponownie."
   },
   "production": {
     "loading": "Wczytywanie kolejki…",
