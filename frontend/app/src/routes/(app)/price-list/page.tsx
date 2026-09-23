@@ -1,40 +1,14 @@
-import Heading from '@app-components/Heading';
-import {
-  Box,
-  Chip,
-  FormControlLabel,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  Switch,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Tabs,
-  Typography,
-} from '@mui/material';
-import { appRoutes } from '@router/app-router';
-
-import GroupModal from './_components/GroupModal';
-import ProductModal from './_components/ProductModal';
+import GroupDrawer from './_components/GroupDrawer';
+import ProductDrawer from './_components/ProductDrawer';
 import {
   computePrice,
   marginFromCoefficient,
   priceListSections,
 } from './_components/sections';
 import { useEffect, useMemo, useState } from 'react';
-import { PiFloppyDisk, PiPencilSimple, PiPlus, PiTag } from 'react-icons/pi';
+import { PiPencilSimple, PiPlus, PiWarningCircle } from 'react-icons/pi';
 
-import { Submit } from '@salvon/components/button';
 import { Button } from '@salvon/components/button';
-import { Card } from '@salvon/components/card';
-import { Flex } from '@salvon/components/div';
-import { Form, FormControl } from '@salvon/components/form';
-import type { FormOnSubmit } from '@salvon/components/form/Form';
 import { useForm } from '@salvon/hooks/useForm';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 import { validationCompleted } from '@salvon/utils/api-validation';
@@ -48,11 +22,26 @@ import {
   type PriceRow,
 } from '@app/api/PriceListApi';
 import HasPermission from '@app/components/HasPermission';
+import { type Column, DataList, ListHead, Row } from '@app/components/list';
 import { Permission, SubPermission } from '@app/config/permission';
 
 const cellKey = (productId: number, sectionId: number) =>
   `${productId}_${sectionId}`;
 
+/**
+ * Cennik — macierz produkt × sekcja cenowa.
+ *
+ * W komórce siedzi **współczynnik**, nie cena. Cena wychodzi z ceny
+ * zakupu przemnożonej przez współczynnik i jest liczona na żywo obok
+ * pola, bo inaczej trzeba by zapisać, żeby zobaczyć, co się wpisało.
+ * Obok stoi marża — ta sama informacja od drugiej strony, przydatna
+ * przy przeglądaniu kolumny z góry na dół.
+ *
+ * **Ostrzeżenie o rozjeździe pokazuje się tylko wtedy, gdy jest**:
+ * cena zakupu zmieniła się po ostatnim zapisie cennika, więc zapisana
+ * cena sprzedaży przestała wynikać ze współczynnika. To nie jest błąd
+ * do automatycznego naprawienia — przeliczenie jest decyzją człowieka.
+ */
 export default function Page() {
   const t = useTranslation();
   const form = useForm();
@@ -60,12 +49,13 @@ export default function Page() {
   const [section, setSection] = useState<string>('glass');
   const [groupId, setGroupId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
-  const [productModal, setProductModal] = useState<{
+  const [productDrawer, setProductDrawer] = useState<{
     open: boolean;
     row: PriceRow | null;
   }>({ open: false, row: null });
-  const [groupModal, setGroupModal] = useState<{
+  const [groupDrawer, setGroupDrawer] = useState<{
     open: boolean;
     group: PriceGroup | null;
   }>({ open: false, group: null });
@@ -75,12 +65,16 @@ export default function Page() {
     nextGroupId: number | null,
     inactive: boolean = showInactive,
   ) => {
+    setLoading(true);
+
     const { content } = await PriceListApi.matrix(
       nextSection,
       nextGroupId,
       inactive,
     );
     const data: PriceMatrix | undefined = content?.data;
+
+    setLoading(false);
 
     if (!data) {
       return;
@@ -107,20 +101,38 @@ export default function Page() {
   const values = form.watch();
   const dirtyKeys = Object.keys(form.formState.dirtyFields);
 
-  const rowsById = useMemo(
-    () => new Map((matrix?.rows ?? []).map((row) => [row.product_id, row])),
+  /** Produkt, cena zakupu, potem po jednej kolumnie na sekcję cenową. */
+  const columns: Column[] = useMemo(
+    () => [
+      {
+        labelKey: 'page.price_list.column.product',
+        width: 'minmax(220px, 1fr)',
+      },
+      {
+        labelKey: 'page.price_list.column.purchase',
+        width: '120px',
+        align: 'right',
+      },
+      ...(matrix?.columns ?? []).map((column) => ({
+        // Domyslna sekcja oznaczona kropka, nie pigulka: w naglowku
+        // tabeli pigulka wazy tyle co nazwa, ktora oznacza.
+        label: column.is_default ? `${column.name} ·` : column.name,
+        width: '210px',
+      })),
+    ],
     [matrix],
   );
 
-  const handleSubmit: FormOnSubmit = async (data) => {
+  const save = async () => {
     if (dirtyKeys.length === 0) {
       return;
     }
 
     setSaving(true);
 
-    // Wysylamy wylacznie zmienione komorki. Zapis jest niepodzielny -
+    // Wysylamy wylacznie zmienione komorki. Zapis jest niepodzielny —
     // odrzucenie jednej wartosci wstrzymuje pozostale.
+    const data = form.getValues();
     const cells: PriceCellInput[] = dirtyKeys.map((key) => {
       const [productId, sectionId] = key.split('_').map(Number);
       const raw = String(data[key] ?? '').replace(',', '.');
@@ -145,338 +157,278 @@ export default function Page() {
     await load(section, groupId);
   };
 
+  const groups = matrix?.groups ?? [];
+  const rows = matrix?.rows ?? [];
+
   return (
-    <div className="ge-boxed">
-      <Form onSubmit={handleSubmit} form={form}>
-        <Flex column gap={2}>
-          <Heading
-            returnTo={{ path: appRoutes.index }}
-            icon={<PiTag />}
-            title={t('page.price_list.title')}
+    <>
+      <header className="ge-head">
+        <div>
+          <div className="ge-head__kicker">{t('page.module.zlec')}</div>
+          <h1 className="ge-head__title">{t('page.price_list.title')}</h1>
+          <div className="ge-quiet">{t('page.price_list.lead')}</div>
+        </div>
+
+        <div className="ge-head__actions">
+          <HasPermission
+            permission={Permission.PRICE_LIST}
+            sub={SubPermission.UPDATE}
           >
-            <Submit
+            <Button
+              variant="contained"
               loading={saving}
               disabled={dirtyKeys.length === 0}
-              color="primary"
-              variant="contained"
-              icon={<PiFloppyDisk />}
+              onClick={() => void save()}
             >
               {dirtyKeys.length > 0
                 ? t('page.price_list.save_count', { count: dirtyKeys.length })
                 : t('save')}
-            </Submit>
-          </Heading>
+            </Button>
+          </HasPermission>
+        </div>
+      </header>
 
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: -1 }}>
-            {t('page.price_list.lead')}
-          </Typography>
+      <div className="ge-segbar">
+        <nav
+          className="ge-seg ge-seg--nav"
+          aria-label={t('page.price_list.title')}
+        >
+          {priceListSections.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={
+                item.value === section
+                  ? 'ge-seg__item is-active'
+                  : 'ge-seg__item'
+              }
+              aria-pressed={item.value === section}
+              onClick={() => setSection(item.value)}
+            >
+              <span>{t(item.labelKey)}</span>
+            </button>
+          ))}
+        </nav>
 
-          <Tabs
-            value={section}
-            onChange={(_, next: string) => setSection(next)}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            {priceListSections.map((item) => (
-              <Tab
-                key={item.value}
-                value={item.value}
-                label={t(item.labelKey)}
-              />
-            ))}
-          </Tabs>
+        <span className="ge-segbar__end ge-pl__end">
+          {/* Legenda przy kropce: nieopisany znak to sygnal, ktorego
+              nikt nie odczyta — a wlasnie takie zbieramy tu od
+              poczatku jako ciche awarie. */}
+          <span className="ge-quiet">{t('page.price_list.default_hint')}</span>
+          <label className="ge-toggle">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(event) => {
+                setShowInactive(event.target.checked);
+                void load(section, groupId, event.target.checked);
+              }}
+            />
+            <span className="ge-toggle__track" />
+            {t('page.price_list.show_inactive')}
+          </label>
+        </span>
+      </div>
 
-          <Flex gap={2} sx={{ alignItems: 'flex-start' }}>
-            <Card sx={{ width: 260, flex: '0 0 auto' }}>
-              <List dense disablePadding>
-                {(matrix?.groups ?? []).map((group) => (
-                  <ListItem
-                    key={group.id}
-                    disablePadding
-                    secondaryAction={
-                      <HasPermission
-                        permission={Permission.PRODUCTS}
-                        sub={SubPermission.UPDATE}
-                      >
-                        <IconButton
-                          size="small"
-                          aria-label={t('page.price_list.group.edit')}
-                          onClick={() => setGroupModal({ open: true, group })}
-                        >
-                          <PiPencilSimple />
-                        </IconButton>
-                      </HasPermission>
-                    }
-                  >
-                    <ListItemButton
-                      selected={group.id === groupId}
-                      onClick={() => {
-                        setGroupId(group.id);
-                        void load(section, group.id);
-                      }}
-                      sx={{ borderRadius: 1 }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: group.is_active
-                            ? 'text.primary'
-                            : 'text.disabled',
-                        }}
-                      >
-                        {group.name}
-                      </Typography>
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-                {(matrix?.groups ?? []).length === 0 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'text.secondary', p: 1 }}
-                  >
-                    {t('page.price_list.no_groups')}
-                  </Typography>
-                )}
-              </List>
+      <div className="ge-card">
+        <aside className="ge-card__side">
+          <section className="ge-section">
+            <div className="ge-section__head">
+              {t('page.price_list.group.section')}
+            </div>
 
-              <HasPermission
-                permission={Permission.PRODUCTS}
-                sub={SubPermission.CREATE}
+            {groups.length === 0 && (
+              <div className="ge-quiet">{t('page.price_list.no_groups')}</div>
+            )}
+
+            {groups.map((group) => (
+              <div
+                key={group.id}
+                className={
+                  group.id === groupId
+                    ? 'ge-pl__group is-active'
+                    : 'ge-pl__group'
+                }
               >
-                <Button
-                  fullWidth
-                  variant="text"
-                  icon={<PiPlus />}
-                  sx={{ mt: 1 }}
-                  onClick={() => setGroupModal({ open: true, group: null })}
+                <button
+                  type="button"
+                  className={
+                    group.is_active
+                      ? 'ge-pl__group-name'
+                      : 'ge-pl__group-name is-off'
+                  }
+                  onClick={() => {
+                    setGroupId(group.id);
+                    void load(section, group.id);
+                  }}
                 >
-                  {t('page.price_list.group.add')}
-                </Button>
-              </HasPermission>
-            </Card>
+                  {group.name}
+                </button>
 
-            <Card sx={{ flex: 1, overflowX: 'auto' }}>
-              <Table size="small" sx={{ minWidth: 900 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('page.price_list.column.product')}</TableCell>
-                    <TableCell align="right">
-                      {t('page.price_list.column.purchase')}
-                    </TableCell>
-                    {(matrix?.columns ?? []).map((column) => (
-                      <TableCell key={column.id} align="center">
-                        {column.name}
-                        {column.is_default && (
-                          <Chip
-                            size="small"
-                            variant="outlined"
-                            label={t('page.price_list.default')}
-                            sx={{ ml: 0.75, height: 18, fontSize: '.65rem' }}
-                          />
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(matrix?.rows ?? []).map((row) => (
-                    <TableRow key={row.product_id} hover>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <Flex gap={0.5} sx={{ alignItems: 'center' }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: row.is_active
-                                ? 'text.primary'
-                                : 'text.disabled',
-                            }}
-                          >
-                            {row.name}
-                          </Typography>
-                          <HasPermission
-                            permission={Permission.PRODUCTS}
-                            sub={SubPermission.UPDATE}
-                          >
-                            <IconButton
-                              size="small"
-                              aria-label={t('page.price_list.product.edit')}
-                              onClick={() =>
-                                setProductModal({ open: true, row })
-                              }
-                            >
-                              <PiPencilSimple />
-                            </IconButton>
-                          </HasPermission>
-                        </Flex>
-                      </TableCell>
-                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        {row.purchase_net_price ?? (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: 'warning.main' }}
-                          >
-                            {t('page.price_list.no_purchase_price')}
-                          </Typography>
-                        )}
-                      </TableCell>
-
-                      {(matrix?.columns ?? []).map((column) => {
-                        const key = cellKey(row.product_id, column.id);
-                        const cell = row.cells[String(column.id)];
-                        const typed = String(values[key] ?? '');
-                        const preview = computePrice(
-                          row.purchase_net_price,
-                          typed,
-                        );
-                        const margin = marginFromCoefficient(typed);
-                        const isDirty = dirtyKeys.includes(key);
-
-                        return (
-                          <TableCell key={column.id} align="center">
-                            <Box sx={{ width: 108, mx: 'auto' }}>
-                              <FormControl
-                                variant="text"
-                                name={key}
-                                size="small"
-                                placeholder="—"
-                                slotProps={{
-                                  htmlInput: {
-                                    style: { textAlign: 'center' },
-                                    inputMode: 'decimal',
-                                  },
-                                }}
-                              />
-                              <Typography
-                                variant="caption"
-                                component="div"
-                                sx={{
-                                  mt: 0.25,
-                                  fontWeight: 600,
-                                  color: isDirty
-                                    ? 'primary.main'
-                                    : 'text.primary',
-                                }}
-                              >
-                                {preview ?? '—'}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                component="div"
-                                sx={{ color: 'text.secondary' }}
-                              >
-                                {margin === null
-                                  ? ''
-                                  : t('page.price_list.margin', {
-                                      value: margin,
-                                    })}
-                              </Typography>
-                              {cell?.is_stale && !isDirty && (
-                                <Typography
-                                  variant="caption"
-                                  component="div"
-                                  sx={{ color: 'warning.main' }}
-                                >
-                                  {t('page.price_list.stale', {
-                                    value: cell.recomputed_net_price ?? '',
-                                  })}
-                                </Typography>
-                              )}
-                            </Box>
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-
-                  {rowsById.size === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={2 + (matrix?.columns.length ?? 0)}>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary' }}
-                        >
-                          {t('page.price_list.no_rows')}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              <Flex
-                gap={2}
-                sx={{
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mt: 1,
-                }}
-              >
                 <HasPermission
                   permission={Permission.PRODUCTS}
-                  sub={SubPermission.CREATE}
+                  sub={SubPermission.UPDATE}
                 >
-                  <Button
-                    variant="text"
-                    icon={<PiPlus />}
-                    disabled={groupId === null}
-                    onClick={() => setProductModal({ open: true, row: null })}
+                  <button
+                    type="button"
+                    className="ge-pl__group-edit"
+                    aria-label={t('page.price_list.group.edit')}
+                    onClick={() => setGroupDrawer({ open: true, group })}
                   >
-                    {t('page.price_list.product.add')}
-                  </Button>
+                    <PiPencilSimple />
+                  </button>
                 </HasPermission>
+              </div>
+            ))}
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      size="small"
-                      checked={showInactive}
-                      onChange={(event) => {
-                        setShowInactive(event.target.checked);
-                        void load(section, groupId, event.target.checked);
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      {t('page.price_list.show_inactive')}
-                    </Typography>
-                  }
-                />
-              </Flex>
-            </Card>
-          </Flex>
-        </Flex>
+            <HasPermission
+              permission={Permission.PRODUCTS}
+              sub={SubPermission.CREATE}
+            >
+              <Button
+                variant="text"
+                size="small"
+                icon={<PiPlus />}
+                onClick={() => setGroupDrawer({ open: true, group: null })}
+              >
+                {t('page.price_list.group.add')}
+              </Button>
+            </HasPermission>
+          </section>
+        </aside>
 
-        <ProductModal
-          section={section}
-          groupId={groupId}
-          row={productModal.row}
-          open={productModal.open}
-          setOpen={(open) =>
-            setProductModal((state) => ({
-              ...state,
-              open: typeof open === 'function' ? open(state.open) : open,
-            }))
-          }
-          onSaved={() => void load(section, groupId)}
-        />
+        <div className="ge-card__main">
+          <section className="ge-section">
+            <DataList
+              columns={columns}
+              loading={loading}
+              empty={
+                rows.length === 0 ? t('page.price_list.no_rows') : undefined
+              }
+              style={{ overflowX: 'auto' }}
+            >
+              <ListHead columns={columns} translate={t} />
 
-        <GroupModal
-          section={section}
-          group={groupModal.group}
-          open={groupModal.open}
-          setOpen={(open) =>
-            setGroupModal((state) => ({
-              ...state,
-              open: typeof open === 'function' ? open(state.open) : open,
-            }))
-          }
-          onSaved={(savedId) => {
-            setGroupId(savedId);
-            void load(section, savedId);
-          }}
-        />
-      </Form>
-    </div>
+              {rows.map((row) => (
+                <Row key={row.product_id}>
+                  <div className="ge-pl__product">
+                    <span
+                      className={row.is_active ? 'ge-name' : 'ge-name ge-muted'}
+                    >
+                      {row.name}
+                    </span>
+                    <HasPermission
+                      permission={Permission.PRODUCTS}
+                      sub={SubPermission.UPDATE}
+                    >
+                      <button
+                        type="button"
+                        className="ge-pl__group-edit"
+                        aria-label={t('page.price_list.product.edit')}
+                        onClick={() => setProductDrawer({ open: true, row })}
+                      >
+                        <PiPencilSimple />
+                      </button>
+                    </HasPermission>
+                  </div>
+
+                  <div className="r">
+                    {row.purchase_net_price ?? (
+                      /* Brak ceny zakupu nie jest zerem: bez niej
+                       wspolczynnik nie ma czego pomnozyc. */
+                      <span className="ge-note ge-note--warn">
+                        <PiWarningCircle />{' '}
+                        {t('page.price_list.no_purchase_price')}
+                      </span>
+                    )}
+                  </div>
+
+                  {(matrix?.columns ?? []).map((column) => {
+                    const key = cellKey(row.product_id, column.id);
+                    const cell = row.cells[String(column.id)];
+                    const typed = String(values[key] ?? '');
+                    const preview = computePrice(row.purchase_net_price, typed);
+                    const margin = marginFromCoefficient(typed);
+                    const isDirty = dirtyKeys.includes(key);
+
+                    return (
+                      <div className="ge-pl__cell" key={column.id}>
+                        <input
+                          {...form.register(key)}
+                          className="ge-pl__input"
+                          inputMode="decimal"
+                          placeholder="—"
+                          aria-label={`${row.name} — ${column.name}`}
+                        />
+                        <span
+                          className={
+                            isDirty ? 'ge-pl__price is-dirty' : 'ge-pl__price'
+                          }
+                        >
+                          {preview ?? '—'}
+                        </span>
+                        {margin !== null && (
+                          <span className="ge-pl__margin">
+                            {t('page.price_list.margin', { value: margin })}
+                          </span>
+                        )}
+                        {cell?.is_stale && !isDirty && (
+                          <span className="ge-pl__stale">
+                            {t('page.price_list.stale', {
+                              value: cell.recomputed_net_price ?? '',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </Row>
+              ))}
+            </DataList>
+
+            <HasPermission
+              permission={Permission.PRODUCTS}
+              sub={SubPermission.CREATE}
+            >
+              <div className="ge-pl__foot">
+                <Button
+                  variant="text"
+                  size="small"
+                  icon={<PiPlus />}
+                  disabled={groupId === null}
+                  onClick={() => setProductDrawer({ open: true, row: null })}
+                >
+                  {t('page.price_list.product.add')}
+                </Button>
+              </div>
+            </HasPermission>
+          </section>
+        </div>
+      </div>
+
+      <ProductDrawer
+        section={section}
+        groupId={groupId}
+        row={productDrawer.row}
+        open={productDrawer.open}
+        onClose={() => setProductDrawer({ open: false, row: null })}
+        onSaved={() => {
+          setProductDrawer({ open: false, row: null });
+          void load(section, groupId);
+        }}
+      />
+
+      <GroupDrawer
+        section={section}
+        group={groupDrawer.group}
+        open={groupDrawer.open}
+        onClose={() => setGroupDrawer({ open: false, group: null })}
+        onSaved={(savedId) => {
+          setGroupDrawer({ open: false, group: null });
+          setGroupId(savedId);
+          void load(section, savedId);
+        }}
+      />
+    </>
   );
 }

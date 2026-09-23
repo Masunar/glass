@@ -63,3 +63,6 @@ desktop.ini
 *.sql.gz
 *.dump
 /.claude/settings.local.json
+
+# Pliki do skasowania — mount sesji Cowork nie pozwala ich usunac.
+_to_delete/
