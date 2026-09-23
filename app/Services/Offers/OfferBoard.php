@@ -204,8 +204,13 @@ final readonly class OfferBoard
             'comment' => $offer->comment,
             'rejection_reason' => $offer->rejection_reason,
             'accepted_list' => $offer->acceptedList?->number,
+            // Stan otwarty jako pojecie domenowe, nie porownanie
+            // statusow na ekranie: pulpit i lista musza rozumiec przez
+            // „czeka u klienta" to samo.
+            'is_open' => $offer->status->isOpen(),
             'issued_at' => $offer->issued_at->toDateTimeString(),
             'issued_by' => $this->personName($offer),
+            'issued_by_id' => $offer->issued_by === null ? null : (int) $offer->issued_by,
             'sent_at' => $offer->sent_at?->toDateTimeString(),
         ];
     }

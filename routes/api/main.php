@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OfferController;
@@ -19,6 +20,9 @@ use App\Http\Controllers\ContractorController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\GlobalParameterController;
 
+// Pulpit bez uprawnienia: strona jest dostepna kazdemu zalogowanemu,
+// a sekcje przycina usluga.
+Route::get('/dashboard', [DashboardController::class, 'board'])->name('dashboard');
 Route::get('/search', [SearchController::class, 'search'])->name('search');
 Route::post('/regon/find-by-nip', [RegonController::class, 'findByNip'])->name('regon.find-by-nip');
 Route::crudController(UserController::class, callback: function () {

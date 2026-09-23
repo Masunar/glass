@@ -191,6 +191,10 @@ final readonly class OrderBoardService
             'delivery_place' => $order->pickupLocation->name ?? $order->delivery_address,
             'amount' => $this->value->net($order),
             'owner_initials' => $this->initials($order),
+            // Identyfikator, nie tylko inicjaly: pulpit dzieli wiersze
+            // na „moje" i reszte, a dwie osoby moga miec te same
+            // inicjaly.
+            'owner_id' => $order->created_by === null ? null : (int) $order->created_by,
             'is_on_hold' => (bool) $order->is_on_hold,
             'hold_reason' => $order->hold_reason,
             'has_open_claim' => (bool) $order->has_open_claim,
