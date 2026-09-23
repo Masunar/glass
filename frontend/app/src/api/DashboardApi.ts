@@ -2,64 +2,50 @@ import { ApiRequest } from './ApiRequest';
 
 import type { ResponseContent, ResponseProps } from '@salvon/request';
 
-export type DashboardOrderRow = {
+export type TaskBand = 'overdue' | 'today' | 'later';
+
+export type DashboardTask = {
   id: number;
   number: number;
   contractor: string | null;
   status: string | null;
   days_left: number | null;
-  owner_initials: string | null;
-  owner_id: number | null;
-  next_step: { label: string; to_status: string } | null;
-};
-
-export type DashboardOfferRow = {
-  id: number;
-  number: string;
-  order_id: number;
-  contractor: string | null;
-  status_label: string;
-  issued_at: string;
-  is_expired: boolean;
+  /** Termin słowem: „dziś", „jutro", „5 dni po". Liczy serwer. */
+  deadline_label: string | null;
+  band: TaskBand;
+  next_step: {
+    transition_id: number;
+    label: string;
+    to_status: string;
+  } | null;
 };
 
 export type DashboardBoard = {
   as_of: string;
-  /** Znika w całości, gdy nic w systemie nie jest adresowane do osoby. */
-  mine: {
-    orders: DashboardOrderRow[];
-    orders_total: number;
-    offers: DashboardOfferRow[];
-    offers_total: number;
-  } | null;
-  orders: {
-    today: number;
-    overdue: number;
-    ready: DashboardOrderRow[];
-    ready_total: number;
-    /** Zablokowane liczone po powodzie, nie po zleceniu. */
-    blocked: { reason: string; count: number }[];
-  } | null;
-  production: {
-    queue: {
-      waiting: number;
-      problems: number;
-      overdue: number;
-      urgent: number;
-    } | null;
-    furnace: { waiting: number; kg: number } | null;
-  } | null;
-  warehouse: {
-    shortages: number;
+  user: { name: string; location: string | null };
+  summary: { tasks: number; overdue: number; today: number; later: number };
+  /** Pierwsza sprawa — propozycja startu, nie kolejny licznik. */
+  top: DashboardTask | null;
+  /** `null` przy liczniku znaczy brak dostępu, nie zero. */
+  counters: {
+    overdue: number | null;
+    today: number | null;
+    shortages: number | null;
+    production: number | null;
+    furnace: number | null;
+    offers: number | null;
+  };
+  tasks: DashboardTask[];
+  blocked: { reason: string; count: number }[];
+  shortages: {
+    total: number;
     rows: {
       product_id: number;
       name: string;
       available: number;
-      /** Ile domówić, żeby wrócić do maksimum — sugestia, nie zamówienie. */
-      to_order: number;
+      max: number;
     }[];
   } | null;
-  offers: { open: number; rows: DashboardOfferRow[] } | null;
 };
 
 export class DashboardApi extends ApiRequest {

@@ -1,49 +1,69 @@
-import { useEffect, useState } from 'react';
-import { PiWarningCircle } from 'react-icons/pi';
-import { Link } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { PiArrowRight } from 'react-icons/pi';
+import { Link, useNavigate } from 'react-router';
 
+import { Button } from '@salvon/components/button';
 import { useTranslation } from '@salvon/hooks/useTranslation';
+import { notifyError } from '@salvon/utils/notify';
 
 import type {
   DashboardBoard,
-  DashboardOfferRow,
-  DashboardOrderRow,
+  DashboardTask,
+  TaskBand,
 } from '@app/api/DashboardApi';
 import { DashboardApi } from '@app/api/DashboardApi';
+import { OrdersApi } from '@app/api/OrdersApi';
 import { ListWait } from '@app/components/list';
-import { Strip, Strips } from '@app/components/list';
+
+type Filter = 'all' | TaskBand;
 
 /**
- * Pulpit — najpierw to, co czeka na mnie, potem stan zakładu.
+ * Pulpit — jedna lista spraw, pas liczb, blokady i braki obok.
  *
- * Do #31 stało tu demo Salvona: pierwszy ekran po zalogowaniu był
- * jedynym miejscem w aplikacji, które do niej nie należało.
+ * **Sprawa to zlecenie, z którym da się coś teraz zrobić albo które
+ * się spóźnia.** Pierwsza na liście dostaje prawdziwy przycisk i wraca
+ * w nagłówku jako „zacznij od #24004": ekran ma dać jeden punkt
+ * wejścia, a nie siedem równorzędnych.
  *
- * **Pulpit nie liczy niczego sam** — każda liczba pochodzi z tej samej
- * usługi co ekran, do którego prowadzi. Dlatego każdy kafelek jest
- * odnośnikiem: liczba bez miejsca, w które można z nią pójść, każe
- * szukać jej ręcznie na liście.
+ * **Akcja wykonuje się z wiersza.** To ta sama droga, co kolumna „co
+ * dalej" na liście zleceń — po przejściu wiersz zmienia pasmo, więc
+ * pulpit wczytuje się od nowa.
  *
- * Sekcja, do której brakuje uprawnień, **nie przychodzi z serwera** —
- * nie jest tu ukrywana.
+ * Kreska zamiast liczby znaczy **brak dostępu**, nie zero. Sekcja, do
+ * której brakuje uprawnień, w ogóle nie przychodzi z serwera.
  */
 export default function Page() {
   const t = useTranslation();
+  const navigate = useNavigate();
   const [board, setBoard] = useState<DashboardBoard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+
+    const { content } = await DashboardApi.board();
+    const data: DashboardBoard | undefined = content?.data;
+
+    setLoading(false);
+
+    if (data) {
+      setBoard(data);
+    }
+  };
 
   useEffect(() => {
-    void (async () => {
-      const { content } = await DashboardApi.board();
-      const data: DashboardBoard | undefined = content?.data;
-
-      setLoading(false);
-
-      if (data) {
-        setBoard(data);
-      }
-    })();
+    void load();
   }, []);
+
+  const tasks = useMemo(
+    () =>
+      (board?.tasks ?? []).filter(
+        (task) => filter === 'all' || task.band === filter,
+      ),
+    [board, filter],
+  );
 
   if (!board) {
     return (
@@ -54,250 +74,274 @@ export default function Page() {
     );
   }
 
-  const { mine, orders, production, warehouse, offers } = board;
-  const empty =
-    mine === null &&
-    orders === null &&
-    production === null &&
-    warehouse === null &&
-    offers === null;
+  const run = async (task: DashboardTask) => {
+    if (task.next_step === null) {
+      void navigate(`/orders/${task.id}`);
+
+      return;
+    }
+
+    setBusy(task.id);
+
+    const { content, response } = await OrdersApi.transition(
+      task.id,
+      task.next_step.transition_id,
+    );
+
+    setBusy(null);
+
+    if (!response.success) {
+      notifyError(
+        content?.errors?.transition?.[0] ??
+          t('page.orders.transition_failed', { number: task.number }),
+      );
+
+      return;
+    }
+
+    await load();
+  };
+
+  const { summary, counters, top, blocked, shortages } = board;
+  const day = new Date(board.as_of).toLocaleDateString('pl-PL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
     <>
-      <header className="ge-head">
+      <header className="ge-head ge-home__head">
         <div>
-          <div className="ge-head__kicker">{t('page.home.kicker')}</div>
-          <h1 className="ge-head__title">{t('page.home.title')}</h1>
-          <div className="ge-quiet">{t('page.home.lead')}</div>
+          <div className="ge-head__kicker">
+            {[day, board.user.location].filter(Boolean).join(' · ')}
+          </div>
+          <h1 className="ge-head__title">
+            {t('page.home.greeting', { name: board.user.name })}
+          </h1>
+          <div className="ge-quiet">
+            {summary.tasks === 0
+              ? t('page.home.lead_clear')
+              : summary.overdue > 0
+                ? t('page.home.lead_overdue', {
+                    tasks: summary.tasks,
+                    overdue: summary.overdue,
+                  })
+                : t('page.home.lead', { tasks: summary.tasks })}
+          </div>
         </div>
+
+        {top !== null && (
+          <div className="ge-head__actions">
+            <Button
+              variant="contained"
+              loading={busy === top.id}
+              onClick={() => void run(top)}
+            >
+              {t('page.home.start_with', { number: top.number })}
+            </Button>
+          </div>
+        )}
       </header>
 
-      {empty && (
-        /* Konto bez zadnego modulu. Pusty ekran bez slowa wygladalby
-           jak awaria, a to jest stan konfiguracji. */
-        <div className="ge-note ge-note--warn ge-acc__banner">
-          <PiWarningCircle /> {t('page.home.no_access')}
+      {/* Pas liczb: kreska zamiast zera znaczy „nie masz do tego
+          dostepu". Zero i brak uprawnienia musza wygladac inaczej. */}
+      <div className="ge-kpis">
+        <Kpi
+          label={t('page.home.kpi.overdue')}
+          value={counters.overdue}
+          tone="alert"
+        />
+        <Kpi
+          label={t('page.home.kpi.today')}
+          value={counters.today}
+          tone="mod"
+        />
+        <Kpi
+          label={t('page.home.kpi.shortages')}
+          value={counters.shortages}
+          tone="money"
+        />
+        <Kpi
+          label={t('page.home.kpi.production')}
+          value={counters.production}
+          tone="prod"
+        />
+        <Kpi
+          label={t('page.home.kpi.furnace')}
+          value={counters.furnace}
+          tone="prod"
+        />
+        <Kpi
+          label={t('page.home.kpi.offers')}
+          value={counters.offers}
+          tone="plain"
+        />
+      </div>
+
+      <div className="ge-home">
+        <div className="ge-home__main">
+          <div className="ge-segbar">
+            <nav
+              className="ge-seg ge-seg--filter"
+              aria-label={t('page.home.tasks')}
+            >
+              {(['all', 'overdue', 'today', 'later'] as Filter[]).map((key) => {
+                const count =
+                  key === 'all' ? summary.tasks : summary[key as TaskBand];
+                const here = filter === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={[
+                      'ge-seg__item',
+                      here ? 'is-active' : '',
+                      count === 0 && !here ? 'ge-seg__item--empty' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-pressed={here}
+                    onClick={() => setFilter(key)}
+                  >
+                    <span>{t(`page.home.filter.${key}`)}</span>
+                    {count > 0 && (
+                      <span className="ge-seg__count">{count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <ListWait on={loading} />
+
+          {tasks.length === 0 ? (
+            <div className="ge-list__empty">{t('page.home.tasks_empty')}</div>
+          ) : (
+            tasks.map((task, index) => (
+              <div className={`ge-task ge-task--${task.band}`} key={task.id}>
+                <Link to={`/orders/${task.id}`} className="ge-task__number">
+                  #{task.number}
+                </Link>
+                <span className="ge-task__party">{task.contractor ?? '—'}</span>
+                <span
+                  className={
+                    task.band === 'overdue'
+                      ? 'ge-task__due is-late'
+                      : 'ge-task__due'
+                  }
+                >
+                  {task.deadline_label ?? ''}
+                </span>
+
+                {/* Pierwszy wiersz dostaje prawdziwy przycisk, reszta
+                    odnosnik: ekran proponuje jeden start, nie siedem. */}
+                {index === 0 && filter === 'all' ? (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    loading={busy === task.id}
+                    onClick={() => void run(task)}
+                  >
+                    {task.next_step?.label ?? t('page.home.open')}
+                  </Button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ge-task__action"
+                    disabled={busy === task.id}
+                    onClick={() => void run(task)}
+                  >
+                    {task.next_step?.label ?? t('page.home.open')}{' '}
+                    <PiArrowRight />
+                  </button>
+                )}
+              </div>
+            ))
+          )}
         </div>
-      )}
 
-      {mine !== null && (mine.orders_total > 0 || mine.offers_total > 0) && (
-        <section className="ge-section">
-          <div className="ge-section__head ge-section__head--strong">
-            {t('page.home.mine')}
-          </div>
+        <aside className="ge-home__side">
+          {blocked.length > 0 && (
+            <section className="ge-home__box">
+              <div className="ge-home__box-head">{t('page.home.blocked')}</div>
 
-          {mine.orders.map((row) => (
-            <OrderLine key={row.id} row={row} t={t} />
-          ))}
+              {blocked.map((item) => (
+                <div className="ge-home__blocked" key={item.reason}>
+                  <strong>
+                    {t('page.home.blocked_count', { count: item.count })}
+                  </strong>{' '}
+                  <span className="ge-quiet">{item.reason}</span>{' '}
+                  <Link to="/orders" className="ge-link">
+                    {t('page.home.show')}
+                  </Link>
+                </div>
+              ))}
+            </section>
+          )}
 
-          {mine.offers.map((row) => (
-            <OfferLine key={row.id} row={row} t={t} />
-          ))}
+          {shortages !== null && shortages.rows.length > 0 && (
+            <section className="ge-home__box">
+              <div className="ge-home__box-head">
+                {t('page.home.shortages')}
+                <span className="ge-home__box-count">{shortages.total}</span>
+              </div>
 
-          <More
-            shown={mine.orders.length + mine.offers.length}
-            total={mine.orders_total + mine.offers_total}
-            to="/orders"
-            t={t}
-          />
-        </section>
-      )}
+              {shortages.rows.map((row) => (
+                <div className="ge-home__stock" key={row.product_id}>
+                  <span className="ge-home__stock-name">{row.name}</span>
+                  <span className="ge-home__stock-ratio">
+                    {row.available} / {row.max}
+                  </span>
+                  {/* Pasek, nie liczba sama: „0 z 12" i „10 z 12" czyta
+                      sie jednym spojrzeniem dopiero w kolumnie. */}
+                  <span className="ge-home__bar">
+                    <span
+                      style={{
+                        width: `${row.max > 0 ? Math.min(100, Math.max(0, (row.available / row.max) * 100)) : 0}%`,
+                      }}
+                    />
+                  </span>
+                </div>
+              ))}
 
-      <Strips>
-        {orders !== null && (
-          <Strip
-            variant={orders.overdue > 0 ? 'alert' : 'plain'}
-            label={t('page.home.strip.overdue')}
-            value={orders.overdue}
-            noteWarn={orders.overdue > 0}
-            note={t('page.home.strip.today', { count: orders.today })}
-          />
-        )}
-        {production?.queue != null && (
-          <Strip
-            variant="prod"
-            label={t('page.home.strip.queue')}
-            value={production.queue.waiting}
-            noteWarn={production.queue.problems > 0}
-            note={t('page.home.strip.problems', {
-              count: production.queue.problems,
-            })}
-          />
-        )}
-        {production?.furnace != null && (
-          <Strip
-            variant="module"
-            label={t('page.home.strip.furnace')}
-            value={production.furnace.waiting}
-            note={t('page.home.strip.kg', { value: production.furnace.kg })}
-          />
-        )}
-        {warehouse !== null && (
-          <Strip
-            variant={warehouse.shortages > 0 ? 'alert' : 'plain'}
-            label={t('page.home.strip.shortages')}
-            value={warehouse.shortages}
-            noteWarn={warehouse.shortages > 0}
-            note={t('page.home.strip.shortages_note')}
-          />
-        )}
-        {offers !== null && (
-          <Strip
-            variant="money"
-            label={t('page.home.strip.offers')}
-            value={offers.open}
-            note={t('page.home.strip.offers_note')}
-          />
-        )}
-      </Strips>
-
-      {orders !== null && orders.ready_total > 0 && (
-        <section className="ge-section">
-          <div className="ge-section__head">
-            {t('page.home.ready')}
-            <span className="ge-section__end ge-quiet">
-              {t('page.home.ready_note')}
-            </span>
-          </div>
-
-          {orders.ready.map((row) => (
-            <OrderLine key={row.id} row={row} t={t} />
-          ))}
-
-          <More
-            shown={orders.ready.length}
-            total={orders.ready_total}
-            to="/orders"
-            t={t}
-          />
-        </section>
-      )}
-
-      {orders !== null && orders.blocked.length > 0 && (
-        <section className="ge-section">
-          <div className="ge-section__head">{t('page.home.blocked')}</div>
-          <div className="ge-quiet">{t('page.home.blocked_note')}</div>
-
-          {/* Po powodzie, nie po zleceniu: „piec zlecen czeka na
-              rysunki" mowi co zrobic, piec identycznych wierszy nie. */}
-          {orders.blocked.map((item) => (
-            <div className="ge-home__blocked" key={item.reason}>
-              <span className="ge-home__count">{item.count}</span>
-              <span>{item.reason}</span>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {warehouse !== null && warehouse.rows.length > 0 && (
-        <section className="ge-section">
-          <div className="ge-section__head">{t('page.home.shortages')}</div>
-
-          {warehouse.rows.map((row) => (
-            <div className="ge-home__line" key={row.product_id}>
-              <Link to="/magazyn" className="ge-link">
-                {row.name}
-              </Link>
-              <span className="ge-quiet">
-                {t('page.home.shortage_line', {
-                  available: row.available,
-                  order: row.to_order,
-                })}
-              </span>
-            </div>
-          ))}
-
-          <More
-            shown={warehouse.rows.length}
-            total={warehouse.shortages}
-            to="/magazyn"
-            t={t}
-          />
-        </section>
-      )}
-
-      {offers !== null && offers.rows.length > 0 && (
-        <section className="ge-section">
-          <div className="ge-section__head">{t('page.home.offers')}</div>
-
-          {offers.rows.map((row) => (
-            <OfferLine key={row.id} row={row} t={t} />
-          ))}
-
-          <More
-            shown={offers.rows.length}
-            total={offers.open}
-            to="/offers"
-            t={t}
-          />
-        </section>
-      )}
+              <div className="ge-home__box-foot">
+                <Link to="/magazyn" className="ge-link">
+                  {t('page.home.all_shortages')} <PiArrowRight />
+                </Link>
+              </div>
+            </section>
+          )}
+        </aside>
+      </div>
     </>
   );
 }
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-/** Zlecenie w jednej linii: numer, kontrahent i ruch, który czeka. */
-function OrderLine({ row, t }: { row: DashboardOrderRow; t: Translate }) {
-  return (
-    <div className="ge-home__line">
-      <Link to={`/orders/${row.id}`} className="ge-link">
-        #{row.number}
-      </Link>
-      <span>{row.contractor ?? '—'}</span>
-      <span className="ge-quiet">
-        {row.next_step?.label ?? row.status ?? ''}
-      </span>
-      {row.days_left !== null && row.days_left < 0 && (
-        <span className="ge-note ge-note--warn">
-          {t('page.home.days_over', { count: Math.abs(row.days_left) })}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function OfferLine({ row, t }: { row: DashboardOfferRow; t: Translate }) {
-  return (
-    <div className="ge-home__line">
-      <Link to={`/orders/${row.order_id}/oferty`} className="ge-link">
-        {row.number}
-      </Link>
-      <span>{row.contractor ?? '—'}</span>
-      <span className="ge-quiet">{row.status_label}</span>
-      {row.is_expired && (
-        /* Wygasla to nie to samo co odrzucona: klient nie odpowiedzial,
-           a termin minal. */
-        <span className="ge-note ge-note--warn">
-          {t('page.home.offer_expired')}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** „Widać 6 z 23" plus wyjście na listę, gdy jest czego więcej. */
-function More({
-  shown,
-  total,
-  to,
-  t,
+/** Licznik w pasie. `null` to kreska — brak dostępu, nie zero. */
+function Kpi({
+  label,
+  value,
+  tone,
 }: {
-  shown: number;
-  total: number;
-  to: string;
-  t: Translate;
+  label: string;
+  value: number | null;
+  tone: 'alert' | 'mod' | 'money' | 'prod' | 'plain';
 }) {
-  if (total <= shown) {
-    return null;
-  }
-
   return (
-    <div className="ge-home__more">
-      <Link to={to} className="ge-link">
-        {t('page.home.more', { count: total - shown })}
-      </Link>
+    <div className="ge-kpi">
+      <div className="ge-kpi__label">{label}</div>
+      <div
+        className={
+          value === null || value === 0
+            ? 'ge-kpi__value is-none'
+            : `ge-kpi__value ge-kpi__value--${tone}`
+        }
+      >
+        {value === null ? '—' : value}
+      </div>
     </div>
   );
 }

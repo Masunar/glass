@@ -46,21 +46,23 @@ class DashboardTest extends TestCase
     }
 
     #[Test]
-    public function konto_bez_uprawnien_nie_dostaje_zadnej_sekcji(): void
+    public function konto_bez_uprawnien_nie_dostaje_zadnej_liczby(): void
     {
         $board = $this->board->board($this->user());
 
-        // Nie pusta tablica, tylko `null` przy kazdej sekcji: ekran ma
-        // powiedziec „nie masz dostepu", a nie „nic nie ma".
-        $this->assertNull($board['mine']);
-        $this->assertNull($board['orders']);
-        $this->assertNull($board['production']);
-        $this->assertNull($board['warehouse']);
-        $this->assertNull($board['offers']);
+        // `null`, nie zero: kreska na ekranie znaczy „nie masz do tego
+        // dostepu", a zero — „nie ma sie czym zajmowac".
+        foreach ($board['counters'] as $key => $value) {
+            $this->assertNull($value, sprintf('Licznik "%s" wyciekl.', $key));
+        }
+
+        $this->assertSame([], $board['tasks']);
+        $this->assertSame([], $board['blocked']);
+        $this->assertNull($board['shortages']);
     }
 
     #[Test]
-    public function rola_nadrzedna_dostaje_wszystkie_sekcje(): void
+    public function rola_nadrzedna_dostaje_wszystkie_liczby(): void
     {
         /** @var Role $admin */
         $admin = Role::query()->where('name', RoleSeeder::ADMINISTRATOR)->firstOrFail();
@@ -68,65 +70,79 @@ class DashboardTest extends TestCase
         $user = $this->user();
         $user->assignRole($admin);
 
-        $board = $this->board->board($user->fresh() ?? $user);
+        $counters = $this->board->board($user->fresh() ?? $user)['counters'];
 
-        $this->assertNotNull($board['orders']);
-        $this->assertNotNull($board['production']);
-        $this->assertNotNull($board['warehouse']);
-        $this->assertNotNull($board['offers']);
+        foreach ($counters as $key => $value) {
+            $this->assertNotNull($value, sprintf('Licznik "%s" nie doszedl.', $key));
+        }
     }
 
     #[Test]
-    public function samo_uprawnienie_do_zasobu_nie_otwiera_sekcji(): void
+    public function samo_uprawnienie_do_zasobu_nie_otwiera_licznika(): void
     {
         // Dostep do modulu jest pietrem nad dostepem do zasobu (U-04),
         // wiec pulpit pyta o oba. Inaczej pokazywalby dane z modulu,
         // ktory listwa i tak chowa.
         $user = $this->userWith(['warehouse.list']);
 
-        $this->assertNull($this->board->board($user)['warehouse']);
+        $this->assertNull($this->board->board($user)['counters']['shortages']);
     }
 
     #[Test]
-    public function dostep_do_modulu_i_zasobu_otwiera_sekcje(): void
+    public function dostep_do_modulu_i_zasobu_otwiera_licznik(): void
     {
         $user = $this->userWith(['mag.access', 'warehouse.list']);
 
-        $this->assertNotNull($this->board->board($user)['warehouse']);
+        $this->assertNotNull($this->board->board($user)['counters']['shortages']);
+        $this->assertNotNull($this->board->board($user)['shortages']);
     }
 
     #[Test]
-    public function sekcja_osobista_bierze_zlecenia_zalozone_przez_uzytkownika(): void
+    public function zlecenie_po_terminie_jest_sprawa(): void
     {
         $user = $this->userWith(['zlec.access', 'orders.list']);
 
-        // Zlecenie po terminie: do sekcji osobistej trafia to,
-        // z czym da sie cos zrobic albo co juz sie spoznia.
-        $mine = $this->order(90001, (int) $user->getKey(), '2024-01-01');
-        $this->order(90002, null, '2024-01-01');
+        $late = $this->order(90001, null, '2024-01-01');
 
         $board = $this->board->board($user);
 
-        /** @var array<string, mixed> $section */
-        $section = $board['mine'];
-        $numbers = array_column($section['orders'], 'number');
-
-        $this->assertSame([$mine->number], $numbers);
+        $this->assertSame([$late->number], array_column($board['tasks'], 'number'));
+        $this->assertSame('overdue', $board['tasks'][0]['band']);
+        // Termin slowem, nie surowa data — i liczy go serwer, zeby
+        // pulpit i lista nie nazwaly tego samego dnia inaczej.
+        $this->assertStringEndsWith('dni po', (string) $board['tasks'][0]['deadline_label']);
     }
 
     #[Test]
-    public function zlecenia_widac_w_sekcji_ogolnej_niezaleznie_od_autora(): void
+    public function pierwsza_sprawa_jest_propozycja_startu(): void
     {
         $user = $this->userWith(['zlec.access', 'orders.list']);
 
-        $this->order(90003, null);
+        $this->order(90004, null, '2024-01-01');
 
-        /** @var array<string, mixed> $section */
-        $section = $this->board->board($user)['orders'];
+        $board = $this->board->board($user);
 
-        // Pulpit nie liczy sam: pasma i „co dalej" pochodza z tej samej
-        // uslugi, co lista zlecen.
-        $this->assertGreaterThan(0, $section['ready_total'] + count($section['blocked']));
+        // Ekran ma dac jeden punkt wejscia, nie siedem rownorzednych.
+        $this->assertNotNull($board['top']);
+        $this->assertSame($board['tasks'][0]['number'], $board['top']['number']);
+    }
+
+    #[Test]
+    public function zablokowane_nie_sa_sprawami_i_licza_sie_po_powodzie(): void
+    {
+        $user = $this->userWith(['zlec.access', 'orders.list']);
+
+        $this->order(90005, null);
+
+        $board = $this->board->board($user);
+
+        // Zlecenie bez dostepnego ruchu i bez terminu nie jest sprawa:
+        // `firstBlocked()` zwraca cos przy prawie kazdym, wiec lista
+        // zamienilaby sie w kopie listy zlecen.
+        $this->assertSame([], array_column($board['tasks'], 'number'));
+        $this->assertNotSame([], $board['blocked']);
+        $this->assertArrayHasKey('reason', $board['blocked'][0]);
+        $this->assertArrayHasKey('count', $board['blocked'][0]);
     }
 
     /** @param list<string> $permissions */

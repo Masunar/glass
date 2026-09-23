@@ -102,6 +102,31 @@ a {
   text-decoration: none;
 }
 
+/* Kto pracuje — na dole panelu. Kafelek inicjalow w listwie tego nie
+   miesci, a przy dwoch punktach firmy imie bez kontekstu nie wystarcza. */
+.ge-panel__who {
+  padding-bottom: 8px;
+  font-size: 12.5px;
+  color: var(--ge-neutral-800);
+}
+
+/* Logo prowadzi na pulpit, wiec zachowuje sie jak kafelek modulu:
+   ten sam kursor, ten sam fokus, ten sam stan aktywny. */
+.ge-rail__brand--link {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.ge-rail__brand--link:hover { filter: brightness(1.15); }
+.ge-rail__brand--link:focus-visible {
+  outline: 2px solid var(--ge-rail-fg);
+  outline-offset: 2px;
+}
+.ge-rail__brand--link.is-active {
+  box-shadow: inset 0 0 0 2px var(--ge-rail-fg);
+}
+
 .ge-rail__mod {
   width: 44px;
   height: 44px;

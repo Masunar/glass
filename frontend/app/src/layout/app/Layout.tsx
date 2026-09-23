@@ -42,7 +42,11 @@ import Spotlight, { SpotlightOpener } from '@app/components/search/Spotlight';
 import i18n from '@app/config/i18n';
 import { locales } from '@app/config/locales';
 import { defaultLocale } from '@app/config/locales';
-import { moduleAccessPermission, moduleForPath } from '@app/config/modules';
+import {
+  HOME,
+  moduleAccessPermission,
+  moduleForPath,
+} from '@app/config/modules';
 import { lightTheme } from '@app/config/theme';
 import { userHasPermission } from '@app/hook/use-permissions';
 import { useUser } from '@app/hook/use-user';
@@ -96,7 +100,10 @@ export const loader: LoaderFunction = async (params) => {
   // Dostep do modulu i uprawnienie strony to dwa warunki, oba musza
   // byc spelnione (U-04). Uprawnienia w obrebie trasy zostaja
   // alternatywa — tak dzialalo sprawdzenie przed wpieciem modulow.
-  if (moduleKey && !userHasPermission(user, moduleAccessPermission(moduleKey))) {
+  if (
+    moduleKey &&
+    !userHasPermission(user, moduleAccessPermission(moduleKey))
+  ) {
     missing.push(moduleAccessPermission(moduleKey));
   }
 
@@ -176,6 +183,10 @@ function Template({
   const { pathname } = useLocation();
   const user = useUser();
   const module = moduleForPath(pathname);
+  const isHome = pathname === HOME;
+  // Pulpit nie nalezy do modulu, ale powloka potrzebuje akcentu.
+  // Stal jest akcentem systemu, nie kolorem Zlecen — patrz `tokens.ts`.
+  const tint = isHome ? 'zlec' : module.key;
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Skrot na poziomie powloki, a nie ekranu: wyszukiwarka ma byc
@@ -205,8 +216,8 @@ function Template({
     <div
       className="ge-shell"
       style={{
-        ['--ge-mod' as string]: `var(--m-${module.key})`,
-        ['--ge-mod-tint' as string]: `var(--m-${module.key}-tint)`,
+        ['--ge-mod' as string]: `var(--m-${tint})`,
+        ['--ge-mod-tint' as string]: `var(--m-${tint}-tint)`,
       }}
     >
       <CssBaseline enableColorScheme />
@@ -216,6 +227,7 @@ function Template({
 
       <Rail
         active={module}
+        isHome={isHome}
         initials={initials || 'GE'}
         onUserClick={() => {}}
       />
@@ -223,10 +235,17 @@ function Template({
       <ModulePanel
         module={module}
         footer={
-          <Flex align="center" justify="space-between" gap={1}>
-            <ChangeLanguage locales={locales} />
-            <Logout logout={handleLogout} />
-          </Flex>
+          <>
+            {/* Kto jest zalogowany i gdzie — na dole panelu, nie
+                w kafelku inicjalow, ktory tego nie miesci. */}
+            <div className="ge-panel__who">
+              {[user?.first_name, user?.last_name].filter(Boolean).join(' ')}
+            </div>
+            <Flex align="center" justify="space-between" gap={1}>
+              <ChangeLanguage locales={locales} />
+              <Logout logout={handleLogout} />
+            </Flex>
+          </>
         }
       >
         <Div sx={{ px: '20px', py: '10px' }}>

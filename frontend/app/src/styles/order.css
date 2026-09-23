@@ -981,27 +981,137 @@
 
 /* --- Pulpit -------------------------------------------------------- */
 
-/* Wiersz pulpitu jest krotki z zalozenia: numer, kontrahent, jedno
-   zdanie o tym, co czeka. Kto chce wiecej, idzie na liste. */
-.ge-home__line,
-.ge-home__blocked {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 7px 0;
+.ge-home__head { align-items: flex-start; }
+
+/* Pas liczb: sześć komórek rozdzielonych włosem, bez wypełnień.
+   Kafle w kolorze krzyczały wszystkie naraz, a pulpit ma mieć jedną
+   rzecz najważniejszą, nie sześć. */
+.ge-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-top: 1px solid var(--ge-neutral-900);
+  border-bottom: 1px solid var(--ge-divider);
+  margin-bottom: 0;
+}
+.ge-kpi {
+  padding: 12px 20px 14px;
+  border-left: 1px solid var(--ge-divider);
+}
+.ge-kpi:first-child { border-left: 0; }
+.ge-kpi__label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ge-neutral-800);
+  font-weight: 600;
+}
+.ge-kpi__value {
+  font-family: var(--ge-font-heading);
+  font-size: 28px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  padding-top: 4px;
+}
+/* Kreska i zero wygladaja tak samo blado celowo: obie znacza „nie ma
+   sie czym zajmowac", tylko z innego powodu. */
+.ge-kpi__value.is-none { color: var(--ge-neutral-600); }
+.ge-kpi__value--alert { color: var(--m-alert); }
+.ge-kpi__value--mod { color: var(--m-zlec); }
+.ge-kpi__value--money { color: var(--m-ksie); }
+.ge-kpi__value--prod { color: var(--m-prod); }
+.ge-kpi__value--plain { color: var(--ge-text); }
+
+.ge-home { display: flex; align-items: flex-start; }
+.ge-home__main { flex: 1; min-width: 0; }
+.ge-home__side {
+  flex: none;
+  width: 330px;
+  border-left: 1px solid var(--ge-divider);
+  align-self: stretch;
+}
+
+/* Wiersz sprawy: siatka, nie flex. Na flexie kontrahent rosl do konca
+   wiersza i wypychal akcje na drugi koniec ekranu. */
+.ge-task {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 110px minmax(0, 220px);
+  align-items: center;
+  gap: 14px;
+  padding: 9px 24px;
   border-bottom: 1px solid var(--ge-divider);
   font-size: 13.5px;
+  /* Miejsce na lewa krawedz stanu — bez niej wiersze po terminie nie
+     rozniłyby sie od reszty niczym poza kolorem daty. */
+  border-left: 3px solid transparent;
 }
-.ge-home__line > *:nth-child(2) { flex: 1; min-width: 0; }
-.ge-home__blocked > span:last-child { flex: 1; }
+.ge-task--overdue { border-left-color: var(--m-alert); }
+.ge-task--today { border-left-color: var(--m-zlec); }
+.ge-task:hover { background: var(--ge-surface); }
+.ge-task > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Liczba przed powodem, nie za nim: oko czyta kolumne liczb z gory na
-   dol i od razu widzi, co boli najbardziej. */
-.ge-home__count {
-  min-width: 28px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+.ge-task__number { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ge-task__party { color: var(--ge-text); }
+.ge-task__due { font-size: 13px; color: var(--ge-neutral-800); }
+.ge-task__due.is-late { color: var(--m-alert); font-weight: 600; }
+
+.ge-task__action {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--m-zlec);
+  cursor: pointer;
+}
+.ge-task__action:hover { text-decoration: underline; }
+.ge-task__action:disabled { opacity: 0.5; cursor: default; }
+
+/* Kolumna obok: pudełka bez ramek, rozdzielone nagłówkiem. */
+.ge-home__box { border-bottom: 1px solid var(--ge-divider); padding-bottom: 8px; }
+.ge-home__box-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 20px 8px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ge-neutral-800);
+}
+.ge-home__box-count { margin-left: auto; font-size: 13px; color: var(--ge-text); }
+.ge-home__box-foot { padding: 8px 20px 4px; font-size: 13px; }
+
+.ge-home__blocked {
+  padding: 8px 20px;
+  font-size: 13.5px;
+  border-top: 1px solid var(--ge-divider);
 }
 
-.ge-home__more { padding-top: 10px; font-size: 13px; }
+.ge-home__stock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 8px 20px;
+  border-top: 1px solid var(--ge-divider);
+  font-size: 13px;
+}
+.ge-home__stock-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-home__stock-ratio { font-variant-numeric: tabular-nums; color: var(--ge-neutral-800); }
+/* Pasek zajmuje obie kolumny: liczba mowi ile, pasek — jak daleko. */
+.ge-home__bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: var(--ge-neutral-300);
+}
+.ge-home__bar > span { display: block; height: 100%; background: var(--m-ksie); }
+
+@media (max-width: 1100px) {
+  .ge-kpis { grid-template-columns: repeat(3, 1fr); }
+  .ge-home { flex-direction: column; }
+  .ge-home__side { width: 100%; border-left: 0; border-top: 1px solid var(--ge-divider); }
+}
