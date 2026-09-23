@@ -31,6 +31,33 @@ interface AlertCondition
     public function alertable(): string;
 
     /**
+     * Zasób, którego alert dotyczy — `orders`, `warehouse`, `tempering`.
+     *
+     * Z niego **wyprowadzane** są oba potrzebne uprawnienia: `list` do
+     * zobaczenia alertu i `update` do odhaczenia go. Wpisane osobno
+     * rozjechałyby się przy pierwszej zmianie, a byłby to rozjazd bez
+     * objawów — alert widoczny dla kogoś, kto samej rzeczy nie widzi.
+     *
+     * Pośrednik od dostępu do modułu tego nie wyprowadzi, bo zależy to
+     * od **wiersza**, a nie od trasy; sprawdza to usługa, która wiersz
+     * już zna.
+     */
+    public function resource(): string;
+
+    /**
+     * Podpisy encji: identyfikator => co pokazać i dokąd to prowadzi.
+     *
+     * Pasmo alertów na pulpicie musi umieć nazwać każdą rzecz, której
+     * alert dotyczy — nie tylko zlecenie. Wiedza o tym, jak nazywa się
+     * encja i gdzie leży jej ekran, siedzi przy warunku, bo tam już
+     * stoi zapytanie o tę tabelę.
+     *
+     * @param list<int> $ids
+     * @return array<int, array{label: string, path: string|null}>
+     */
+    public function subjects(array $ids): array;
+
+    /**
      * Parametry typu: co administrator ustawia na ekranie reguł.
      *
      * @return list<array{key: string, label: string, type: string, default: int|string|list<string>, hint: string}>

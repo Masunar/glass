@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Alerts;
 
 use Carbon\Carbon;
+use App\Models\User;
 use App\Models\AlertOccurrence;
 use App\Services\AuditTrail;
+use Salvon\Enum\SubPermission;
+use App\Alerts\ConditionCatalog;
+use App\Support\AccessRegistry;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -32,22 +36,51 @@ final readonly class AlertAcknowledgement
     public function __construct(
         private AlertEngine $engine = new AlertEngine(),
         private AuditTrail $audit = new AuditTrail(),
+        private ConditionCatalog $catalog = new ConditionCatalog(),
     ) {
     }
 
     /**
-     * @return array{errors: array<string, list<string>>}
+     * Czy użytkownik może odhaczyć **ten** alert.
+     *
+     * Uprawnienie idzie za tym, czego alert dotyczy: zlecenia, stanu
+     * magazynu, partii w piecu. Pośrednik od dostępu do modułu tego nie
+     * wyprowadzi, bo zależy to od wiersza, a nie od trasy — sprawdzamy
+     * więc tutaj, gdzie wiersz jest znany, i pytamy o **oba** poziomy
+     * (U-04): dostęp do modułu i prawo do zmiany zasobu.
+     */
+    public function may(User $user, AlertOccurrence $occurrence): bool
+    {
+        /** @var array<string, mixed> $params */
+        $params = $occurrence->rule->condition;
+        $type = is_string($params['type'] ?? null) ? $params['type'] : '';
+        $condition = $this->catalog->find($type);
+
+        if ($condition === null) {
+            return false;
+        }
+
+        return $user->can($condition->module() . '.' . AccessRegistry::ACCESS)
+            && $user->can($condition->resource() . '.' . SubPermission::UPDATE->value);
+    }
+
+    /**
+     * @return array{errors: array<string, list<string>>, denied: bool}
      */
     public function acknowledge(int $occurrenceId, ?Carbon $day = null): array
     {
         $occurrence = $this->open($occurrenceId);
 
         if ($occurrence === null) {
-            return ['errors' => ['alert' => ['Tego alertu już nie ma — warunek przestał być spełniony.']]];
+            return $this->fail('Tego alertu już nie ma — warunek przestał być spełniony.');
+        }
+
+        if (!$this->allowed($occurrence)) {
+            return ['errors' => [], 'denied' => true];
         }
 
         if ($occurrence->acknowledged_at !== null) {
-            return ['errors' => ['alert' => ['Ten alert jest już odhaczony.']]];
+            return $this->fail('Ten alert jest już odhaczony.');
         }
 
         $occurrence->update([
@@ -61,7 +94,7 @@ final readonly class AlertAcknowledgement
         $this->record($occurrence, 'alert_acknowledged', null, $occurrence->acknowledged_value);
         $this->engine->forget();
 
-        return ['errors' => []];
+        return ['errors' => [], 'denied' => false];
     }
 
     /**
@@ -71,18 +104,22 @@ final readonly class AlertAcknowledgement
      * sprawa milknie, a nikt o tym nie wie. Cofnięcie musi być tak samo
      * tanie jak odhaczenie.
      *
-     * @return array{errors: array<string, list<string>>}
+     * @return array{errors: array<string, list<string>>, denied: bool}
      */
     public function revoke(int $occurrenceId): array
     {
         $occurrence = $this->open($occurrenceId);
 
         if ($occurrence === null) {
-            return ['errors' => ['alert' => ['Tego alertu już nie ma.']]];
+            return $this->fail('Tego alertu już nie ma.');
+        }
+
+        if (!$this->allowed($occurrence)) {
+            return ['errors' => [], 'denied' => true];
         }
 
         if ($occurrence->acknowledged_at === null) {
-            return ['errors' => ['alert' => ['Ten alert nie jest odhaczony.']]];
+            return $this->fail('Ten alert nie jest odhaczony.');
         }
 
         $before = $occurrence->acknowledged_value;
@@ -96,7 +133,28 @@ final readonly class AlertAcknowledgement
         $this->record($occurrence, 'alert_acknowledgement_revoked', $before, null);
         $this->engine->forget();
 
-        return ['errors' => []];
+        return ['errors' => [], 'denied' => false];
+    }
+
+    /** @return array{errors: array<string, list<string>>, denied: bool} */
+    private function fail(string $message): array
+    {
+        return ['errors' => ['alert' => [$message]], 'denied' => false];
+    }
+
+    /**
+     * Sprawdzenie robione tutaj, bo trasa nie ma z czego go wyprowadzić.
+     *
+     * Kontroler nie chroni tych akcji przez `protect()` — gdyby chronił,
+     * musiałby wskazać jedno uprawnienie, a ono zależy od wiersza.
+     * To jedyne takie miejsce w aplikacji i dlatego sprawdzenie stoi
+     * **przed** każdą zmianą, a nie obok niej.
+     */
+    private function allowed(AlertOccurrence $occurrence): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $this->may($user, $occurrence);
     }
 
     private function open(int $occurrenceId): ?AlertOccurrence

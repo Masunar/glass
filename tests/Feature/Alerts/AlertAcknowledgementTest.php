@@ -49,6 +49,16 @@ class AlertAcknowledgementTest extends TestCase
 
         $this->engine = new AlertEngine();
         $this->service = new AlertAcknowledgement($this->engine);
+
+        // Odhaczenie sprawdza uprawnienia w usludze, a nie w kontrolerze
+        // (wymaganie zalezy od wiersza, nie od trasy), wiec wolanie jej
+        // wprost tez musi miec kim byc. Wczesniej sprawdzenie stalo
+        // w `protect()` i testy uslugi go nie widzialy.
+        $this->actingAs($this->userWith([
+            'zlec.access', 'orders.update',
+            'mag.access', 'warehouse.update',
+            'prod.access', 'tempering.update',
+        ]));
     }
 
     #[Test]
@@ -175,6 +185,13 @@ class AlertAcknowledgementTest extends TestCase
         // o zleceniu. Handlowiec bez dostepu do panelu admina musi
         // moc powiedziec „wiem o tym".
         $this->actingAs($this->userWith(['adm.access', 'alerts.update']))
+            ->postJson('/api/alert-occurrences/' . $occurrence . '/acknowledge')
+            ->assertForbidden();
+
+        // Samo `orders.update` bez dostepu do modulu tez nie wystarcza:
+        // sprawdzenie pyta o oba poziomy (U-04), mimo ze nie robi tego
+        // posrednik — trasa nie ma z czego wyprowadzic uprawnienia.
+        $this->actingAs($this->userWith(['orders.update']))
             ->postJson('/api/alert-occurrences/' . $occurrence . '/acknowledge')
             ->assertForbidden();
 
