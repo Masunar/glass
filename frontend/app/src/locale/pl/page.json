@@ -1343,5 +1343,41 @@
     "lead_module": "Ten ekran należy do modułu {{module}} i wymaga uprawnień, których nie masz.",
     "missing": "Czego brakuje",
     "hint": "Poproś administratora o nadanie powyższych uprawnień — nazwy są takie same jak w panelu ról."
+  },
+  "home": {
+    "kicker": "Pulpit",
+    "title": "Co dziś",
+    "lead": "Najpierw to, co czeka na Ciebie, potem stan zakładu. Każda liczba prowadzi tam, skąd pochodzi.",
+    "failed": "Nie udało się pobrać pulpitu. Odśwież stronę.",
+    "no_access": "Twoja rola nie ma dostępu do żadnego modułu, więc pulpit nie ma czego pokazać. Poproś administratora o nadanie uprawnień.",
+    "mine": "Czeka na Ciebie",
+    "ready": "Zlecenia gotowe do ruchu",
+    "ready_note": "pierwsze dostępne przejście",
+    "blocked": "Co blokuje zlecenia",
+    "blocked_note": "Liczone po powodzie, nie po zleceniu — jeden powód zwykle dotyczy kilku zleceń naraz.",
+    "shortages": "Braki na stanie",
+    "shortage_line": "na stanie {{available}}, do domówienia {{order}}",
+    "offers": "Oferty u klientów",
+    "offer_expired": "termin minął",
+    "days_over_one": "{{count}} dzień po terminie",
+    "days_over_few": "{{count}} dni po terminie",
+    "days_over_many": "{{count}} dni po terminie",
+    "days_over_other": "{{count}} dni po terminie",
+    "more_one": "Jeszcze {{count}} pozycja",
+    "more_few": "Jeszcze {{count}} pozycje",
+    "more_many": "Jeszcze {{count}} pozycji",
+    "more_other": "Jeszcze {{count}} pozycji",
+    "strip": {
+      "overdue": "Po terminie",
+      "today": "na dziś: {{count}}",
+      "queue": "W kolejce produkcji",
+      "problems": "zgłoszone problemy: {{count}}",
+      "furnace": "Szkło w piecu",
+      "kg": "{{value}} kg",
+      "shortages": "Braki magazynowe",
+      "shortages_note": "pozycje poniżej progu",
+      "offers": "Oferty otwarte",
+      "offers_note": "wystawione i wysłane"
+    }
   }
 }

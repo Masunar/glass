@@ -978,3 +978,30 @@
 .ge-segbar__end.ge-pl__end { display: flex; align-items: center; gap: 16px; }
 
 .ge-pl__foot { padding-top: 10px; }
+
+/* --- Pulpit -------------------------------------------------------- */
+
+/* Wiersz pulpitu jest krotki z zalozenia: numer, kontrahent, jedno
+   zdanie o tym, co czeka. Kto chce wiecej, idzie na liste. */
+.ge-home__line,
+.ge-home__blocked {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13.5px;
+}
+.ge-home__line > *:nth-child(2) { flex: 1; min-width: 0; }
+.ge-home__blocked > span:last-child { flex: 1; }
+
+/* Liczba przed powodem, nie za nim: oko czyta kolumne liczb z gory na
+   dol i od razu widzi, co boli najbardziej. */
+.ge-home__count {
+  min-width: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ge-home__more { padding-top: 10px; font-size: 13px; }
