@@ -86,6 +86,7 @@ final readonly class AccessRegistry
         'users' => ['path' => '/users', 'module' => 'adm', 'label' => 'Użytkownicy', 'permission' => 'users.list'],
         'access' => ['path' => '/access', 'module' => 'adm', 'label' => 'Role i uprawnienia', 'permission' => 'roles.list'],
         'access_role' => ['path' => '/access/roles/:id', 'module' => 'adm', 'label' => 'Konfiguracja roli', 'permission' => 'roles.list'],
+        'alerts' => ['path' => '/alerts', 'module' => 'adm', 'label' => 'Alerty', 'permission' => 'alerts.list'],
         'dictionaries' => ['path' => '/dictionaries', 'module' => 'adm', 'label' => 'Słowniki', 'permission' => 'dictionaries.list'],
         'parameters' => ['path' => '/parameters', 'module' => 'adm', 'label' => 'Parametry wyceny', 'permission' => 'parameters.list'],
     ];
@@ -187,8 +188,7 @@ final readonly class AccessRegistry
         Permission::ALERTS->value => [
             'module' => 'adm', 'label' => 'Alerty',
             'subs' => ['list', 'create', 'update', 'delete'],
-            'page' => null, 'state' => self::PLANNED,
-            'note' => 'Silnik alertów zaprojektowany w 99-model-danych.md, niezbudowany.',
+            'page' => 'alerts', 'state' => self::ACTIVE, 'note' => '',
         ],
         Permission::LOCATIONS->value => [
             'module' => 'adm', 'label' => 'Lokalizacje',

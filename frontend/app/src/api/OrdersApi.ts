@@ -1,5 +1,5 @@
+import type { AlertMark } from './AlertsApi';
 import { ApiRequest } from './ApiRequest';
-
 import type { OfferRow } from './OffersApi';
 
 import type { ResponseContent, ResponseProps } from '@salvon/request';
@@ -40,6 +40,8 @@ export type OrderRow = {
   has_open_claim: boolean;
   next_step: NextStep | null;
   blocked_step: NextStep | null;
+  /** Znaczniki z silnika alertów — reguły, nie wyliczenia w wierszu. */
+  alerts: AlertMark[];
 };
 
 export type OrderBandKey = 'today' | 'overdue' | 'later';
@@ -51,7 +53,13 @@ export type OrderBoard = {
     total: string;
     rows: OrderRow[];
   }[];
-  filters: { code: string | null; name: string; count: number }[];
+  filters: {
+    code: string | null;
+    name: string;
+    count: number;
+    /** Zlecenia z alertem, nie liczba alertów: jedno zlecenie to jedna sprawa. */
+    alerts: number;
+  }[];
   summary: {
     today: number;
     overdue: number;

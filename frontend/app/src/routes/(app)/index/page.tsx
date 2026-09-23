@@ -102,7 +102,7 @@ export default function Page() {
     await load();
   };
 
-  const { summary, counters, top, blocked, shortages } = board;
+  const { summary, counters, top, blocked, shortages, alerts } = board;
   // Bez przecinka miedzy dniem tygodnia a data: „sroda 23 wrzesnia"
   // czyta sie jak nadtytul, „sroda, 23 wrzesnia" jak zdanie.
   const day = new Date(board.as_of)
@@ -268,6 +268,48 @@ export default function Page() {
         </div>
 
         <aside className="ge-home__side">
+          {alerts.length > 0 && (
+            <section className="ge-home__box">
+              <div className="ge-home__box-head">
+                {t('page.home.alerts')}
+                <span className="ge-home__box-count">
+                  {alerts.reduce((sum, alert) => sum + alert.count, 0)}
+                </span>
+              </div>
+
+              {alerts.map((alert) => (
+                <div className="ge-home__alert" key={alert.code}>
+                  <span
+                    className="ge-home__alert-name"
+                    style={
+                      alert.color
+                        ? ({ '--ge-mark': alert.color } as React.CSSProperties)
+                        : undefined
+                    }
+                    title={alert.name}
+                  >
+                    {alert.label}
+                  </span>
+                  <span className="ge-home__alert-count">{alert.count}</span>
+
+                  {/* Numery sa odnosnikami: liczba bez miejsca, w ktore
+                      mozna z nia pojsc, kaze szukac jej recznie. */}
+                  <span className="ge-home__alert-orders">
+                    {alert.orders.map((order) => (
+                      <Link
+                        key={order.id}
+                        to={`/orders/${order.id}`}
+                        className="ge-link"
+                      >
+                        #{order.number}
+                      </Link>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </section>
+          )}
+
           {blocked.length > 0 && (
             <section className="ge-home__box">
               <div className="ge-home__box-head">{t('page.home.blocked')}</div>

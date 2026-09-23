@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
         // Po uprawnieniach, bo paczka wiaze istniejace wiersze.
         Core\PermissionPackageSeeder::class,
         Core\StatusSeeder::class,
+        // Po statusach, bo regula alertu wskazuje statusy kodem.
+        Core\AlertRuleSeeder::class,
         Core\ProcessSeeder::class,
         Core\GlassCatalogSeeder::class,
         Core\PriceSectionSeeder::class,

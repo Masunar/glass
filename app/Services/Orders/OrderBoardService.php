@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Models\Order;
 use App\Models\Status;
 use App\Enum\StatusDomain;
+use App\Services\Alerts\AlertBoard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -29,6 +30,7 @@ final readonly class OrderBoardService
     public function __construct(
         private OrderNextStep $nextStep = new OrderNextStep(),
         private OrderValue $value = new OrderValue(),
+        private AlertBoard $alerts = new AlertBoard(),
     ) {
     }
 
@@ -80,10 +82,14 @@ final readonly class OrderBoardService
             static fn(int $id): bool => $id > 0,
         )));
 
+        // Alerty licza sie dla calej bazy, nie dla pokazanych wierszy:
+        // czerwony licznik przy zakladce ma mowic o calosci.
+        $alerts = $this->alerts->forOrders($day);
+
         $bands = ['today' => [], 'overdue' => [], 'later' => []];
 
         foreach ($orders as $order) {
-            $bands[$this->bandFor($order, $day)][] = $this->row($order, $day);
+            $bands[$this->bandFor($order, $day)][] = $this->row($order, $day, $alerts);
         }
 
         return [
@@ -92,7 +98,7 @@ final readonly class OrderBoardService
                 $this->band('overdue', $bands['overdue']),
                 $this->band('later', $bands['later']),
             ],
-            'filters' => $this->filters(),
+            'filters' => $this->filters($day),
             'summary' => [
                 'today' => count($bands['today']),
                 'overdue' => count($bands['overdue']),
@@ -167,9 +173,10 @@ final readonly class OrderBoardService
     }
 
     /**
+     * @param array<int, list<array<string, mixed>>> $alerts
      * @return array<string, mixed>
      */
-    private function row(Order $order, Carbon $day): array
+    private function row(Order $order, Carbon $day, array $alerts = []): array
     {
         $deadline = $this->deadline($order);
         $step = $this->nextStep->firstAvailable($order);
@@ -200,6 +207,7 @@ final readonly class OrderBoardService
             'has_open_claim' => (bool) $order->has_open_claim,
             'next_step' => $step?->toArray(),
             'blocked_step' => $blocked?->toArray(),
+            'alerts' => $alerts[(int) $order->getKey()] ?? [],
         ];
     }
 
@@ -243,11 +251,14 @@ final readonly class OrderBoardService
     /**
      * Zakładki statusów z licznikami. Liczone po stronie bazy — lista
      * pokazuje najwyżej dwieście wierszy, a licznik ma mówić o całości.
+     * To samo dotyczy czerwonego licznika alertów obok.
      *
      * @return list<array<string, mixed>>
      */
-    private function filters(): array
+    private function filters(Carbon $day): array
     {
+        $alerts = $this->alerts->orderCounts($day);
+
         /** @var array<int, int> $counts */
         $counts = Order::query()
             ->selectRaw('status_id, count(*) as total')
@@ -266,6 +277,7 @@ final readonly class OrderBoardService
             'code' => null,
             'name' => 'Wszystkie',
             'count' => array_sum($counts),
+            'alerts' => $alerts[''] ?? 0,
         ]];
 
         foreach ($statuses as $status) {
@@ -281,6 +293,7 @@ final readonly class OrderBoardService
                 'code' => $status->code,
                 'name' => $status->name,
                 'count' => $count,
+                'alerts' => $alerts[$status->code] ?? 0,
             ];
         }
 

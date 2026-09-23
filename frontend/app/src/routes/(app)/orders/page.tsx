@@ -14,6 +14,7 @@ import {
   OrdersApi,
 } from '@app/api/OrdersApi';
 import HasPermission from '@app/components/HasPermission';
+import AlertChips from '@app/components/alerts/AlertChips';
 import {
   Band,
   type Column,
@@ -211,7 +212,10 @@ export default function Page() {
       )}
 
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--filter" aria-label={t('page.orders.filters')}>
+        <nav
+          className="ge-seg ge-seg--filter"
+          aria-label={t('page.orders.filters')}
+        >
           {(board?.filters ?? []).map((filter) => {
             const here = filter.code === status;
 
@@ -237,6 +241,14 @@ export default function Page() {
                 <span>{filter.name}</span>
                 {filter.count === 0 ? null : (
                   <span className="ge-seg__count">{filter.count}</span>
+                )}
+                {filter.alerts > 0 && (
+                  <span
+                    className="ge-seg__alerts"
+                    title={t('page.orders.alerts_title')}
+                  >
+                    {filter.alerts}
+                  </span>
                 )}
               </button>
             );
@@ -283,7 +295,10 @@ export default function Page() {
                 <Row
                   key={row.id}
                   to={`/orders/${row.id}`}
-                  alert={row.has_open_claim || (row.days_left ?? 0) < 0}
+                  // Krawedz wiersza schodzi z regul, nie z warunku
+                  // wpisanego tutaj. Dwa zrodla sygnalu rozjechalyby sie
+                  // przy pierwszej zmianie progu w panelu.
+                  alert={row.alerts.length > 0}
                 >
                   <div>
                     <div className="ge-num">#{row.number}</div>
@@ -292,19 +307,14 @@ export default function Page() {
 
                   <div style={{ minWidth: 0 }}>
                     <div className="ge-name">{row.contractor ?? '—'}</div>
-                    <div
-                      className={
-                        row.has_open_claim || row.is_on_hold
-                          ? 'ge-note ge-note--warn'
-                          : 'ge-note'
-                      }
-                    >
-                      {row.is_on_hold
-                        ? t('page.orders.on_hold', {
-                            reason: row.hold_reason ?? '',
-                          })
-                        : (row.note ?? row.contractor_phone ?? '')}
+                    <div className="ge-note">
+                      {row.note ?? row.contractor_phone ?? ''}
                     </div>
+                    {/* Powod wstrzymania i otwarta reklamacja jada teraz
+                        znacznikiem z reguly, razem z reszta alertow —
+                        wczesniej byly recznie wyliczonym wyjatkiem obok
+                        silnika, ktory liczy to samo. */}
+                    <AlertChips marks={row.alerts} />
                   </div>
 
                   <Stage

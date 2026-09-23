@@ -2,6 +2,7 @@ export enum Permission {
   USERS = 'users',
   ROLES = 'roles',
   PERMISSIONS = 'permissions',
+  ALERTS = 'alerts',
   PARAMETERS = 'parameters',
   PRICE_LIST = 'price_list',
   PRODUCTS = 'products',
