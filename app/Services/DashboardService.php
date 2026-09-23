@@ -10,6 +10,7 @@ use App\Enum\Permission;
 use Salvon\Enum\SubPermission;
 use App\Support\AccessRegistry;
 use App\Services\Offers\OfferBoard;
+use App\Services\Alerts\AlertBoard;
 use App\Services\Warehouse\StockBoard;
 use App\Services\Orders\OrderBoardService;
 use App\Services\Tempering\TemperingBoard;
@@ -38,13 +39,23 @@ final readonly class DashboardService
     /** Ile wierszy w krótkich listach obok głównej. */
     private const ROWS = 5;
 
+    private AlertBoard $alerts;
+
+    private OrderBoardService $orders;
+
     public function __construct(
-        private OrderBoardService $orders = new OrderBoardService(),
+        ?AlertBoard $alerts = null,
+        ?OrderBoardService $orders = null,
         private OfferBoard $offers = new OfferBoard(),
         private ProductionQueue $production = new ProductionQueue(),
         private TemperingBoard $tempering = new TemperingBoard(),
         private StockBoard $stock = new StockBoard(),
     ) {
+        // Jeden przebieg silnika na zadanie. Lista zlecen i pasmo alertow
+        // pytaja o to samo, a przebieg uzgadnia wystapienia w bazie —
+        // dwa niezalezne silniki robilyby te sama prace dwa razy.
+        $this->alerts = $alerts ?? new AlertBoard();
+        $this->orders = $orders ?? new OrderBoardService(alerts: $this->alerts);
     }
 
     /**
@@ -76,10 +87,45 @@ final readonly class DashboardService
             // startu: „zacznij od #24004" zamiast „masz siedem spraw".
             'top' => $tasks[0] ?? null,
             'counters' => $counters,
+            'alerts' => $this->alerts($user, $seesOrders, $day),
             'tasks' => $tasks,
             'blocked' => $seesOrders ? $this->blocked($rows) : [],
             'shortages' => $this->shortages($user),
         ];
+    }
+
+    /**
+     * Pasmo alertów: reguła, ile razy zapalona, dokąd prowadzi.
+     *
+     * Alert dotyczy zlecenia, więc widzi go ten, kto widzi zlecenia —
+     * alert nie ma własnego uprawnienia. `alerts` chroni ekran reguł,
+     * czyli konfigurację, a nie dane.
+     *
+     * Filtr po module zostaje mimo to: gdy pojawi się reguła magazynowa,
+     * pasmo nie może pokazać jej komuś, kto magazynu nie widzi.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function alerts(User $user, bool $seesOrders, Carbon $day): array
+    {
+        if (!$seesOrders) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ($this->alerts->summary($day) as $row) {
+            $module = is_string($row['module']) ? $row['module'] : '';
+
+            if ($module !== '' && !$user->can($module . '.' . AccessRegistry::ACCESS)) {
+                continue;
+            }
+
+            $row['orders'] = $this->alerts->ordersFor((string) $row['code'], self::ROWS, $day);
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 
     /**

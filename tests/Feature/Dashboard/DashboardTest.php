@@ -59,6 +59,28 @@ class DashboardTest extends TestCase
         $this->assertSame([], $board['tasks']);
         $this->assertSame([], $board['blocked']);
         $this->assertNull($board['shortages']);
+        // Alert dotyczy zlecenia, wiec pasmo alertow przycina to samo
+        // uprawnienie, co lista spraw. Alert nie ma wlasnego.
+        $this->assertSame([], $board['alerts']);
+    }
+
+    #[Test]
+    public function pasmo_alertow_przychodzi_z_dostepem_do_zlecen(): void
+    {
+        $user = $this->userWith(['zlec.access', 'orders.list']);
+
+        $this->order(90007, null, '2024-01-01');
+
+        $alerts = $this->board->board($user)['alerts'];
+
+        // Zaseedowana regula „po terminie" ma sie zapalic sama, bez
+        // niczyjego zapisu — na tym polega przebieg na odczycie.
+        $this->assertNotSame([], $alerts);
+        $this->assertSame('order_overdue', $alerts[0]['code']);
+        $this->assertSame(1, $alerts[0]['count']);
+        // Liczba bez miejsca, w ktore mozna z nia pojsc, kaze szukac
+        // recznie — stad numery zlecen przy regule.
+        $this->assertSame(90007, $alerts[0]['orders'][0]['number']);
     }
 
     #[Test]

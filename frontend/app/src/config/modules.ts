@@ -136,6 +136,14 @@ export const appModules: AppModule[] = [
         },
       },
       {
+        labelKey: 'page.menu.alerts',
+        path: appRoutes.alerts.path,
+        permission: {
+          permission: Permission.ALERTS,
+          subPermission: SubPermission.LIST,
+        },
+      },
+      {
         labelKey: 'page.menu.dictionaries',
         path: appRoutes.dictionaries.path,
         permission: {
@@ -172,9 +180,9 @@ export const hasScreens = (module: AppModule): boolean =>
 /**
  * Moduł, w którym leży bieżąca ścieżka; Zlecenia jako punkt wyjścia.
  *
- * Pulpit nie należy do żadnego modułu, ale panel boczny i tak go
- * pokazuje — „Pulpit" stoi w nim jako pierwsza pozycja, nad ekranami
- * modułu. Dzięki temu powrót jest wszędzie, a nie tylko w logo.
+ * Pulpit nie należy do żadnego modułu i od #32 nie stoi w panelu
+ * żadnego z nich — ma własny panel pod logiem listwy. Ta funkcja
+ * odpowiada więc tylko na pytanie „w którym module jestem".
  */
 export function moduleForPath(pathname: string): AppModule {
   const found = appModules.find((module) =>

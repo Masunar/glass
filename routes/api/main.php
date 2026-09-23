@@ -9,6 +9,7 @@ use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\AccessController;
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -36,6 +37,13 @@ Route::prefix('/parameters')->name('parameters_')->group(static function (): voi
     Route::put('/', [GlobalParameterController::class, 'update'])->name('update');
     Route::post('/preview', [GlobalParameterController::class, 'preview'])->name('preview');
     Route::get('/history', [GlobalParameterController::class, 'history'])->name('history');
+});
+
+Route::prefix('/alerts')->name('alerts_')->group(static function (): void {
+    Route::get('/', [AlertController::class, 'board'])->name('board');
+    Route::post('/', [AlertController::class, 'create'])->name('create');
+    Route::put('/{rule}', [AlertController::class, 'update'])->name('update');
+    Route::delete('/{rule}', [AlertController::class, 'delete'])->name('delete');
 });
 
 Route::prefix('/price-list')->name('price_list_')->group(static function (): void {

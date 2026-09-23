@@ -20,6 +20,18 @@ export type DashboardTask = {
   } | null;
 };
 
+/** Pasmo alertów: reguła, ile razy zapalona i pierwsze zlecenia. */
+export type DashboardAlert = {
+  code: string;
+  name: string;
+  label: string;
+  color: string | null;
+  category: string;
+  module: string;
+  count: number;
+  orders: { id: number; number: number; value: string | null }[];
+};
+
 export type DashboardBoard = {
   as_of: string;
   user: { name: string; location: string | null };
@@ -35,6 +47,7 @@ export type DashboardBoard = {
     furnace: number | null;
     offers: number | null;
   };
+  alerts: DashboardAlert[];
   tasks: DashboardTask[];
   blocked: { reason: string; count: number }[];
   shortages: {

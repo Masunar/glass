@@ -1130,3 +1130,44 @@
   .ge-home { flex-direction: column; }
   .ge-home__side { width: 100%; border-left: 0; border-top: 1px solid var(--ge-divider); }
 }
+
+/* ─── Pulpit: pasmo alertow ───────────────────────────────────────────
+   Trzy kolumny: co, ile, ktore. Etykieta po lewej, liczba wyrownana do
+   prawej w swojej kolumnie, numery pod reka — bo alert bez miejsca, w
+   ktore mozna z nim pojsc, kaze szukac recznie.                       */
+
+.ge-home__alert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: baseline;
+  gap: 0 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--ge-divider);
+}
+.ge-home__alert:first-of-type { border-top: 0; }
+
+.ge-home__alert-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--ge-mark, var(--m-alert)) 75%, var(--ge-neutral-900));
+}
+
+.ge-home__alert-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Numery ida w druga linie na calej szerokosci: przy czterech
+   zleceniach zawijalyby sie w waskiej kolumnie i rozbijaly rzad. */
+.ge-home__alert-orders {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

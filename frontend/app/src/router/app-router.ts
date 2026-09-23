@@ -93,6 +93,14 @@ export const appRoutes = {
       { permission: Permission.ROLES, subPermission: SubPermission.LIST },
     ],
   },
+  alerts: {
+    path: '/alerts',
+    module: 'adm',
+    file: 'alerts',
+    permissions: [
+      { permission: Permission.ALERTS, subPermission: SubPermission.LIST },
+    ],
+  },
   orderOffers: {
     path: '/orders/:id/oferty',
     module: 'zlec',

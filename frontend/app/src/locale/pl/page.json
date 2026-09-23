@@ -69,7 +69,8 @@
     "workload": "Obciążenie stanowisk",
     "warehouse": "Magazyn",
     "supplier_orders": "Zamówienia",
-    "access": "Role i uprawnienia"
+    "access": "Role i uprawnienia",
+    "alerts": "Alerty"
   },
   "user_account": {
     "mfa": {
@@ -1070,7 +1071,8 @@
       "mail_reply_to": "Odpowiedź do",
       "mail_no_reply_to": "brak adresu w Twoim profilu — klient odpisze na skrzynkę firmową"
     },
-    "load_failed": "Nie udało się pobrać listy zleceń. Spróbuj ponownie."
+    "load_failed": "Nie udało się pobrać listy zleceń. Spróbuj ponownie.",
+    "alerts_title": "Zlecenia wymagające reakcji"
   },
   "production": {
     "loading": "Wczytywanie kolejki…",
@@ -1379,6 +1381,40 @@
       "furnace": "Piec",
       "offers": "Oferty"
     },
-    "menu": "Menu"
+    "menu": "Menu",
+    "alerts": "Alerty"
+  },
+  "alerts": {
+    "count_one": "{{count}} włączona reguła",
+    "count_few": "{{count}} włączone reguły",
+    "count_many": "{{count}} włączonych reguł",
+    "count_other": "{{count}} włączonych reguł",
+    "lead": "Reguła to warunek z katalogu plus próg. Kolumna „otwarte” mówi, ile razy jest dziś zapalona — reguła włączona i nigdy niezapalona to próg ustawiony za wysoko albo warunek, którego dane nie potrafią spełnić.",
+    "new": "Nowa reguła",
+    "rule": "Reguła",
+    "type": "Warunek",
+    "type_hint": "Katalog warunków pochodzi z kodu. Nowy typ to wdrożenie — próg, etykieta i kolor to już tylko dane.",
+    "label": "Etykieta",
+    "label_hint": "Etykieta staje w wierszu zlecenia, więc ma być krótka i ma mówić co, a nie jak bardzo. Pusty kolor znaczy „domyślny kolor alertu”.",
+    "color": "Kolor",
+    "module": "Moduł",
+    "code": "Kod",
+    "open": "Otwarte",
+    "state": "Stan",
+    "on": "włączona",
+    "off": "wyłączona",
+    "active": "Reguła włączona",
+    "active_hint": "Wyłączenie zamyka wszystkie otwarte wystąpienia: zostawione, wisiałyby na ekranie jako alerty, których nic już nie przelicza.",
+    "what": "Co pilnujemy",
+    "when": "Kiedy się zapala",
+    "how": "Jak wygląda",
+    "saved": "Reguła zapisana.",
+    "deleted": "Reguła usunięta.",
+    "empty": "Nie ma ani jednej reguły.",
+    "failed": "Nie udało się pobrać reguł.",
+    "reach_one": "Zmiana warunku zamknie {{count}} otwarte wystąpienie.",
+    "reach_few": "Zmiana warunku zamknie {{count}} otwarte wystąpienia.",
+    "reach_many": "Zmiana warunku zamknie {{count}} otwartych wystąpień.",
+    "reach_other": "Zmiana warunku zamknie {{count}} otwartych wystąpień."
   }
 }
