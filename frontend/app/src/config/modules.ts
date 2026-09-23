@@ -169,7 +169,13 @@ export const moduleAccessPermission = (key: ModuleKey): string =>
 export const hasScreens = (module: AppModule): boolean =>
   module.links.some((link) => link.path !== undefined);
 
-/** Moduł, w którym leży bieżąca ścieżka; Zlecenia jako punkt wyjścia. */
+/**
+ * Moduł, w którym leży bieżąca ścieżka; Zlecenia jako punkt wyjścia.
+ *
+ * Pulpit nie należy do żadnego modułu, ale panel boczny i tak go
+ * pokazuje — „Pulpit" stoi w nim jako pierwsza pozycja, nad ekranami
+ * modułu. Dzięki temu powrót jest wszędzie, a nie tylko w logo.
+ */
 export function moduleForPath(pathname: string): AppModule {
   const found = appModules.find((module) =>
     module.links.some(
@@ -178,4 +184,12 @@ export function moduleForPath(pathname: string): AppModule {
   );
 
   return found ?? appModules[0];
+}
+
+/** Adres pulpitu — jedyny ekran poza modułami. */
+export const HOME = '/';
+
+/** Pierwszy ekran modułu, do którego da się wejść. */
+export function entryPath(module: AppModule): string | undefined {
+  return module.links.find((link) => link.path !== undefined)?.path;
 }

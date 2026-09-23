@@ -16,27 +16,27 @@ use App\Services\Tempering\TemperingBoard;
 use App\Services\Production\ProductionQueue;
 
 /**
- * Pulpit — „co czeka na mnie", a pod spodem „co się dzieje".
- *
- * Do #31 pod `/` stało demo Salvona. Pierwszy ekran po zalogowaniu był
- * jedynym miejscem w aplikacji, które nie należało do tej aplikacji.
+ * Pulpit — jedna lista spraw, pas liczb i to, co blokuje.
  *
  * **Pulpit niczego nie liczy sam.** Każda liczba pochodzi z tej samej
  * usługi, co ekran, do którego prowadzi: pasma terminów z
  * `OrderBoardService`, kolejka z `ProductionQueue`, braki ze
- * `StockBoard`. Gdyby pulpit miał własne definicje „zaległego" czy
- * „braku", rozjechałby się z listami przy pierwszej zmianie reguły —
- * i byłby to rozjazd bez objawów, bo obie strony wyglądałyby poprawnie.
+ * `StockBoard`. Własna definicja „zaległego" rozjechałaby się z listami
+ * przy pierwszej zmianie reguły — i byłby to rozjazd bez objawów.
  *
- * **Sekcje są przycinane uprawnieniami po stronie serwera.** Sam adres
- * `/` jest otwarty dla każdego zalogowanego, więc gdyby filtrował
- * wyłącznie front, magazynier dostałby kwoty ofert w odpowiedzi API,
- * nawet nie widząc ich na ekranie.
+ * **Sekcje przycina serwer, nie front.** Adres `/` jest otwarty dla
+ * każdego zalogowanego, więc filtrowanie w przeglądarce oddawałoby
+ * kwoty ofert komuś, kto ich nie widzi na ekranie.
+ *
+ * Pierwsza wersja dzieliła ekran na „moje" i „firmowe" i w jednoosobowym
+ * biurze pokazywała **tę samą listę dwa razy**. Jest jedna lista spraw:
+ * zlecenie z dostępnym ruchem albo po terminie. Reszta to liczby
+ * i blokady.
  */
 final readonly class DashboardService
 {
-    /** Ile wierszy pokazujemy w jednej sekcji, zanim odeślemy do listy. */
-    private const ROWS = 6;
+    /** Ile wierszy w krótkich listach obok głównej. */
+    private const ROWS = 5;
 
     public function __construct(
         private OrderBoardService $orders = new OrderBoardService(),
@@ -55,20 +55,30 @@ final readonly class DashboardService
         $day = ($today ?? Carbon::today())->startOfDay();
 
         $seesOrders = $this->may($user, Permission::ORDERS, 'zlec');
-        $seesOffers = $this->may($user, Permission::OFFERS, 'zlec');
+        $rows = $seesOrders ? $this->orderRows($day) : [];
 
-        $orderRows = $seesOrders ? $this->orderRows($day) : [];
-        $offerRows = $seesOffers ? $this->offerRows() : [];
+        $tasks = $this->tasks($rows);
+        $counters = $this->counters($user, $rows, $seesOrders);
 
         return [
             'as_of' => $day->toDateString(),
-            // Sekcja osobista znika w calosci, gdy nic w systemie nie
-            // jest adresowane do osoby — patrz `mine()`.
-            'mine' => $this->mine($user, $orderRows, $offerRows, $seesOrders, $seesOffers),
-            'orders' => $seesOrders ? $this->orders($orderRows) : null,
-            'production' => $this->production($user),
-            'warehouse' => $this->warehouse($user),
-            'offers' => $seesOffers ? $this->offers($offerRows) : null,
+            'user' => [
+                'name' => $user->first_name,
+                'location' => $user->location?->name,
+            ],
+            'summary' => [
+                'tasks' => count($tasks),
+                'overdue' => $this->countBand($tasks, 'overdue'),
+                'today' => $this->countBand($tasks, 'today'),
+                'later' => $this->countBand($tasks, 'later'),
+            ],
+            // Pierwsza sprawa na liscie jest jednoczesnie propozycja
+            // startu: „zacznij od #24004" zamiast „masz siedem spraw".
+            'top' => $tasks[0] ?? null,
+            'counters' => $counters,
+            'tasks' => $tasks,
+            'blocked' => $seesOrders ? $this->blocked($rows) : [],
+            'shortages' => $this->shortages($user),
         ];
     }
 
@@ -86,9 +96,6 @@ final readonly class DashboardService
     }
 
     /**
-     * Zlecenia z listy — wszystkie pasma razem, bo pulpit czyta po
-     * pilności kroku, nie po terminie.
-     *
      * @return list<array<string, mixed>>
      */
     private function orderRows(Carbon $day): array
@@ -113,91 +120,172 @@ final readonly class DashboardService
     }
 
     /**
+     * Sprawa = zlecenie, z którym da się coś teraz zrobić, albo takie,
+     * które już się spóźnia.
+     *
+     * Zablokowane **nie są** sprawami: `firstBlocked()` zwraca coś przy
+     * prawie każdym zleceniu, więc lista zamieniłaby się w kopię listy
+     * zleceń. Blokady mają własne miejsce i są liczone po powodzie.
+     *
+     * Kolejność: najpierw po terminie (najdłużej stojące na górze),
+     * potem dzisiejsze, na końcu reszta.
+     *
+     * @param list<array<string, mixed>> $rows
      * @return list<array<string, mixed>>
      */
-    private function offerRows(): array
+    private function tasks(array $rows): array
     {
-        $board = $this->offers->board();
+        $tasks = [];
 
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $board['offers'];
+        foreach ($rows as $row) {
+            $days = $row['days_left'];
+            $late = $days !== null && (int) $days < 0;
 
-        return $rows;
+            if ($row['next_step'] === null && !$late) {
+                continue;
+            }
+
+            $row['deadline_label'] = $this->deadlineLabel($days);
+            $row['band'] = $late ? 'overdue' : ($days === 0 ? 'today' : 'later');
+            $tasks[] = $row;
+        }
+
+        // Najpierw pasmo, potem **to, co da sie ruszyc**, dopiero na
+        // koncu dlugosc spoznienia. Zlecenie stojace trzydziesci dni
+        // bez zadnego dostepnego przejscia nie jest dobrym poczatkiem
+        // dnia — jest na nie za pozno, zeby zaczynac od niego.
+        usort($tasks, static function (array $a, array $b): int {
+            $order = ['overdue' => 0, 'today' => 1, 'later' => 2];
+
+            return [
+                $order[$a['band']],
+                $a['next_step'] === null ? 1 : 0,
+                $a['days_left'] ?? PHP_INT_MAX,
+            ] <=> [
+                $order[$b['band']],
+                $b['next_step'] === null ? 1 : 0,
+                $b['days_left'] ?? PHP_INT_MAX,
+            ];
+        });
+
+        return $tasks;
     }
 
     /**
-     * To, co czeka na zalogowanego.
+     * Termin słowem, nie surową datą — „dziś", „jutro", „5 dni po".
      *
-     * „Moje" znaczy dziś dokładnie dwie rzeczy, bo tylko tyle system
-     * przypisuje do osoby: zlecenie, które ktoś założył (`created_by`),
-     * i ofertę, którą wystawił. **Zadania produkcji są przypisane do
-     * stanowisk, nie do ludzi**, więc dla hali ta sekcja nie ma treści —
-     * i wtedy nie pokazujemy jej wcale zamiast wypisywać „nic nie
-     * czeka", co byłoby nieprawdą wobec pełnej kolejki.
-     *
-     * Trafia tu zlecenie z **dostępnym ruchem** albo **po terminie**.
-     * Samo „zablokowane" nie wystarcza: `firstBlocked()` zwraca coś
-     * przy prawie każdym zleceniu, więc sekcja zamieniłaby się w drugą
-     * listę wszystkich moich zleceń. Zlecenie stojące w produkcji nie
-     * czeka na handlowca — czeka na halę.
-     *
-     * @param list<array<string, mixed>> $orderRows
-     * @param list<array<string, mixed>> $offerRows
-     * @return array<string, mixed>|null
+     * Reguła stoi tutaj, a nie na ekranie: gdyby liczył ją front,
+     * pulpit i lista zleceń mogłyby nazwać ten sam dzień inaczej.
      */
-    private function mine(
-        User $user,
-        array $orderRows,
-        array $offerRows,
-        bool $seesOrders,
-        bool $seesOffers,
-    ): ?array {
-        if (!$seesOrders && !$seesOffers) {
+    private function deadlineLabel(mixed $days): ?string
+    {
+        if ($days === null) {
             return null;
         }
 
-        $id = (int) $user->getKey();
+        $left = (int) $days;
 
-        $orders = array_values(array_filter(
-            $orderRows,
-            static fn(array $row): bool => $row['owner_id'] === $id
-                && ($row['next_step'] !== null
-                    || ($row['days_left'] !== null && $row['days_left'] < 0)),
-        ));
+        return match (true) {
+            $left < 0 => abs($left) . ' dni po',
+            $left === 0 => 'dziś',
+            $left === 1 => 'jutro',
+            default => 'za ' . $left . ' dni',
+        };
+    }
 
-        $offers = array_values(array_filter(
-            $offerRows,
-            static fn(array $row): bool => ($row['issued_by_id'] ?? null) === $id
-                && ($row['is_open'] ?? false) === true,
+    /**
+     * @param list<array<string, mixed>> $tasks
+     */
+    private function countBand(array $tasks, string $band): int
+    {
+        return count(array_filter(
+            $tasks,
+            static fn(array $row): bool => $row['band'] === $band,
         ));
+    }
+
+    /**
+     * Pas liczb. `null` znaczy „nie masz do tego dostępu" i zostaje
+     * kreską na ekranie — inaczej zero i brak uprawnienia wyglądałyby
+     * tak samo.
+     *
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, int|null>
+     */
+    private function counters(User $user, array $rows, bool $seesOrders): array
+    {
+        $overdue = null;
+        $today = null;
+
+        if ($seesOrders) {
+            $overdue = count(array_filter(
+                $rows,
+                static fn(array $row): bool => $row['band'] === 'overdue',
+            ));
+            $today = count(array_filter(
+                $rows,
+                static fn(array $row): bool => $row['band'] === 'today',
+            ));
+        }
+
+        $production = null;
+
+        if ($this->may($user, Permission::PRODUCTION, 'prod')) {
+            /** @var array<string, mixed> $summary */
+            $summary = $this->production->board()['summary'];
+            $production = (int) $summary['shown'];
+        }
+
+        $furnace = null;
+
+        if ($this->may($user, Permission::TEMPERING, 'prod')) {
+            /** @var array<string, mixed> $summary */
+            $summary = $this->tempering->queue()['summary'];
+            $furnace = (int) $summary['shown'];
+        }
+
+        $offers = null;
+
+        if ($this->may($user, Permission::OFFERS, 'zlec')) {
+            /** @var list<array<string, mixed>> $list */
+            $list = $this->offers->board()['offers'];
+            $offers = count(array_filter(
+                $list,
+                static fn(array $row): bool => ($row['is_open'] ?? false) === true,
+            ));
+        }
+
+        $shortages = null;
+
+        if ($this->may($user, Permission::WAREHOUSE, 'mag')) {
+            /** @var list<array<string, mixed>> $list */
+            $list = $this->stock->levels(null, true)['rows'];
+            $shortages = count($list);
+        }
 
         return [
-            'orders' => array_slice($orders, 0, self::ROWS),
-            'orders_total' => count($orders),
-            'offers' => array_slice($offers, 0, self::ROWS),
-            'offers_total' => count($offers),
+            'overdue' => $overdue,
+            'today' => $today,
+            'shortages' => $shortages,
+            'production' => $production,
+            'furnace' => $furnace,
+            'offers' => $offers,
         ];
     }
 
     /**
-     * Zlecenia: terminy, dostępne ruchy i to, co stoi zablokowane.
+     * Co blokuje zlecenia — **po powodzie, nie po zleceniu**.
      *
-     * Zablokowane grupujemy **po powodzie**, nie po zleceniu. „Pięć
-     * zleceń czeka na rysunki" mówi, co zrobić; pięć osobnych wierszy
-     * z tym samym zdaniem każe to dopiero policzyć.
+     * „Trzy zlecenia bez potwierdzenia rysunków" mówi, co zrobić; trzy
+     * wiersze z tym samym zdaniem każą to dopiero policzyć.
      *
      * @param list<array<string, mixed>> $rows
-     * @return array<string, mixed>
+     * @return list<array{reason: string, count: int}>
      */
-    private function orders(array $rows): array
+    private function blocked(array $rows): array
     {
-        $ready = array_values(array_filter(
-            $rows,
-            static fn(array $row): bool => $row['next_step'] !== null,
-        ));
-
-        /** @var array<string, int> $blocked */
-        $blocked = [];
+        /** @var array<string, int> $grouped */
+        $grouped = [];
 
         foreach ($rows as $row) {
             /** @var array<string, mixed>|null $step */
@@ -207,127 +295,52 @@ final readonly class DashboardService
                 continue;
             }
 
-            $reason = (string) ($step['blocked_by'] ?? '');
+            $reason = trim((string) ($step['blocked_by'] ?? ''));
 
             if ($reason === '') {
                 continue;
             }
 
-            $blocked[$reason] = ($blocked[$reason] ?? 0) + 1;
+            $grouped[$reason] = ($grouped[$reason] ?? 0) + 1;
         }
 
-        arsort($blocked);
+        arsort($grouped);
 
-        $counts = ['today' => 0, 'overdue' => 0];
-
-        foreach ($rows as $row) {
-            if ($row['band'] === 'today' || $row['band'] === 'overdue') {
-                $counts[(string) $row['band']] += 1;
-            }
-        }
-
-        return [
-            'today' => $counts['today'],
-            'overdue' => $counts['overdue'],
-            'ready' => array_slice($ready, 0, self::ROWS),
-            'ready_total' => count($ready),
-            'blocked' => array_map(
-                static fn(string $reason, int $count): array => [
-                    'reason' => $reason,
-                    'count' => $count,
-                ],
-                array_keys($blocked),
-                array_values($blocked),
-            ),
-        ];
-    }
-
-    /**
-     * Produkcja i hartownia w jednej sekcji — jedna hala.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function production(User $user): ?array
-    {
-        $seesProduction = $this->may($user, Permission::PRODUCTION, 'prod');
-        $seesTempering = $this->may($user, Permission::TEMPERING, 'prod');
-
-        if (!$seesProduction && !$seesTempering) {
-            return null;
-        }
-
-        $queue = null;
-
-        if ($seesProduction) {
-            $board = $this->production->board();
-            /** @var array<string, mixed> $summary */
-            $summary = $board['summary'];
-            /** @var list<array<string, mixed>> $rows */
-            $rows = $board['rows'];
-
-            $queue = [
-                'waiting' => (int) $summary['shown'],
-                'problems' => (int) $summary['problems'],
-                'overdue' => (int) $summary['overdue'],
-                'urgent' => count(array_filter(
-                    $rows,
-                    static fn(array $row): bool => ($row['is_urgent'] ?? false) === true,
-                )),
-            ];
-        }
-
-        $furnace = null;
-
-        if ($seesTempering) {
-            $board = $this->tempering->queue();
-            /** @var array<string, mixed> $summary */
-            $summary = $board['summary'];
-
-            $furnace = [
-                'waiting' => (int) $summary['shown'],
-                'kg' => (float) $summary['kg'],
-            ];
-        }
-
-        return ['queue' => $queue, 'furnace' => $furnace];
+        return array_map(
+            static fn(string $reason, int $count): array => [
+                'reason' => $reason,
+                'count' => $count,
+            ],
+            array_keys($grouped),
+            array_values($grouped),
+        );
     }
 
     /**
      * @return array<string, mixed>|null
      */
-    private function warehouse(User $user): ?array
+    private function shortages(User $user): ?array
     {
         if (!$this->may($user, Permission::WAREHOUSE, 'mag')) {
             return null;
         }
 
-        $board = $this->stock->levels(null, true);
-
         /** @var list<array<string, mixed>> $rows */
-        $rows = $board['rows'];
+        $rows = $this->stock->levels(null, true)['rows'];
 
         return [
-            'shortages' => count($rows),
-            'rows' => array_slice($rows, 0, self::ROWS),
-        ];
-    }
-
-    /**
-     * Oferty czekające u klientów.
-     *
-     * @param list<array<string, mixed>> $rows
-     * @return array<string, mixed>
-     */
-    private function offers(array $rows): array
-    {
-        $open = array_values(array_filter(
-            $rows,
-            static fn(array $row): bool => ($row['is_open'] ?? false) === true,
-        ));
-
-        return [
-            'open' => count($open),
-            'rows' => array_slice($open, 0, self::ROWS),
+            'total' => count($rows),
+            'rows' => array_map(
+                static fn(array $row): array => [
+                    'product_id' => $row['product_id'],
+                    'name' => $row['name'],
+                    'available' => $row['available'],
+                    // Prog, nie sugestia zakupu: pasek ma pokazac, jak
+                    // daleko do stanu docelowego.
+                    'max' => $row['max'],
+                ],
+                array_slice($rows, 0, self::ROWS),
+            ),
         ];
     }
 }
