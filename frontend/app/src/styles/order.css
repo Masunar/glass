@@ -1036,6 +1036,11 @@
   width: 330px;
   border-left: 1px solid var(--ge-divider);
   align-self: stretch;
+  /* Jeden margines na cala kolumne zamiast tej samej liczby wpisanej
+     w piec regul. Szosta zawsze o niej zapomni — i zapomniala:
+     wiersz alertu wchodzil na kreske z lewej i dotykal krawedzi okna
+     z prawej, bo jako jedyny nie mial tego odstepu. */
+  --ge-side-pad: 20px;
 }
 
 /* Wiersz sprawy: siatka, nie flex. Na flexie kontrahent rosl do konca
@@ -1091,7 +1096,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 12px 20px 8px;
+  padding: 12px var(--ge-side-pad) 8px;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1099,10 +1104,10 @@
   color: var(--ge-neutral-800);
 }
 .ge-home__box-count { margin-left: auto; font-size: 13px; color: var(--ge-text); }
-.ge-home__box-foot { padding: 8px 20px 4px; font-size: 13px; }
+.ge-home__box-foot { padding: 8px var(--ge-side-pad) 4px; font-size: 13px; }
 
 .ge-home__blocked {
-  padding: 8px 20px;
+  padding: 8px var(--ge-side-pad);
   font-size: 13.5px;
   border-top: 1px solid var(--ge-divider);
 }
@@ -1111,7 +1116,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 12px;
-  padding: 8px 20px;
+  padding: 8px var(--ge-side-pad);
   border-top: 1px solid var(--ge-divider);
   font-size: 13px;
 }
@@ -1141,7 +1146,7 @@
   grid-template-columns: minmax(0, 1fr) 34px;
   align-items: baseline;
   gap: 0 8px;
-  padding: 7px 0;
+  padding: 7px var(--ge-side-pad);
   border-top: 1px solid var(--ge-divider);
 }
 .ge-home__alert:first-of-type { border-top: 0; }

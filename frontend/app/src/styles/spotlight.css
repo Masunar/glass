@@ -165,7 +165,17 @@
   font-size: 15px;
 }
 
-.ge-spot__text { min-width: 0; flex: 1; }
+/* Nazwa i modul to dwie linie, nie jeden ciag. Oba byly `span`-ami bez
+   ustawionego `display`, wiec ukladaly sie w linii i sklejały w
+   „CennikZlecenia". Przy okazji `text-overflow` ponizej nie działał
+   na elemencie liniowym, wiec przycinanie długiej nazwy też nigdy nie
+   zadziałało — reguly byly napisane pod uklad, ktorego nie bylo. */
+.ge-spot__text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .ge-spot__title {
   font-size: 14.5px;
   overflow: hidden;
@@ -174,6 +184,7 @@
 }
 .ge-spot__meta {
   font-size: 12px;
+  line-height: 1.35;
   color: var(--ge-spot-dim);
   overflow: hidden;
   text-overflow: ellipsis;
