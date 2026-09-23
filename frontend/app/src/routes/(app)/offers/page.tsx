@@ -5,6 +5,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 
 import type { OfferRow, OffersBoard } from '@app/api/OffersApi';
 import { OffersApi } from '@app/api/OffersApi';
+import { ListWait } from '@app/components/list';
 
 const money = (value: string | null) =>
   value === null
@@ -27,10 +28,15 @@ export default function Page() {
   const t = useTranslation();
   const [board, setBoard] = useState<OffersBoard | null>(null);
   const [status, setStatus] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   const load = async (next: string) => {
+    setLoading(true);
+
     const { content } = await OffersApi.board(next);
     const data: OffersBoard | undefined = content?.data;
+
+    setLoading(false);
 
     if (data) {
       setBoard(data);
@@ -87,7 +93,12 @@ export default function Page() {
         </nav>
       </div>
 
-      {board.offers.length === 0 ? (
+      {/* Przelaczenie zakladki pobiera dane od nowa, a stare wiersze
+          stoja na ekranie do konca — bez tego paska nie widac, ze
+          cokolwiek sie dzieje. */}
+      <ListWait on={loading} />
+
+      {board.offers.length === 0 && !loading ? (
         <div className="ge-empty">{t('page.orders.offers.empty')}</div>
       ) : (
         <section className="ge-section">
