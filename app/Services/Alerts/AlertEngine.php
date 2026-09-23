@@ -24,6 +24,12 @@ use Illuminate\Database\Eloquent\Collection;
  * przestał być spełniony, zamyka istniejący. Dzięki temu tabela niesie
  * „od kiedy", a nie dziennik przebiegów.
  *
+ * **Odhaczenie („wiem o tym") nie zamyka wystąpienia.** `resolved_at`
+ * znaczy „warunek przestał być spełniony"; odhaczenie to decyzja
+ * człowieka o czymś, co nadal trwa. Alert odhaczony milknie w licznikach,
+ * ale **wraca sam, gdy zrobi się gorzej** — dlatego odhaczenie zapamiętuje
+ * wartość, przy której padło, i silnik porównuje ją z bieżącą.
+ *
  * **`value` w bazie to wartość z chwili otwarcia i nie jest odświeżana.**
  * „3 dni po terminie" zmienia się jutro w „4 dni po" — gdyby silnik
  * przepisywał tę liczbę, każdy odczyt byłby zapisem. Ekran pokazuje
@@ -99,6 +105,7 @@ final class AlertEngine
 
         /** @var Collection<int, AlertOccurrence> $existing */
         $existing = AlertOccurrence::query()
+            ->with('acknowledger')
             ->where('alert_rule_id', $rule->getKey())
             ->where('alertable_type', $alertable)
             ->whereNull('resolved_at')
@@ -177,6 +184,36 @@ final class AlertEngine
             }
         }
 
+        // Odhaczenie przestaje obowiazywac, gdy wartosc urosla. Bez tego
+        // zlecenie odhaczone przy jednym dniu spoznienia milczaloby przy
+        // trzydziestu — czyli odhaczenie kasowaloby alert, a nie uciszalo.
+        $revived = [];
+
+        foreach ($matched as $id => $value) {
+            $occurrence = $since[$id] ?? null;
+
+            if ($occurrence === null || $occurrence->acknowledged_at === null) {
+                continue;
+            }
+
+            if (!$this->worsened($value, $occurrence->acknowledged_value)) {
+                continue;
+            }
+
+            $revived[] = (int) $occurrence->getKey();
+            $occurrence->acknowledged_at = null;
+            $occurrence->acknowledged_by = null;
+            $occurrence->acknowledged_value = null;
+        }
+
+        if ($revived !== []) {
+            AlertOccurrence::query()->whereIn('id', $revived)->update([
+                'acknowledged_at' => null,
+                'acknowledged_by' => null,
+                'acknowledged_value' => null,
+            ]);
+        }
+
         $rows = [];
 
         foreach ($matched as $id => $value) {
@@ -197,10 +234,50 @@ final class AlertEngine
                 // Bez `?->` na samej dacie: `triggered_at` nigdy nie jest
                 // nullem, a PHPStan slusznie uznaje taki zapis za blad.
                 'since' => $occurrence === null ? null : $occurrence->triggered_at->toDateString(),
+                'occurrence_id' => $occurrence === null ? null : (int) $occurrence->getKey(),
+                'acknowledged' => $occurrence?->acknowledged_at !== null,
+                'acknowledged_at' => $occurrence?->acknowledged_at?->toDateString(),
+                'acknowledged_by' => $this->personName($occurrence),
             ];
         }
 
         return $rows;
+    }
+
+    /** Kto odhaczył — imię i nazwisko, bez identyfikatora na ekranie. */
+    private function personName(?AlertOccurrence $occurrence): ?string
+    {
+        $user = $occurrence?->acknowledger;
+
+        if ($user === null) {
+            return null;
+        }
+
+        $name = trim((string) $user->first_name . ' ' . (string) $user->last_name);
+
+        return $name === '' ? null : $name;
+    }
+
+    /**
+     * Czy wartość urosła od chwili odhaczenia.
+     *
+     * **Brak liczby nie jest pogorszeniem.** Warunki bez wartości —
+     * „brak rysunków", „wstrzymane", „reklamacja" — nie mają czego
+     * porównać, więc odhaczenie przy nich trzyma, dopóki warunek trwa.
+     * Zgadywanie, że „coś się zmieniło", byłoby wymyślaniem liczby,
+     * której warunek nigdy nie zwrócił.
+     */
+    private function worsened(?string $current, ?string $acknowledged): bool
+    {
+        if ($current === null || $acknowledged === null) {
+            return false;
+        }
+
+        if (!is_numeric($current) || !is_numeric($acknowledged)) {
+            return false;
+        }
+
+        return (float) $current > (float) $acknowledged;
     }
 
     /**

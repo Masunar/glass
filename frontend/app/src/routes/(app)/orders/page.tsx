@@ -314,7 +314,13 @@ export default function Page() {
                         znacznikiem z reguly, razem z reszta alertow —
                         wczesniej byly recznie wyliczonym wyjatkiem obok
                         silnika, ktory liczy to samo. */}
-                    <AlertChips marks={row.alerts} />
+                    <AlertChips
+                      marks={row.alerts}
+                      // Odhaczenie zmienia liczniki przy zakladkach,
+                      // wiec lista wczytuje sie od nowa — inaczej
+                      // czerwona liczba klamie az do odswiezenia.
+                      onChanged={() => void load()}
+                    />
                   </div>
 
                   <Stage

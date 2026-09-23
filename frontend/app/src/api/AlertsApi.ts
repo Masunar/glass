@@ -13,6 +13,12 @@ export type AlertMark = {
   value: string | null;
   /** Od kiedy alert jest otwarty. */
   since: string | null;
+  /** Wystąpienie w bazie — bez niego nie ma czego odhaczyć. */
+  occurrence_id: number | null;
+  /** Odhaczony milknie w licznikach, ale zostaje w wierszu. */
+  acknowledged: boolean;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
 };
 
 export type AlertParameter = {
@@ -93,5 +99,27 @@ export class AlertsApi extends ApiRequest {
     id: number,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.delete(`/${id}`);
+  }
+}
+
+/**
+ * Odhaczanie alertów — osobny adres, bo osobne uprawnienie.
+ *
+ * `/alerts` to konfiguracja reguł i chodzi na `alerts`; odhaczenie jest
+ * decyzją o zleceniu i chodzi na `orders.update`.
+ */
+export class AlertOccurrencesApi extends ApiRequest {
+  static prefix: string = '/alert-occurrences';
+
+  public static async acknowledge(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/acknowledge`, {});
+  }
+
+  public static async revoke(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/${id}/acknowledge`);
   }
 }
