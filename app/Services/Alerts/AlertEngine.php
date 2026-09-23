@@ -214,6 +214,14 @@ final class AlertEngine
             ]);
         }
 
+        // Podpisy pobierane raz dla calej reguly, nie wiersz po wierszu:
+        // pasmo alertow ma nazwac kazda rzecz, ktorej alert dotyczy, a
+        // nie tylko zlecenie.
+        $subjects = $condition->subjects(array_map(
+            static fn(int|string $id): int => (int) $id,
+            array_keys($matched),
+        ));
+
         $rows = [];
 
         foreach ($matched as $id => $value) {
@@ -227,6 +235,10 @@ final class AlertEngine
                 'color' => $rule->color,
                 'category' => $rule->category->value,
                 'module' => $rule->module,
+                // Zasob z warunku, nie z reguly: administrator moze
+                // przestawic modul na ekranie, ale nie zmienia tym
+                // tego, czego alert dotyczy.
+                'resource' => $condition->resource(),
                 'alertable_type' => $alertable,
                 'alertable_id' => $id,
                 // Wartosc biezaca z przebiegu, nie zapisana w bazie.
@@ -238,6 +250,8 @@ final class AlertEngine
                 'acknowledged' => $occurrence?->acknowledged_at !== null,
                 'acknowledged_at' => $occurrence?->acknowledged_at?->toDateString(),
                 'acknowledged_by' => $this->personName($occurrence),
+                'subject_label' => $subjects[$id]['label'] ?? null,
+                'subject_path' => $subjects[$id]['path'] ?? null,
             ];
         }
 

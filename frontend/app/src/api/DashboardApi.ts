@@ -28,8 +28,11 @@ export type DashboardAlert = {
   color: string | null;
   category: string;
   module: string;
+  /** Zasób, którego alert dotyczy: `orders`, `warehouse`, `tempering`. */
+  resource: string;
   count: number;
-  orders: { id: number; number: number; value: string | null }[];
+  /** Nie „zlecenia": reguła może dotyczyć produktu albo partii w piecu. */
+  subjects: { label: string; path: string | null; value: string | null }[];
 };
 
 export type DashboardBoard = {

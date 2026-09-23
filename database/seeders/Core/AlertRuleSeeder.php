@@ -18,6 +18,10 @@ use App\Enum\AlertConditionType;
  * przykładów, nie ustalenie z Marcinem. Do przejrzenia na ekranie
  * `/alerts`, gdzie każdy z nich jest polem.
  *
+ * **Próg magazynowy nie jest tu ustawiany.** Reguła „poniżej minimum"
+ * nie ma parametru: minimum stoi przy pozycji magazynu i tam należy.
+ * Drugi próg, w regule, byłby drugim źródłem tej samej prawdy.
+ *
  * Kategoria **Akceptacja nie dostaje żadnej reguły**: „rabat powyżej
  * progu czeka na zatwierdzenie" wymaga kolejki akceptacji, a jej
  * kolumny stoją dziś puste. Reguła bez danych zapalałaby się nigdy
@@ -72,6 +76,20 @@ class AlertRuleSeeder extends Seeder
             'name' => 'Otwarta reklamacja',
             'label' => 'reklamacja',
             'params' => [],
+        ],
+        [
+            'type' => AlertConditionType::STOCK_BELOW_MINIMUM,
+            'code' => 'stock_below_minimum',
+            'name' => 'Stan magazynowy poniżej minimum',
+            'label' => 'poniżej minimum',
+            'params' => [],
+        ],
+        [
+            'type' => AlertConditionType::TEMPERING_BATCH_LATE,
+            'code' => 'tempering_batch_late',
+            'name' => 'Partia nie wróciła z pieca na czas',
+            'label' => 'partia spóźniona',
+            'params' => ['days' => 1],
         ],
     ];
 

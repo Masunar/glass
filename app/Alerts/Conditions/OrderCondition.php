@@ -28,6 +28,32 @@ abstract class OrderCondition implements AlertCondition
         return 'zlec';
     }
 
+    public function resource(): string
+    {
+        return 'orders';
+    }
+
+    public function subjects(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        /** @var array<int, int> $numbers */
+        $numbers = Order::query()->whereIn('id', $ids)->pluck('number', 'id')->all();
+
+        $rows = [];
+
+        foreach ($numbers as $id => $number) {
+            $rows[(int) $id] = [
+                'label' => '#' . (int) $number,
+                'path' => '/orders/' . (int) $id,
+            ];
+        }
+
+        return $rows;
+    }
+
     /** @return Builder<Order> */
     protected function open(): Builder
     {

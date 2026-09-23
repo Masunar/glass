@@ -69,7 +69,7 @@ class DashboardTest extends TestCase
     {
         $user = $this->userWith(['zlec.access', 'orders.list']);
 
-        $this->order(90007, null, '2024-01-01');
+        $late = $this->order(90007, null, '2024-01-01');
 
         $alerts = $this->board->board($user)['alerts'];
 
@@ -79,8 +79,10 @@ class DashboardTest extends TestCase
         $this->assertSame('order_overdue', $alerts[0]['code']);
         $this->assertSame(1, $alerts[0]['count']);
         // Liczba bez miejsca, w ktore mozna z nia pojsc, kaze szukac
-        // recznie — stad numery zlecen przy regule.
-        $this->assertSame(90007, $alerts[0]['orders'][0]['number']);
+        // recznie — stad podpisy rzeczy przy regule. Od #38 nie sa to
+        // juz „zlecenia": regula moze dotyczyc produktu albo partii.
+        $this->assertSame('#90007', $alerts[0]['subjects'][0]['label']);
+        $this->assertSame('/orders/' . $late->getKey(), $alerts[0]['subjects'][0]['path']);
     }
 
     #[Test]

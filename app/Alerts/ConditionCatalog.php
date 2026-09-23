@@ -10,6 +10,8 @@ use App\Alerts\Conditions\OrderNoPayment;
 use App\Alerts\Conditions\OrderOpenClaim;
 use App\Alerts\Conditions\OrderContactOverdue;
 use App\Alerts\Conditions\OrderMissingDrawings;
+use App\Alerts\Conditions\StockBelowMinimum;
+use App\Alerts\Conditions\TemperingBatchLate;
 
 /**
  * Katalog warunków: typ z enuma → klasa, która go liczy.
@@ -32,6 +34,8 @@ final readonly class ConditionCatalog
             new OrderNoPayment(),
             new OrderOnHold(),
             new OrderOpenClaim(),
+            new StockBelowMinimum(),
+            new TemperingBatchLate(),
         ];
 
         $map = [];

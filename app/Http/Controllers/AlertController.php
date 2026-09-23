@@ -20,13 +20,17 @@ use App\Services\Alerts\AlertAcknowledgement;
  * znaczniki w wierszach, pulpit pasmo. Za **reguły** odpowiada `alerts`,
  * bo tam zmienia się konfiguracja.
  *
- * **Odhaczenie jest osobną sprawą i chodzi na `orders.update`.**
- * „Wiem o tym, dzwoniłem do klienta" to decyzja o zleceniu, a nie
- * o konfiguracji systemu — handlowiec musi móc to zrobić, nie mając
- * dostępu do ekranu reguł.
+ * **Odhaczenie jest osobną sprawą i nie ma stałego uprawnienia.**
+ * „Wiem o tym" to decyzja o rzeczy, której alert dotyczy — o zleceniu,
+ * o stanie magazynu, o partii w piecu — więc wymagane uprawnienie
+ * zależy od **wiersza**, a nie od trasy. Pośrednik od dostępu do modułu
+ * tego nie wyprowadzi, bo czyta deklaracje kontrolera; dlatego tych
+ * dwóch akcji nie chroni `protect()`, tylko `AlertAcknowledgement::may()`,
+ * który zna wystąpienie i pyta o oba poziomy naraz.
  *
- * ⚠️ To wiąże odhaczanie ze zleceniami. Gdy alerty wyjdą poza zlecenia
- * (A-02), uprawnienie trzeba będzie wyprowadzić z `alertable_type`.
+ * To jedyne miejsce w aplikacji, gdzie sprawdzenie nie jest
+ * wyprowadzone z trasy — i jest to świadome, bo trasa nie ma z czego
+ * go wyprowadzić.
  */
 class AlertController extends ApiController
 {
@@ -38,11 +42,6 @@ class AlertController extends ApiController
         $this->protect(['create'], Permission::ALERTS->value, SubPermission::CREATE->value);
         $this->protect(['update'], Permission::ALERTS->value, SubPermission::UPDATE->value);
         $this->protect(['delete'], Permission::ALERTS->value, SubPermission::DELETE->value);
-        $this->protect(
-            ['acknowledge', 'revoke'],
-            Permission::ORDERS->value,
-            SubPermission::UPDATE->value,
-        );
     }
 
     /** „Wiem o tym" — alert milknie w licznikach, ale zostaje w wierszu. */
@@ -50,6 +49,10 @@ class AlertController extends ApiController
     {
         return $this->secure(function () use ($occurrence): JsonResponse {
             $result = $this->acknowledgement->acknowledge($occurrence);
+
+            if ($result['denied']) {
+                return $this->forbiddenResponse();
+            }
 
             if ($result['errors'] !== []) {
                 return $this->validationResponse($result['errors']);
@@ -64,6 +67,10 @@ class AlertController extends ApiController
     {
         return $this->secure(function () use ($occurrence): JsonResponse {
             $result = $this->acknowledgement->revoke($occurrence);
+
+            if ($result['denied']) {
+                return $this->forbiddenResponse();
+            }
 
             if ($result['errors'] !== []) {
                 return $this->validationResponse($result['errors']);

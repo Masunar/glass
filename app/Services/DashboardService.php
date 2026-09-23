@@ -87,7 +87,7 @@ final readonly class DashboardService
             // startu: „zacznij od #24004" zamiast „masz siedem spraw".
             'top' => $tasks[0] ?? null,
             'counters' => $counters,
-            'alerts' => $this->alerts($user, $seesOrders, $day),
+            'alerts' => $this->alerts($user, $day),
             'tasks' => $tasks,
             'blocked' => $seesOrders ? $this->blocked($rows) : [],
             'shortages' => $this->shortages($user),
@@ -97,31 +97,39 @@ final readonly class DashboardService
     /**
      * Pasmo alertów: reguła, ile razy zapalona, dokąd prowadzi.
      *
-     * Alert dotyczy zlecenia, więc widzi go ten, kto widzi zlecenia —
-     * alert nie ma własnego uprawnienia. `alerts` chroni ekran reguł,
+     * Alert nie ma własnego uprawnienia do odczytu — widzi go ten, kto
+     * widzi rzecz, której alert dotyczy. `alerts` chroni ekran reguł,
      * czyli konfigurację, a nie dane.
      *
-     * Filtr po module zostaje mimo to: gdy pojawi się reguła magazynowa,
-     * pasmo nie może pokazać jej komuś, kto magazynu nie widzi.
+     * **Przycina moduł reguły, nie zlecenia.** Od chwili, gdy alerty
+     * objęły magazyn i piec, wspólna bramka „czy widzi zlecenia" byłaby
+     * albo za wąska (magazynier nie zobaczyłby braków), albo za szeroka
+     * (handlowiec zobaczyłby piec). Każdy wiersz pyta o swój moduł.
      *
      * @return list<array<string, mixed>>
      */
-    private function alerts(User $user, bool $seesOrders, Carbon $day): array
+    private function alerts(User $user, Carbon $day): array
     {
-        if (!$seesOrders) {
-            return [];
-        }
-
         $rows = [];
 
         foreach ($this->alerts->summary($day) as $row) {
             $module = is_string($row['module']) ? $row['module'] : '';
 
-            if ($module !== '' && !$user->can($module . '.' . AccessRegistry::ACCESS)) {
+            $resource = is_string($row['resource']) ? $row['resource'] : '';
+
+            // Dwa poziomy (U-04), tak jak przy licznikach: dostep do
+            // modulu i uprawnienie do zasobu. Samo `mag.access` bez
+            // `warehouse.list` oddaloby liczbe brakow komus, kto nie
+            // widzi ani jednej pozycji magazynu.
+            if ($module === '' || !$user->can($module . '.' . AccessRegistry::ACCESS)) {
                 continue;
             }
 
-            $row['orders'] = $this->alerts->ordersFor((string) $row['code'], self::ROWS, $day);
+            if ($resource === '' || !$user->can($resource . '.' . SubPermission::LIST->value)) {
+                continue;
+            }
+
+            $row['subjects'] = $this->alerts->subjectsFor((string) $row['code'], self::ROWS, $day);
             $rows[] = $row;
         }
 

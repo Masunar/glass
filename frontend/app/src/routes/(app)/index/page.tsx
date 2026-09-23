@@ -292,18 +292,26 @@ export default function Page() {
                   </span>
                   <span className="ge-home__alert-count">{alert.count}</span>
 
-                  {/* Numery sa odnosnikami: liczba bez miejsca, w ktore
-                      mozna z nia pojsc, kaze szukac jej recznie. */}
+                  {/* Podpisy sa odnosnikami: liczba bez miejsca, w ktore
+                      mozna z nia pojsc, kaze szukac jej recznie. Podpis
+                      bez ekranu zostaje samym tekstem — odnosnik
+                      donikad byłby gorszy niz jego brak. */}
                   <span className="ge-home__alert-orders">
-                    {alert.orders.map((order) => (
-                      <Link
-                        key={order.id}
-                        to={`/orders/${order.id}`}
-                        className="ge-link"
-                      >
-                        #{order.number}
-                      </Link>
-                    ))}
+                    {alert.subjects.map((subject, index) =>
+                      subject.path === null ? (
+                        <span key={`${subject.label}-${index}`}>
+                          {subject.label}
+                        </span>
+                      ) : (
+                        <Link
+                          key={`${subject.label}-${index}`}
+                          to={subject.path}
+                          className="ge-link"
+                        >
+                          {subject.label}
+                        </Link>
+                      ),
+                    )}
                   </span>
                 </div>
               ))}

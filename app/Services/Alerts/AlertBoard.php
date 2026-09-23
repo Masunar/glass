@@ -136,6 +136,7 @@ final readonly class AlertBoard
                 'color' => $row['color'],
                 'category' => $row['category'],
                 'module' => $row['module'],
+                'resource' => $row['resource'],
             ];
         }
 
@@ -150,47 +151,36 @@ final readonly class AlertBoard
     }
 
     /**
-     * Numery zleceń objętych regułą — do wyświetlenia pod etykietą.
+     * Rzeczy objęte regułą — podpis i dokąd prowadzi.
      *
-     * @return list<array{id: int, number: int, value: string|null}>
+     * Nie „numery zleceń": reguła może dotyczyć produktu albo partii
+     * w piecu, a pasmo alertów ma je nazwać tak samo. Podpis składa
+     * warunek, bo tam już stoi zapytanie o tę tabelę.
+     *
+     * @return list<array{label: string, path: string|null, value: string|null}>
      */
-    public function ordersFor(string $code, int $limit = 5, ?Carbon $day = null): array
+    public function subjectsFor(string $code, int $limit = 5, ?Carbon $day = null): array
     {
-        $matched = [];
-
-        foreach ($this->engine->run($day) as $row) {
-            if ($row['code'] !== $code || $row['alertable_type'] !== Order::class) {
-                continue;
-            }
-
-            if ($row['acknowledged'] === true) {
-                continue;
-            }
-
-            $matched[(int) $row['alertable_id']] = $row['value'];
-        }
-
-        if ($matched === []) {
-            return [];
-        }
-
-        /** @var Collection<int, Order> $orders */
-        $orders = Order::query()
-            ->whereIn('id', array_keys($matched))
-            ->orderBy('number')
-            ->limit($limit)
-            ->get();
-
         $rows = [];
 
-        foreach ($orders as $order) {
-            $id = (int) $order->getKey();
+        foreach ($this->engine->run($day) as $row) {
+            if ($row['code'] !== $code || $row['acknowledged'] === true) {
+                continue;
+            }
+
+            if ($row['subject_label'] === null) {
+                continue;
+            }
 
             $rows[] = [
-                'id' => $id,
-                'number' => (int) $order->number,
-                'value' => $matched[$id] ?? null,
+                'label' => (string) $row['subject_label'],
+                'path' => $row['subject_path'],
+                'value' => $row['value'],
             ];
+
+            if (count($rows) >= $limit) {
+                break;
+            }
         }
 
         return $rows;
