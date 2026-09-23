@@ -15,6 +15,11 @@ use Illuminate\Database\Eloquent\Collection;
  * Alert dotyczy zlecenia, więc **widzi go ten, kto widzi zlecenie** —
  * nie osobne uprawnienie. Uprawnienie `alerts` pilnuje wyłącznie ekranu
  * reguł, bo tam zmienia się konfiguracja, a nie ogląda dane.
+ *
+ * **Odhaczony alert znika z liczników, ale zostaje w wierszu.** Licznik
+ * odpowiada na pytanie „ile wymaga reakcji", a znacznik przy zleceniu na
+ * „co z nim jest" — to dwa różne pytania. Gdyby odhaczenie zdejmowało
+ * znacznik, sprawa znikałaby z oczu zamiast przestać krzyczeć.
  */
 final readonly class AlertBoard
 {
@@ -46,6 +51,10 @@ final readonly class AlertBoard
                 'category' => $row['category'],
                 'value' => $row['value'],
                 'since' => $row['since'],
+                'occurrence_id' => $row['occurrence_id'],
+                'acknowledged' => $row['acknowledged'],
+                'acknowledged_at' => $row['acknowledged_at'],
+                'acknowledged_by' => $row['acknowledged_by'],
             ];
         }
 
@@ -63,7 +72,17 @@ final readonly class AlertBoard
      */
     public function orderCounts(?Carbon $day = null): array
     {
-        $ids = array_keys($this->forOrders($day));
+        $ids = [];
+
+        foreach ($this->forOrders($day) as $id => $marks) {
+            foreach ($marks as $mark) {
+                if ($mark['acknowledged'] !== true) {
+                    $ids[] = $id;
+
+                    break;
+                }
+            }
+        }
 
         if ($ids === []) {
             return ['' => 0];
@@ -103,6 +122,10 @@ final readonly class AlertBoard
         $meta = [];
 
         foreach ($this->engine->run($day) as $row) {
+            if ($row['acknowledged'] === true) {
+                continue;
+            }
+
             $code = (string) $row['code'];
 
             $counts[$code] = ($counts[$code] ?? 0) + 1;
@@ -137,6 +160,10 @@ final readonly class AlertBoard
 
         foreach ($this->engine->run($day) as $row) {
             if ($row['code'] !== $code || $row['alertable_type'] !== Order::class) {
+                continue;
+            }
+
+            if ($row['acknowledged'] === true) {
                 continue;
             }
 

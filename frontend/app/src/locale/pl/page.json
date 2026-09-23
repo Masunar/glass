@@ -1418,6 +1418,10 @@
     "reach_one": "Zmiana warunku zamknie {{count}} otwarte wystąpienie.",
     "reach_few": "Zmiana warunku zamknie {{count}} otwarte wystąpienia.",
     "reach_many": "Zmiana warunku zamknie {{count}} otwartych wystąpień.",
-    "reach_other": "Zmiana warunku zamknie {{count}} otwartych wystąpień."
+    "reach_other": "Zmiana warunku zamknie {{count}} otwartych wystąpień.",
+    "mark_since": "od {{date}}",
+    "mark_acknowledged": "odhaczone przez {{who}} {{date}}",
+    "mark_ack": "kliknij, żeby odhaczyć",
+    "mark_revoke": "kliknij, żeby cofnąć odhaczenie"
   }
 }

@@ -18,7 +18,12 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property int $alertable_id
  * @property string|null $value
  * @property-read Carbon $triggered_at
+ * @property Carbon|null $acknowledged_at
+ * @property int|null $acknowledged_by
+ * @property string|null $acknowledged_value
  * @property Carbon|null $resolved_at
+ * @property-read AlertRule $rule
+ * @property-read User|null $acknowledger
  */
 class AlertOccurrence extends Model
 {
@@ -32,6 +37,9 @@ class AlertOccurrence extends Model
         'alertable_id',
         'value',
         'triggered_at',
+        'acknowledged_at',
+        'acknowledged_by',
+        'acknowledged_value',
         'resolved_at',
     ];
 
@@ -39,6 +47,7 @@ class AlertOccurrence extends Model
     {
         return [
             'triggered_at' => 'datetime',
+            'acknowledged_at' => 'datetime',
             'resolved_at' => 'datetime',
         ];
     }
@@ -46,6 +55,11 @@ class AlertOccurrence extends Model
     public function rule(): BelongsTo
     {
         return $this->belongsTo(AlertRule::class, 'alert_rule_id', 'id');
+    }
+
+    public function acknowledger(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'acknowledged_by', 'id');
     }
 
     public function alertable(): MorphTo

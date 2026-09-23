@@ -798,3 +798,26 @@
   gap: 6px;
   font-size: 13px;
 }
+
+/* Znacznik jest przyciskiem, gdy wolno go odhaczyc — ale ma wygladac
+   tak samo. Przycisk w wierszu, ktory rozni sie od etykiety obok,
+   pytalby o siebie zamiast o sprawe. */
+button.ge-mark {
+  font-family: inherit;
+  cursor: pointer;
+}
+button.ge-mark:hover {
+  background: color-mix(in oklch, var(--ge-mark, var(--m-alert)) 22%, var(--ge-surface));
+}
+button.ge-mark:disabled { cursor: default; }
+
+/* Odhaczony: ten sam znacznik, tylko cichy. Zostaje w wierszu, bo
+   „ile wymaga reakcji" i „co jest z tym zleceniem" to dwa pytania —
+   znika z licznika, nie z oczu. */
+.ge-mark.is-acknowledged {
+  border-color: var(--ge-divider);
+  background: var(--ge-neutral-100);
+  color: var(--ge-neutral-700);
+}
+button.ge-mark.is-acknowledged:hover { background: var(--ge-neutral-200); }
+.ge-mark.is-busy { opacity: 0.5; }

@@ -46,6 +46,13 @@ Route::prefix('/alerts')->name('alerts_')->group(static function (): void {
     Route::delete('/{rule}', [AlertController::class, 'delete'])->name('delete');
 });
 
+// Odhaczenie alertu stoi poza `/alerts`, bo to nie jest konfiguracja:
+// chodzi na `orders.update`, a `/alerts` na uprawnieniu `alerts`.
+Route::prefix('/alert-occurrences')->name('alert_occurrences_')->group(static function (): void {
+    Route::post('/{occurrence}/acknowledge', [AlertController::class, 'acknowledge'])->name('ack');
+    Route::delete('/{occurrence}/acknowledge', [AlertController::class, 'revoke'])->name('revoke');
+});
+
 Route::prefix('/price-list')->name('price_list_')->group(static function (): void {
     Route::get('/', [PriceListController::class, 'matrix'])->name('matrix');
     Route::put('/', [PriceListController::class, 'update'])->name('update');
