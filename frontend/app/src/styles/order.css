@@ -867,3 +867,28 @@
 .ge-acc__issue { padding: 6px 0; border-bottom: 1px solid var(--ge-divider); }
 .ge-acc__issue-label { display: block; font-weight: 600; font-size: 13.5px; }
 .ge-acc__banner { margin-bottom: 12px; }
+
+/* Ekran „brak dostepu" — wysrodkowany, bez ramki: to nie jest karta
+   z trescia, tylko komunikat zamiast tresci. */
+.ge-denied {
+  max-width: 560px;
+  margin: 64px auto;
+  text-align: center;
+}
+.ge-denied__mark {
+  font-size: 32px;
+  color: var(--ge-neutral-700);
+  margin-bottom: 12px;
+}
+.ge-denied__list {
+  margin: 24px 0;
+  text-align: left;
+  display: inline-block;
+  min-width: 260px;
+}
+.ge-denied__item {
+  display: block;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ge-divider);
+  font-size: 13px;
+}

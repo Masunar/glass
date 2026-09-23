@@ -455,7 +455,8 @@
     "ksie": "Księgowość",
     "rap": "Raporty",
     "alert": "Zaległe",
-    "adm": "Administracja"
+    "adm": "Administracja",
+    "denied": "brak dostępu"
   },
   "contractors": {
     "title": "Kontrahenci",
@@ -1331,5 +1332,12 @@
     "package_reach_other": "Zmiana dotknie {{count}} ról",
     "package_unused": "nienadana żadnej roli",
     "package_roles": "Nadana rolom"
+  },
+  "denied": {
+    "title": "Brak dostępu",
+    "lead": "Ten ekran wymaga uprawnień, których nie masz.",
+    "lead_module": "Ten ekran należy do modułu {{module}} i wymaga uprawnień, których nie masz.",
+    "missing": "Czego brakuje",
+    "hint": "Poproś administratora o nadanie powyższych uprawnień — nazwy są takie same jak w panelu ról."
   }
 }

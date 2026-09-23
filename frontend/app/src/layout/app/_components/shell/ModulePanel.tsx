@@ -2,7 +2,7 @@ import { NavLink } from 'react-router';
 
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
-import type { AppModule } from '@app/config/modules';
+import { type AppModule, moduleAccessPermission } from '@app/config/modules';
 import { useHasPermission } from '@app/hook/use-permissions';
 
 type Props = {
@@ -23,11 +23,18 @@ export default function ModulePanel({ module, meta, children, footer }: Props) {
   const t = useTranslation();
   const hasPermissionTo = useHasPermission();
 
-  const links = module.links.filter(
-    (link) =>
-      link.path !== undefined &&
-      (link.permission === undefined || hasPermissionTo([link.permission])),
-  );
+  // Dostep do modulu jest pietrem nad dostepem do strony (U-04):
+  // bez niego uprawnienia stron w tym module i tak nic nie otworza,
+  // wiec wypisywanie ich w panelu byloby obietnica bez pokrycia.
+  const allowed = hasPermissionTo(moduleAccessPermission(module.key));
+
+  const links = allowed
+    ? module.links.filter(
+        (link) =>
+          link.path !== undefined &&
+          (link.permission === undefined || hasPermissionTo([link.permission])),
+      )
+    : [];
 
   return (
     <nav

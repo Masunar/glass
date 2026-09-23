@@ -5,7 +5,7 @@ import { securityRoutes } from '@router/security-router';
 
 import { UserModalProvider } from '../../components/user/UserModalContext';
 import UserModal from '../../components/user/modal/UserModal';
-import { appRoutes } from '../../router/app-router';
+import { type AppRoute, appRoutes } from '../../router/app-router';
 import OfflineModal from './_components/OfflineModal';
 import { useEffect, useState } from 'react';
 import {
@@ -33,16 +33,16 @@ import { themeMode } from '@salvon/consts/theme-mode';
 import { useMounted } from '@salvon/hooks/useMounted';
 import { useSearchParam } from '@salvon/hooks/useSearchParams';
 import { Providers } from '@salvon/provider';
-import type { ApplicationRoute } from '@salvon/router';
 import '@salvon/styles.css';
 import generatePath from '@salvon/utils/generate-path';
 
 import { userLoader } from '@app/auth/user-loader';
+import AccessDenied from '@app/components/access/AccessDenied';
 import Spotlight, { SpotlightOpener } from '@app/components/search/Spotlight';
 import i18n from '@app/config/i18n';
 import { locales } from '@app/config/locales';
 import { defaultLocale } from '@app/config/locales';
-import { moduleForPath } from '@app/config/modules';
+import { moduleAccessPermission, moduleForPath } from '@app/config/modules';
 import { lightTheme } from '@app/config/theme';
 import { userHasPermission } from '@app/hook/use-permissions';
 import { useUser } from '@app/hook/use-user';
@@ -86,27 +86,45 @@ export const loader: LoaderFunction = async (params) => {
     );
   }
 
-  const matched = (Object.values(appRoutes) as ApplicationRoute[]).find(
+  const matched = (Object.values(appRoutes) as AppRoute[]).find(
     (route) => route.path && matchPath(route.path, url.pathname),
   );
+
+  const missing: string[] = [];
+  const moduleKey = matched?.module ?? null;
+
+  // Dostep do modulu i uprawnienie strony to dwa warunki, oba musza
+  // byc spelnione (U-04). Uprawnienia w obrebie trasy zostaja
+  // alternatywa — tak dzialalo sprawdzenie przed wpieciem modulow.
+  if (moduleKey && !userHasPermission(user, moduleAccessPermission(moduleKey))) {
+    missing.push(moduleAccessPermission(moduleKey));
+  }
 
   if (
     matched?.permissions?.length &&
     !userHasPermission(user, matched.permissions)
   ) {
-    // Przekierowanie na siebie samego to petla, a nie zabezpieczenie.
-    if (url.pathname === appRoutes.index.path) {
-      return { user };
+    for (const entry of matched.permissions) {
+      missing.push(
+        entry.subPermission
+          ? `${entry.permission}.${entry.subPermission}`
+          : entry.permission,
+      );
     }
-
-    return redirect(appRoutes.index.path);
   }
 
-  return { user };
+  // Przekierowanie na pulpit wygladalo jak awaria: klikniecie
+  // konczylo sie powrotem w to samo miejsce bez slowa wyjasnienia.
+  // Ekran zostaje i mowi, czego brakuje.
+  return {
+    user,
+    denied: missing.length > 0 ? { missing, module: moduleKey } : null,
+  };
 };
 
 export default function Layout({ loaderData }: any) {
   const user = loaderData.user;
+  const denied = loaderData.denied ?? null;
   const mfaRecovered = !!useSearchParam('mfa_recovered');
 
   useMounted(() => {
@@ -141,7 +159,7 @@ export default function Layout({ loaderData }: any) {
           mfaRecovered={mfaRecovered}
         >
           <NavigationIndicator height="3px">
-            <Template />
+            <Template denied={denied} />
           </NavigationIndicator>
         </UserModalProvider>
       </UserProvider>
@@ -149,7 +167,11 @@ export default function Layout({ loaderData }: any) {
   );
 }
 
-function Template() {
+function Template({
+  denied,
+}: {
+  denied: { missing: string[]; module: string | null } | null;
+}) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const user = useUser();
@@ -219,7 +241,11 @@ function Template() {
           style={{ height: '100vh' }}
         >
           <div className="ge-page">
-            <Outlet />
+            {denied ? (
+              <AccessDenied missing={denied.missing} module={denied.module} />
+            ) : (
+              <Outlet />
+            )}
           </div>
         </SimpleBar>
       </div>

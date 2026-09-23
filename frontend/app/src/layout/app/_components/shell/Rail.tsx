@@ -5,7 +5,13 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 
 import LogoMark from '@app/components/layout/LogoMark';
-import { type AppModule, appModules, hasScreens } from '@app/config/modules';
+import {
+  type AppModule,
+  appModules,
+  hasScreens,
+  moduleAccessPermission,
+} from '@app/config/modules';
+import { useHasPermission } from '@app/hook/use-permissions';
 
 type Props = {
   active: AppModule;
@@ -22,6 +28,7 @@ type Props = {
 export default function Rail({ active, initials, onUserClick }: Props) {
   const t = useTranslation();
   const navigate = useNavigate();
+  const hasPermissionTo = useHasPermission();
 
   return (
     <nav className="ge-rail" aria-label={t('page.module.nav')}>
@@ -30,7 +37,9 @@ export default function Rail({ active, initials, onUserClick }: Props) {
       </span>
 
       {appModules.map((module) => {
-        const available = hasScreens(module);
+        const screens = hasScreens(module);
+        const allowed = hasPermissionTo(moduleAccessPermission(module.key));
+        const available = screens && allowed;
         const isActive = module.key === active.key;
         const target = module.links.find(
           (link) => link.path !== undefined,
@@ -41,7 +50,12 @@ export default function Rail({ active, initials, onUserClick }: Props) {
             key={module.key}
             title={
               t(module.labelKey) +
-              (available ? '' : ` — ${t('page.module.empty')}`)
+              // Wyglad kafelka jest jeden, ale powod dwa. Dymek mowiacy
+              // „pusty modul" o module, ktory ekrany ma, kazalby szukac
+              // bledu tam, gdzie go nie ma.
+              (available
+                ? ''
+                : ` — ${t(screens ? 'page.module.denied' : 'page.module.empty')}`)
             }
             placement="right"
           >
