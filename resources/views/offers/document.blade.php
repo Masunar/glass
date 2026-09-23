@@ -36,6 +36,19 @@
         .brand { font-size: 13pt; font-weight: bold; letter-spacing: 0.5pt; }
         .muted { color: #5a5a5a; font-size: 8.5pt; }
 
+        /* Pas podgladu. Nie ozdoba: bez niego wydruk podgladu jest nie
+           do odroznienia od oferty, ktora poszla do klienta — a ta
+           pierwsza nie zostawia po sobie zadnego sladu w systemie. */
+        .draft {
+            border: 1.5pt solid #b23b2e;
+            color: #b23b2e;
+            padding: 5pt 8pt;
+            margin-bottom: 10pt;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+        .draft__why { display: block; font-weight: normal; font-size: 8pt; }
+
         .title {
             font-size: 15pt;
             font-weight: bold;
@@ -95,6 +108,16 @@
 </head>
 <body>
 
+@if ($isPreview)
+    <div class="draft">
+        PODGLĄD — oferta nie została wystawiona
+        <span class="draft__why">
+            Ten dokument nie istnieje w systemie i nie ma numeru. Numer
+            nadaje się dopiero przy wystawieniu.
+        </span>
+    </div>
+@endif
+
 <table class="head">
     <tr>
         <td>
@@ -109,14 +132,14 @@
             </div>
         </td>
         <td class="r muted">
-            Data wystawienia: {{ $issuedOn }}<br>
+            {{ $isPreview ? 'Data podglądu' : 'Data wystawienia' }}: {{ $issuedOn }}<br>
             @if ($validUntil) Oferta ważna do: {{ $validUntil }}<br> @endif
             Dotyczy zlecenia: {{ $order['number'] }}
         </td>
     </tr>
 </table>
 
-<div class="title">Oferta {{ $number }}</div>
+<div class="title">Oferta @if ($number) {{ $number }} @endif</div>
 
 <table>
     <tr>

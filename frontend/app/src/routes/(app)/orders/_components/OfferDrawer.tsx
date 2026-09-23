@@ -42,6 +42,7 @@ export default function OfferDrawer({
   const t = useTranslation();
   const form = useForm();
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [display, setDisplay] = useState('net');
 
   useEffect(() => {
@@ -79,6 +80,41 @@ export default function OfferDrawer({
     onSaved();
   };
 
+  /**
+   * Podgląd tego samego dokumentu, który powstanie po wystawieniu.
+   *
+   * Otwiera się obok, a szuflada zostaje z wypełnionym formularzem —
+   * sens podglądu polega na tym, żeby móc poprawić opcję i zobaczyć
+   * jeszcze raz. Adres bloba zwalniamy dopiero po chwili: przeglądarka
+   * potrzebuje go, dopóki nie wczyta pliku.
+   */
+  const preview = async (data: any) => {
+    setPreviewing(true);
+    const { file, content } = await OffersApi.preview(orderId, data);
+    setPreviewing(false);
+
+    if (file === null) {
+      if (content !== null && !validationCompleted(content, form.setError, t)) {
+        return;
+      }
+
+      notifyError(content?.errors?.offer?.[0] ?? t('api.ise'));
+
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const opened = window.open(url, '_blank', 'noopener');
+
+    if (opened === null) {
+      // Zablokowane okienko wyglada jak brak reakcji. Mowimy, co sie
+      // stalo, zamiast zostawiac cisze.
+      notifyError(t('page.orders.offers.preview_blocked'));
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
   /** Brutto bez znanej stawki nie istnieje — mówimy to przed zapisem. */
   const grossBlocked = display === 'gross' && current.gross === null;
 
@@ -95,9 +131,17 @@ export default function OfferDrawer({
             {t('cancel')}
           </Button>
           <Button
+            variant="outlined"
+            loading={previewing}
+            disabled={grossBlocked || saving}
+            onClick={() => void form.handleSubmit(preview)()}
+          >
+            {t('page.orders.offers.preview')}
+          </Button>
+          <Button
             variant="contained"
             loading={saving}
-            disabled={grossBlocked}
+            disabled={grossBlocked || previewing}
             onClick={() => void form.handleSubmit(submit)()}
           >
             {t('page.orders.offers.issue')}
@@ -169,6 +213,7 @@ export default function OfferDrawer({
               placeholder={t('page.orders.offers.comment_hint')}
             />
             <FieldNote>{t('page.orders.offers.frozen')}</FieldNote>
+            <FieldNote>{t('page.orders.offers.preview_note')}</FieldNote>
           </Fieldset>
         </DrawerColumn>
       </Form>

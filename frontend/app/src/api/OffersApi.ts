@@ -109,6 +109,49 @@ export class OffersApi extends ApiRequest {
   }
 
   /**
+   * Podgląd oferty przed wystawieniem.
+   *
+   * POST, bo niesie cały formularz. Odpowiedź jest plikiem **albo**
+   * błędem walidacji, a przy `responseType: 'blob'` axios nie rozpakuje
+   * JSON-a sam — więc rozpakowujemy go tutaj, raz, zamiast w każdym
+   * miejscu wywołania.
+   *
+   * Zwracamy oba: `file` przy powodzeniu, `content` w kształcie reszty
+   * API, żeby `validationCompleted` zadziałało tak samo jak wszędzie.
+   */
+  public static async preview(
+    orderId: number,
+    data: Record<string, unknown>,
+  ): Promise<{ file: Blob | null; content: ResponseContent | null }> {
+    const { content } = await this.post(
+      `/orders/${orderId}/offers/preview`,
+      data,
+      { responseType: 'blob' },
+    );
+
+    const blob: unknown = content;
+
+    if (blob instanceof Blob && blob.type.includes('pdf')) {
+      return { file: blob, content: null };
+    }
+
+    if (!(blob instanceof Blob)) {
+      return { file: null, content: (content ?? null) as ResponseContent };
+    }
+
+    // Blad przyszedl tym samym kanalem co plik. Bez tego odczytu ekran
+    // pokazalby „nie udalo sie" zamiast powodu, ktory serwer podal.
+    try {
+      return {
+        file: null,
+        content: JSON.parse(await blob.text()) as ResponseContent,
+      };
+    } catch {
+      return { file: null, content: null };
+    }
+  }
+
+  /**
    * Adres pobrania PDF-u — zwykły link, nie zapytanie.
    *
    * Plik idzie przez to samo uwierzytelnienie co reszta API, więc

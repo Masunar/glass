@@ -23,12 +23,31 @@ use App\Enum\OfferPriceDisplay;
  */
 final readonly class OfferDocument
 {
-    /** Gotowy plik PDF jako ciąg bajtów. */
-    public function render(Offer $offer): string
+    /**
+     * Gotowy plik PDF jako ciąg bajtów.
+     *
+     * `$preview` nie jest przełącznikiem wyglądu, tylko zabezpieczeniem:
+     * PDF podglądu bez oznaczenia, który trafi do klienta, jest
+     * dokumentem bez śladu w systemie — i nie da się potem odpowiedzieć
+     * na pytanie „co mu wysłaliśmy".
+     */
+    public function render(Offer $offer, bool $preview = false): string
     {
-        return Pdf::loadView('offers.document', $this->data($offer))
+        return Pdf::loadView('offers.document', $this->data($offer, $preview))
             ->setPaper('a4')
             ->output();
+    }
+
+    /** Nazwa pliku podglądu — bez numeru, bo numeru jeszcze nie ma. */
+    public function previewFileName(Offer $offer): string
+    {
+        /** @var array<string, mixed> $snapshot */
+        $snapshot = $offer->snapshot;
+
+        /** @var array<string, mixed> $order */
+        $order = $snapshot['order'] ?? [];
+
+        return 'podglad-oferty-' . ($order['number'] ?? 'zlecenie') . '.pdf';
     }
 
     /**
@@ -45,7 +64,7 @@ final readonly class OfferDocument
     /**
      * @return array<string, mixed>
      */
-    private function data(Offer $offer): array
+    private function data(Offer $offer, bool $preview = false): array
     {
         /** @var array<string, mixed> $snapshot */
         $snapshot = $offer->snapshot;
@@ -59,7 +78,10 @@ final readonly class OfferDocument
         $isGross = $offer->price_display === OfferPriceDisplay::GROSS;
 
         return [
-            'number' => $offer->number(),
+            'isPreview' => $preview,
+            // Bez `number()` przy podgladzie: oferta nie jest zapisana,
+            // wiec numeru nie ma — i o to chodzi.
+            'number' => $preview ? null : $offer->number(),
             'issuedOn' => $snapshot['issued_on'] ?? $offer->issued_at->toDateString(),
             'validUntil' => $offer->valid_until?->toDateString(),
             // Klucze dopelniane na wejsciu, a nie sprawdzane w szablonie:
