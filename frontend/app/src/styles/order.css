@@ -892,3 +892,89 @@
   border-bottom: 1px solid var(--ge-divider);
   font-size: 13px;
 }
+
+/* --- Cennik ------------------------------------------------------- */
+
+/* Grupa asortymentowa w lewej kolumnie. Nazwa jest przyciskiem, bo
+   otwiera macierz obok, a nie osobny adres. */
+.ge-pl__group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--ge-divider);
+}
+.ge-pl__group-name {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 7px 0;
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ge-text);
+}
+.ge-pl__group-name.is-off { color: var(--ge-neutral-700); }
+.ge-pl__group.is-active { box-shadow: inset 2px 0 0 var(--ge-mod); }
+.ge-pl__group.is-active .ge-pl__group-name { font-weight: 600; padding-left: 8px; }
+.ge-pl__group-name:hover { color: color-mix(in oklab, var(--ge-mod) 75%, black); }
+
+.ge-pl__group-edit {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--ge-neutral-700);
+  display: inline-flex;
+  align-items: center;
+  /* Olowek pojawia sie dopiero pod kursorem: przy trzydziestu
+     pozycjach trzydziesci ikon to szum, nie nawigacja. */
+  opacity: 0;
+}
+.ge-pl__group:hover .ge-pl__group-edit,
+.ge-pl__group-edit:focus-visible,
+.ge-row:hover .ge-pl__group-edit,
+.ge-pl__product .ge-pl__group-edit:focus-visible { opacity: 1; }
+.ge-pl__group-edit:hover { color: var(--ge-mod); }
+
+.ge-pl__product { display: flex; align-items: center; gap: 4px; min-width: 0; }
+
+/* Komorka: wspolczynnik, cena i marza w jednej linii. Ostrzezenie
+   o rozjezdzie dokleja sie dopiero, gdy jest — i dopiero ono moze
+   zlamac wiersz do drugiej linii. */
+.ge-pl__cell {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-pl__input {
+  width: 58px;
+  padding: 3px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-neutral-400);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: right;
+  color: var(--ge-text);
+}
+.ge-pl__input:focus {
+  outline: none;
+  border-bottom-color: var(--ge-mod);
+}
+.ge-pl__price { font-weight: 600; font-size: 13px; }
+.ge-pl__price.is-dirty { color: var(--ge-mod); }
+.ge-pl__margin { font-size: 11.5px; color: var(--ge-neutral-800); }
+.ge-pl__stale {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  color: var(--m-alert);
+}
+
+/* Koniec paska niesie tu dwie rzeczy: legende kropki i przelacznik. */
+.ge-segbar__end.ge-pl__end { display: flex; align-items: center; gap: 16px; }
+
+.ge-pl__foot { padding-top: 10px; }

@@ -394,7 +394,6 @@
     "lead": "Cennik jest polityką marży, nie tabelą liczb: wpisujesz współczynnik narzutu, cena wynika z niego i z ceny zakupu. Zmiana zapisuje się jako nowa wersja, więc oferta sprzed miesiąca przelicza się starą ceną. Nowa dostawa nie przelicza cennika sama — rozjazd jest pokazany, a decyzja należy do Ciebie.",
     "saved": "Cennik zapisany.",
     "save_count": "Zapisz zmiany ({{count}})",
-    "default": "domyślna",
     "margin": "marża {{value}}%",
     "stale": "przy nowej cenie zakupu: {{value}}",
     "no_purchase_price": "brak ceny zakupu",
@@ -419,7 +418,8 @@
       "name": "Nazwa grupy",
       "manufacturer": "Producent",
       "manufacturer_hint": "Osobne pole, nie część nazwy — stary system trzymał „CDA - ETNA” w jednym polu tekstowym.",
-      "series": "Seria"
+      "series": "Seria",
+      "section": "Grupy asortymentowe"
     },
     "product": {
       "add": "Dodaj produkt",
@@ -440,8 +440,11 @@
       "purchase_hint": "Zmiana zakłada nową wersję; poprzednia zostaje w historii.",
       "tempered": "Hartowane domyślnie",
       "made_to_order": "Na zamówienie",
-      "made_to_order_hint": "Sprowadzane pod zlecenie, nietrzymane na stanie — nie trafia na listę braków."
-    }
+      "made_to_order_hint": "Sprowadzane pod zlecenie, nietrzymane na stanie — nie trafia na listę braków.",
+      "section": "Pozycja",
+      "money": "Jednostka, VAT i zakup"
+    },
+    "default_hint": "Kropka przy nazwie oznacza sekcję domyślną."
   },
   "module": {
     "nav": "Moduły",
