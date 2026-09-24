@@ -121,6 +121,24 @@ final readonly class OfferBoard
     }
 
     /**
+     * Ile ofert czeka na decyzję klienta — w całej bazie.
+     *
+     * Pulpit liczył otwarte spośród dwustu ostatnich wierszy listy, więc
+     * przy większej liczbie ofert kafelek po cichu przestawał rosnąć:
+     * starsza, wciąż otwarta oferta wypadała poza limit i z licznika.
+     * „Otwarta" zostaje zdefiniowana w jednym miejscu — `isOpen()`.
+     */
+    public function openCount(): int
+    {
+        $open = array_values(array_map(
+            static fn(OfferStatus $status): string => $status->value,
+            array_filter(OfferStatus::cases(), static fn(OfferStatus $status): bool => $status->isOpen()),
+        ));
+
+        return Offer::query()->whereIn('status', $open)->count();
+    }
+
+    /**
      * Skrót dla karty zlecenia: ile ofert i jak wyglądała ostatnia.
      *
      * @return array<string, mixed>|null

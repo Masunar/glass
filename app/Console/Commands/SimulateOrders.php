@@ -68,7 +68,7 @@ class SimulateOrders extends Command
 
     /**
      * @param array{orders: int, lists: int, panes: int, rejected: array<string, int>, seconds: float}|null $created
-     * @param array{timings: list<array{screen: string, ms: float, queries: int, note: string}>, gaps: list<array{what: string, screen: int|null, truth: int, note: string}>, counts: array{orders: int, items: int}} $result
+     * @param array{timings: list<array{screen: string, ms: float, queries: int, note: string}>, gaps: list<array{what: string, screen: int|null, truth: int, note: string}>, counts: array{orders: int, items: int}, rules: list<array{code: string, matched: int, find_ms: float, find_queries: int, subjects_ms: float, subjects_queries: int, open_ms: float, open_queries: int}>} $result
      */
     private function render(?array $created, array $result): void
     {
@@ -110,11 +110,28 @@ class SimulateOrders extends Command
                 $result['gaps'],
             ),
         );
+
+        $this->table(
+            ['Reguła', 'Zapaliła', 'Warunek ms', 'zap.', 'Podpisy ms', 'zap.', 'Otwarte ms', 'zap.'],
+            array_map(
+                static fn(array $row): array => [
+                    $row['code'],
+                    $row['matched'],
+                    $row['find_ms'],
+                    $row['find_queries'],
+                    $row['subjects_ms'],
+                    $row['subjects_queries'],
+                    $row['open_ms'],
+                    $row['open_queries'],
+                ],
+                $result['rules'],
+            ),
+        );
     }
 
     /**
      * @param array{orders: int, lists: int, panes: int, rejected: array<string, int>, seconds: float}|null $created
-     * @param array{timings: list<array{screen: string, ms: float, queries: int, note: string}>, gaps: list<array{what: string, screen: int|null, truth: int, note: string}>, counts: array{orders: int, items: int}} $result
+     * @param array{timings: list<array{screen: string, ms: float, queries: int, note: string}>, gaps: list<array{what: string, screen: int|null, truth: int, note: string}>, counts: array{orders: int, items: int}, rules: list<array{code: string, matched: int, find_ms: float, find_queries: int, subjects_ms: float, subjects_queries: int, open_ms: float, open_queries: int}>} $result
      */
     private function markdown(?array $created, int $seed, array $result): string
     {
@@ -168,6 +185,29 @@ class SimulateOrders extends Command
                 $row['truth'],
                 $this->verdict($row),
                 $row['note'],
+            );
+        }
+
+        $lines[] = '';
+        $lines[] = '## Reguły alertów — gdzie idzie czas przebiegu';
+        $lines[] = '';
+        $lines[] = 'Same odczyty: warunek, podpisy, otwarte wystąpienia. Różnica do czasu całego'
+            . ' przebiegu to uzgadnianie wystąpień i składanie wierszy.';
+        $lines[] = '';
+        $lines[] = '| Reguła | Zapaliła | Warunek ms | zap. | Podpisy ms | zap. | Otwarte ms | zap. |';
+        $lines[] = '|---|---:|---:|---:|---:|---:|---:|---:|';
+
+        foreach ($result['rules'] as $row) {
+            $lines[] = sprintf(
+                '| %s | %d | %.1f | %d | %.1f | %d | %.1f | %d |',
+                $row['code'],
+                $row['matched'],
+                $row['find_ms'],
+                $row['find_queries'],
+                $row['subjects_ms'],
+                $row['subjects_queries'],
+                $row['open_ms'],
+                $row['open_queries'],
             );
         }
 

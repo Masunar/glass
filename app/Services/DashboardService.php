@@ -326,20 +326,15 @@ final readonly class DashboardService
         $furnace = null;
 
         if ($this->may($user, Permission::TEMPERING, 'prod')) {
-            /** @var array<string, mixed> $summary */
-            $summary = $this->tempering->queue()['summary'];
-            $furnace = (int) $summary['shown'];
+            // Liczba, nie cala kolejka z waga i metrazem kazdej szyby.
+            $furnace = $this->tempering->count();
         }
 
         $offers = null;
 
         if ($this->may($user, Permission::OFFERS, 'zlec')) {
-            /** @var list<array<string, mixed>> $list */
-            $list = $this->offers->board()['offers'];
-            $offers = count(array_filter(
-                $list,
-                static fn(array $row): bool => ($row['is_open'] ?? false) === true,
-            ));
+            // Z bazy, nie z dwustu ostatnich wierszy listy ofert.
+            $offers = $this->offers->openCount();
         }
 
         $shortages = null;

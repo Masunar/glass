@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\DashboardService;
 use Database\Seeders\Core\RoleSeeder;
 use App\Services\Alerts\AlertBoard;
+use App\Models\AlertRule;
+use App\Alerts\ConditionCatalog;
+use App\Models\AlertOccurrence;
 use App\Services\Alerts\AlertEngine;
 use App\Services\Orders\OrderCard;
 use App\Services\Orders\OrderValue;
@@ -45,7 +48,8 @@ final class ScaleCheck
      * @return array{
      *     timings: list<array{screen: string, ms: float, queries: int, note: string}>,
      *     gaps: list<array{what: string, screen: int|null, truth: int, note: string}>,
-     *     counts: array{orders: int, items: int}
+     *     counts: array{orders: int, items: int},
+     *     rules: list<array{code: string, matched: int, find_ms: float, find_queries: int, subjects_ms: float, subjects_queries: int, open_ms: float, open_queries: int}>
      * }
      */
     public function run(?Carbon $today = null): array
@@ -101,7 +105,10 @@ final class ScaleCheck
         $timings[] = $this->timing('Kolejka produkcji', $queue, sprintf('%d etapów', $queue['result']['summary']['total']));
 
         $furnace = $this->probe->measure(static fn(): array => (new TemperingBoard())->queue());
-        $timings[] = $this->timing('Kolejka pieca', $furnace, '');
+        $timings[] = $this->timing('Kolejka pieca', $furnace, sprintf('%d pozycji', $furnace['result']['summary']['shown']));
+
+        $furnaceTile = $this->probe->measure(static fn(): int => (new TemperingBoard())->count());
+        $timings[] = $this->timing('Kafelek pieca na pulpicie', $furnaceTile, sprintf('%d pozycji', $furnaceTile['result']));
 
         // Wyszukiwarka pyta o uprawnienie osobno dla kazdej grupy,
         // a konsola nie ma zalogowanego uzytkownika — pierwszy raport
@@ -130,7 +137,69 @@ final class ScaleCheck
                 'orders' => Order::query()->count(),
                 'items' => OrderItem::query()->count(),
             ],
+            'rules' => $this->rules($day),
         ];
+    }
+
+    /**
+     * Silnik alertów rozłożony na reguły — gdzie idzie czas przebiegu.
+     *
+     * Mierzone są wyłącznie odczyty: warunek, podpisy i otwarte
+     * wystąpienia z odhaczającym. Uzgodnienie (zapisy) zostaje w pomiarze
+     * całego przebiegu wyżej, żeby rozbicie niczego w bazie nie zmieniało.
+     * Suma kolumn nie musi dać czasu przebiegu: różnica to uzgadnianie
+     * i składanie wierszy w PHP.
+     *
+     * @return list<array{code: string, matched: int, find_ms: float, find_queries: int, subjects_ms: float, subjects_queries: int, open_ms: float, open_queries: int}>
+     */
+    private function rules(Carbon $day): array
+    {
+        $catalog = new ConditionCatalog();
+        $rows = [];
+
+        /** @var iterable<AlertRule> $rules */
+        $rules = AlertRule::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($rules as $rule) {
+            /** @var array<string, mixed> $params */
+            $params = $rule->condition;
+            $type = is_string($params['type'] ?? null) ? $params['type'] : $rule->code;
+            $condition = $catalog->find($type);
+
+            if ($condition === null) {
+                continue;
+            }
+
+            $find = $this->probe->measure(static fn(): array => $condition->find($day, $params));
+            $ids = array_map(intval(...), array_keys($find['result']));
+            $subjects = $this->probe->measure(static fn(): array => $condition->subjects($ids));
+            // Celowo `get()`, nie `count()` w bazie: silnik wczytuje te
+            // wiersze jako modele z odhaczajacym, i to ten koszt mierzymy.
+            $open = $this->probe->measure(static fn(): int => count(AlertOccurrence::query()
+                ->with('acknowledger')
+                ->where('alert_rule_id', $rule->getKey())
+                ->where('alertable_type', $condition->alertable())
+                ->whereNull('resolved_at')
+                ->get()
+                ->all()));
+
+            $rows[] = [
+                'code' => (string) $rule->code,
+                'matched' => count($ids),
+                'find_ms' => $find['ms'],
+                'find_queries' => $find['queries'],
+                'subjects_ms' => $subjects['ms'],
+                'subjects_queries' => $subjects['queries'],
+                'open_ms' => $open['ms'],
+                'open_queries' => $open['queries'],
+            ];
+        }
+
+        return $rows;
     }
 
     /**

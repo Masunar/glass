@@ -32,10 +32,8 @@ final readonly class TemperingBoard
     public function queue(?float $thickness = null): array
     {
         /** @var iterable<TemperingItem> $items */
-        $items = TemperingItem::query()
+        $items = $this->waiting()
             ->with(['item.pane', 'item.product.glass', 'item.list.order.contractor'])
-            ->where('status', TemperingItemStatus::QUEUED->value)
-            ->whereNull('tempering_batch_id')
             ->orderBy('id')
             ->get();
 
@@ -86,6 +84,35 @@ final readonly class TemperingBoard
                 'm2' => round(array_sum(array_column($rows, 'm2')), 3),
             ],
         ];
+    }
+
+    /**
+     * Ile pozycji czeka na piec — ta sama liczba co „shown" w kolejce.
+     *
+     * Pulpit budował całą kolejkę z wagą i metrażem każdej szyby, żeby
+     * odczytać z niej jedną liczbę. Liczone z tego samego zapytania
+     * bazowego, więc kafelek i ekran hartowni nie mogą się rozjechać.
+     */
+    public function count(): int
+    {
+        return $this->waiting()->count();
+    }
+
+    /**
+     * Zbiór kolejki: w kolejce, bez partii, **z formatką**.
+     *
+     * Warunek o formatce stał dotąd tylko w pętli (`row()` zwracał
+     * `null`), więc licznik z samego zapytania liczyłby pozycje, których
+     * ekran nigdy nie pokaże. Teraz stoi w zapytaniu i obowiązuje oba.
+     *
+     * @return Builder<TemperingItem>
+     */
+    private function waiting(): Builder
+    {
+        return TemperingItem::query()
+            ->where('status', TemperingItemStatus::QUEUED->value)
+            ->whereNull('tempering_batch_id')
+            ->whereHas('item.pane');
     }
 
     /**

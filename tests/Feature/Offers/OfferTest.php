@@ -17,6 +17,8 @@ use App\Models\InvoiceType;
 use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use PHPUnit\Framework\Attributes\Test;
+use App\Enum\OfferStatus;
+use App\Services\Offers\OfferBoard;
 use App\Services\Offers\OfferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -367,6 +369,38 @@ class OfferTest extends TestCase
     // ---------------------------------------------------------------
     // Pomocnicze
     // ---------------------------------------------------------------
+
+    #[Test]
+    public function licznik_otwartych_nie_konczy_sie_na_liscie_dwustu(): void
+    {
+        $order = $this->order();
+        $this->list($order, 1, '1000.00');
+        $issued = $this->service->issue($this->id($order), []);
+
+        /** @var Offer $open */
+        $open = Offer::query()->findOrFail($issued['id']);
+
+        // Dwiescie nowszych, juz rozstrzygnietych — lista ofert pokazuje
+        // dwiescie ostatnich, wiec otwarta wypada z niej na dol.
+        foreach (range(2, 201) as $sequence) {
+            $newer = $open->replicate();
+            $newer->sequence = $sequence;
+            $newer->status = OfferStatus::REJECTED;
+            $newer->rejection_reason = 'za drogo';
+            $newer->issued_at = $open->issued_at->copy()->addMinutes($sequence);
+            $newer->save();
+        }
+
+        $board = new OfferBoard();
+
+        // Kafelek pulpitu liczyl otwarte z tych dwustu wierszy i pokazywal
+        // zero, choc klient wciaz ma oferte na stole.
+        $this->assertNotContains(
+            (int) $open->getKey(),
+            array_column($board->board()['offers'], 'id'),
+        );
+        $this->assertSame(1, $board->openCount());
+    }
 
     private function order(bool $withInvoiceType = true): Order
     {

@@ -23,6 +23,7 @@ use App\Models\TemperingItem;
 use App\Enum\TemperingItemStatus;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Tempering\TemperingQueue;
+use App\Services\Tempering\TemperingBoard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -172,6 +173,26 @@ class TemperingQueueTest extends TestCase
             TemperingItemStatus::SENT,
             TemperingItem::query()->first()?->status,
         );
+    }
+
+    #[Test]
+    public function kafelek_pieca_liczy_to_samo_co_kolejka(): void
+    {
+        $first = $this->order();
+        $this->addPane($first, tempered: true, quantity: 2);
+        $this->addPane($first, tempered: true, quantity: 1);
+        $this->queue->sync($first);
+
+        $second = $this->order();
+        $this->addPane($second, tempered: true, quantity: 3);
+        $this->queue->sync($second);
+
+        $board = new TemperingBoard();
+
+        // Pulpit pyta o sama liczbe. Musi to byc liczba ekranu hartowni,
+        // liczona z tego samego zbioru, a nie z osobnego zapytania.
+        $this->assertSame(3, $board->count());
+        $this->assertSame($board->queue()['summary']['shown'], $board->count());
     }
 
     private function order(bool $included = true): Order
