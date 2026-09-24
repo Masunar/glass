@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\SearchService;
+use Illuminate\Support\Facades\Auth;
 use App\Services\DashboardService;
 use Database\Seeders\Core\RoleSeeder;
 use App\Services\Alerts\AlertBoard;
@@ -101,11 +102,25 @@ final class ScaleCheck
         $furnace = $this->probe->measure(static fn(): array => (new TemperingBoard())->queue());
         $timings[] = $this->timing('Kolejka pieca', $furnace, '');
 
-        $byNumber = $this->probe->measure(static fn(): array => (new SearchService())->search('2400'));
-        $timings[] = $this->timing('Wyszukiwarka — po numerze', $byNumber, '„2400"');
+        // Wyszukiwarka pyta o uprawnienie osobno dla kazdej grupy,
+        // a konsola nie ma zalogowanego uzytkownika — pierwszy raport
+        // pokazal „0,9 ms, 0 zapytan", czyli pomiar niczego wygladajacy
+        // jak szybki ekran. Stad szukanie jako administrator i liczba
+        // trafien w uwagach: zero ma byc widac.
+        if ($admin !== null) {
+            Auth::setUser($admin);
 
-        $byName = $this->probe->measure(static fn(): array => (new SearchService())->search('sp'));
-        $timings[] = $this->timing('Wyszukiwarka — po nazwie', $byName, '„sp"');
+            foreach (['2400' => 'po numerze', 'sp' => 'po nazwie'] as $needle => $label) {
+                $found = $this->probe->measure(static fn(): array => (new SearchService())->search((string) $needle));
+                $timings[] = $this->timing(
+                    'Wyszukiwarka — ' . $label,
+                    $found,
+                    sprintf('„%s": %d trafień', $needle, $this->hits($found['result'])),
+                );
+            }
+
+            Auth::forgetUser();
+        }
 
         return [
             'timings' => $timings,
@@ -204,6 +219,20 @@ final class ScaleCheck
         }
 
         return $rows;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $groups
+     */
+    private function hits(array $groups): int
+    {
+        $total = 0;
+
+        foreach ($groups as $group) {
+            $total += is_array($group['hits'] ?? null) ? count($group['hits']) : 0;
+        }
+
+        return $total;
     }
 
     /**

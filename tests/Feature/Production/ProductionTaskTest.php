@@ -432,4 +432,47 @@ class ProductionTaskTest extends TestCase
         $this->assertSame(3, ProductionTask::query()->where('order_id', $order->getKey())->count());
         $this->assertSame($orphans['summary']['shown'], $tab);
     }
+
+    #[Test]
+    public function kafelek_pulpitu_liczy_to_samo_co_kolejka(): void
+    {
+        $this->plan->sync($this->order(['C', 'S', 'H']));
+        $this->plan->sync($this->order(['C']));
+
+        // Pulpit pyta o sama liczbe. Musi to byc liczba ekranu, a nie
+        // osobne zapytanie, ktore za tydzien zgubi warunek.
+        $this->assertSame($this->queue->board()['summary']['shown'], $this->queue->count());
+    }
+
+    #[Test]
+    public function liczba_zapytan_nie_rosnie_z_liczba_etapow(): void
+    {
+        $this->plan->sync($this->order(['C', 'S']));
+        $few = $this->queries(fn(): array => $this->queue->board());
+
+        foreach (range(1, 5) as $ignored) {
+            $this->plan->sync($this->order(['C', 'S']));
+        }
+
+        $many = $this->queries(fn(): array => $this->queue->board());
+
+        // Symulacja na dziesieciu tysiacach zlecen pokazala 18 184
+        // zapytania na 18 174 etapy — jedno na wiersz. Kolejka ma
+        // kosztowac tyle samo zapytan przy dwoch etapach co przy dwunastu.
+        $this->assertSame($few, $many);
+    }
+
+    /**
+     * @param \Closure(): mixed $call
+     */
+    private function queries(\Closure $call): int
+    {
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $call();
+        $count = count(\Illuminate\Support\Facades\DB::getQueryLog());
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        return $count;
+    }
 }

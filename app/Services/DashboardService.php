@@ -315,9 +315,9 @@ final readonly class DashboardService
         $production = null;
 
         if ($this->may($user, Permission::PRODUCTION, 'prod')) {
-            /** @var array<string, mixed> $summary */
-            $summary = $this->production->board()['summary'];
-            $production = (int) $summary['shown'];
+            // Liczba, nie cala kolejka. Budowanie kilkunastu tysiecy
+            // wierszy dla jednego kafelka kosztowalo pulpit siedem sekund.
+            $production = $this->production->count();
         }
 
         $furnace = null;

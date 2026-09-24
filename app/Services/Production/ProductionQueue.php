@@ -58,13 +58,18 @@ final readonly class ProductionQueue
             ->when($unassignedOnly, static fn($builder) => $builder->whereNull('workstation_id'))
             ->when($processId !== null, static fn($builder) => $builder->where('process_id', $processId));
 
-        /** @var iterable<ProductionTask> $tasks */
+        /** @var \Illuminate\Database\Eloquent\Collection<int, ProductionTask> $tasks */
         $tasks = $query->get();
+
+        // Liczba rysunkow jednym zapytaniem dla calej kolejki. Liczona
+        // w kazdym wierszu osobno dawala jedno zapytanie na etap —
+        // przy duzej hali kilkanascie tysiecy na jedno otwarcie ekranu.
+        $drawings = $this->drawingCounts($tasks->pluck('order_id')->unique()->all());
 
         $rows = [];
 
         foreach ($tasks as $task) {
-            $rows[] = $this->row($task, $day);
+            $rows[] = $this->row($task, $day, $drawings);
         }
 
         // Sortowanie po pilnosci robimy w pamieci, bo termin zlecenia to
@@ -135,9 +140,10 @@ final readonly class ProductionQueue
     }
 
     /**
+     * @param array<int, int> $drawings liczba rysunków na zlecenie
      * @return array<string, mixed>
      */
-    private function row(ProductionTask $task, Carbon $day): array
+    private function row(ProductionTask $task, Carbon $day, array $drawings): array
     {
         // Zlecenie, pozycja i proces sa wymagane kluczem obcym, wiec
         // zawsze sa. Nullowalne zostaja szyba (usluga jej nie ma)
@@ -172,7 +178,7 @@ final readonly class ProductionQueue
             // z trzech, wiec operator ma ja widziec razem z pozostalymi.
             'item_note' => $item->production_note,
             'is_urgent' => (bool) $item->is_urgent,
-            'drawings' => OrderDrawing::query()->where('order_id', $task->order_id)->count(),
+            'drawings' => $drawings[(int) $task->order_id] ?? 0,
             'status' => $task->status->value,
             'issue_type' => $task->issue_type?->value,
             'note' => $task->note,
@@ -225,6 +231,41 @@ final readonly class ProductionQueue
         }
 
         return $rows;
+    }
+
+    /**
+     * Ile etapów czeka — ta sama liczba, którą pokazuje ekran kolejki.
+     *
+     * Pulpit budował całą kolejkę, żeby odczytać z niej jedną liczbę:
+     * przy dużej hali to kilkanaście tysięcy wierszy dla kafelka.
+     * Liczone z tego samego zapytania bazowego, więc kafelek i ekran
+     * nie mogą się rozjechać.
+     */
+    public function count(): int
+    {
+        return $this->queue()->count();
+    }
+
+    /**
+     * @param array<int|string, mixed> $orderIds
+     * @return array<int, int>
+     */
+    private function drawingCounts(array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+
+        /** @var array<int, int> $counts */
+        $counts = OrderDrawing::query()
+            ->selectRaw('order_id, COUNT(*) as total')
+            ->whereIn('order_id', array_values($orderIds))
+            ->groupBy('order_id')
+            ->pluck('total', 'order_id')
+            ->map(static fn(mixed $total): int => (int) $total)
+            ->all();
+
+        return $counts;
     }
 
     /**
