@@ -249,6 +249,10 @@ final class AlertBoard
         ?Carbon $day = null,
         ?int $userId = null,
     ): array {
+        if ($limit < 1) {
+            return [];
+        }
+
         $owners = $this->owners($day);
         $first = [];
         $rest = [];
@@ -258,16 +262,11 @@ final class AlertBoard
                 continue;
             }
 
-            if ($row['subject_label'] === null) {
-                continue;
-            }
-
             $owner = $this->ownerOf($row, $owners);
             $isMine = $userId !== null && $owner !== null && $owner['user_id'] === $userId;
 
-            $subject = [
-                'label' => (string) $row['subject_label'],
-                'path' => $row['subject_path'],
+            $candidate = [
+                'id' => (int) $row['alertable_id'],
                 'value' => $row['value'],
                 // Pelne imie idzie razem z inicjalami: dwie osoby moga
                 // miec te same, a podpowiedz pod kursorem jest jedynym
@@ -278,15 +277,46 @@ final class AlertBoard
             ];
 
             if ($isMine) {
-                $first[] = $subject;
+                $first[] = $candidate;
 
                 continue;
             }
 
-            $rest[] = $subject;
+            $rest[] = $candidate;
         }
 
-        return array_slice([...$first, ...$rest], 0, $limit);
+        // Podpisy dopiero dla tych, ktore trafia na ekran — porcjami po
+        // `$limit`. Rzecz bez podpisu (skasowana miedzy przebiegiem
+        // a odczytem) jest pomijana, a jej miejsce zajmuje nastepna,
+        // tak jak wtedy, gdy podpisy liczyl silnik dla wszystkich.
+        $subjects = [];
+
+        foreach (array_chunk([...$first, ...$rest], $limit) as $chunk) {
+            $labels = $this->engine->subjects($code, array_column($chunk, 'id'));
+
+            foreach ($chunk as $candidate) {
+                $label = $labels[$candidate['id']] ?? null;
+
+                if ($label === null) {
+                    continue;
+                }
+
+                $subjects[] = [
+                    'label' => $label['label'],
+                    'path' => $label['path'],
+                    'value' => $candidate['value'],
+                    'owner' => $candidate['owner'],
+                    'owner_initials' => $candidate['owner_initials'],
+                    'is_mine' => $candidate['is_mine'],
+                ];
+
+                if (count($subjects) === $limit) {
+                    return $subjects;
+                }
+            }
+        }
+
+        return $subjects;
     }
 
     /**

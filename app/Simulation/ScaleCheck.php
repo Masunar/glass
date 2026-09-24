@@ -144,8 +144,8 @@ final class ScaleCheck
     /**
      * Silnik alertów rozłożony na reguły — gdzie idzie czas przebiegu.
      *
-     * Mierzone są wyłącznie odczyty: warunek, podpisy i otwarte
-     * wystąpienia z odhaczającym. Uzgodnienie (zapisy) zostaje w pomiarze
+     * Mierzone są wyłącznie odczyty: warunek, podpisy pięciu pokazywanych
+     * rzeczy i otwarte wystąpienia z odhaczającym. Uzgodnienie (zapisy) zostaje w pomiarze
      * całego przebiegu wyżej, żeby rozbicie niczego w bazie nie zmieniało.
      * Suma kolumn nie musi dać czasu przebiegu: różnica to uzgadnianie
      * i składanie wierszy w PHP.
@@ -176,15 +176,27 @@ final class ScaleCheck
 
             $find = $this->probe->measure(static fn(): array => $condition->find($day, $params));
             $ids = array_map(intval(...), array_keys($find['result']));
-            $subjects = $this->probe->measure(static fn(): array => $condition->subjects($ids));
+            // Podpisy dla pieciu, tak jak prosi o nie pasmo pulpitu —
+            // silnik nie liczy ich juz dla wszystkich zapalonych.
+            $subjects = $this->probe->measure(static fn(): array => $condition->subjects(array_slice($ids, 0, 5)));
             // Celowo `get()`, nie `count()` w bazie: silnik wczytuje te
-            // wiersze jako modele z odhaczajacym, i to ten koszt mierzymy.
+            // wiersze (bez modeli, ze zlaczonym odhaczajacym) i to ten
+            // koszt mierzymy.
             $open = $this->probe->measure(static fn(): int => count(AlertOccurrence::query()
-                ->with('acknowledger')
-                ->where('alert_rule_id', $rule->getKey())
-                ->where('alertable_type', $condition->alertable())
-                ->whereNull('resolved_at')
-                ->get()
+                ->toBase()
+                ->leftJoin('users', 'users.id', '=', 'alert_occurrences.acknowledged_by')
+                ->where('alert_occurrences.alert_rule_id', $rule->getKey())
+                ->where('alert_occurrences.alertable_type', $condition->alertable())
+                ->whereNull('alert_occurrences.resolved_at')
+                ->get([
+                    'alert_occurrences.id',
+                    'alert_occurrences.alertable_id',
+                    'alert_occurrences.triggered_at',
+                    'alert_occurrences.acknowledged_at',
+                    'alert_occurrences.acknowledged_value',
+                    'users.first_name',
+                    'users.last_name',
+                ])
                 ->all()));
 
             $rows[] = [

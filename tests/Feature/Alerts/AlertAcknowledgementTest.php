@@ -104,6 +104,26 @@ class AlertAcknowledgementTest extends TestCase
     }
 
     #[Test]
+    public function wiersz_mowi_kto_i_kiedy_odhaczyl(): void
+    {
+        $order = $this->order(80010, '2026-03-01');
+        $day = Carbon::parse('2026-03-10');
+        $occurrence = $this->fire($order, $day);
+
+        $this->service->acknowledge($occurrence, $day);
+        $this->engine->forget();
+
+        $row = $this->rowFor($this->engine->run($day), $occurrence);
+
+        // Silnik czyta wystapienia bez modeli, ze zlaczonym odhaczajacym.
+        // Podpis i daty maja wyjsc takie same jak z modelu.
+        $this->assertTrue($row['acknowledged']);
+        $this->assertSame('Test Odhaczanie', $row['acknowledged_by']);
+        $this->assertSame(Carbon::today()->toDateString(), $row['acknowledged_at']);
+        $this->assertSame(Carbon::today()->toDateString(), $row['since']);
+    }
+
+    #[Test]
     public function alert_wraca_gdy_zrobi_sie_gorzej(): void
     {
         $order = $this->order(80003, '2026-03-01');

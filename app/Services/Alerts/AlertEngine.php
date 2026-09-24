@@ -9,6 +9,7 @@ use App\Models\AlertRule;
 use App\Alerts\ConditionCatalog;
 use App\Models\AlertOccurrence;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Silnik alertów — przebieg reguł i uzgodnienie wystąpień.
@@ -39,6 +40,14 @@ final class AlertEngine
 {
     /** @var array<string, list<array<string, mixed>>> */
     private array $memo = [];
+
+    /**
+     * Warunki reguł z ostatniego przebiegu, po kodzie reguły — dla
+     * podpisów liczonych dopiero wtedy, gdy ekran o nie poprosi.
+     *
+     * @var array<string, \App\Alerts\AlertCondition>
+     */
+    private array $conditions = [];
 
     public function __construct(
         private readonly ConditionCatalog $catalog = new ConditionCatalog(),
@@ -103,27 +112,23 @@ final class AlertEngine
         $matched = $condition->find($day, $params);
         $alertable = $condition->alertable();
 
-        /** @var Collection<int, AlertOccurrence> $existing */
-        $existing = AlertOccurrence::query()
-            ->with('acknowledger')
-            ->where('alert_rule_id', $rule->getKey())
-            ->where('alertable_type', $alertable)
-            ->whereNull('resolved_at')
-            ->orderBy('id')
-            ->get();
+        // Warunek zapamietany dla podpisow: pasmo pulpitu prosi o nie
+        // pozniej, dla kilku pokazywanych wierszy, a nie dla wszystkich.
+        $this->conditions[(string) $rule->code] = $condition;
 
+        $ruleId = (int) $rule->getKey();
         $since = [];
         $duplicates = [];
 
-        foreach ($existing as $occurrence) {
-            $id = (int) $occurrence->alertable_id;
+        foreach ($this->openOccurrences($ruleId, $alertable) as $occurrence) {
+            $id = $occurrence['alertable_id'];
 
             // Dwa rownolegle odczyty moga otworzyc ten sam alert dwa razy
             // — tabela nie ma na to indeksu unikalnego, bo `resolved_at`
             // jest nullowalne i MariaDB i tak przepuscilaby duplikat.
             // Nadmiarowy wiersz zamykamy przy najblizszym przebiegu.
             if (isset($since[$id])) {
-                $duplicates[] = (int) $occurrence->getKey();
+                $duplicates[] = $occurrence['id'];
 
                 continue;
             }
@@ -140,7 +145,7 @@ final class AlertEngine
             }
 
             $fresh[] = [
-                'alert_rule_id' => (int) $rule->getKey(),
+                'alert_rule_id' => $ruleId,
                 'alertable_type' => $alertable,
                 'alertable_id' => $id,
                 'value' => $value,
@@ -156,7 +161,7 @@ final class AlertEngine
 
         foreach ($since as $id => $occurrence) {
             if (!array_key_exists($id, $matched)) {
-                $gone[] = (int) $occurrence->getKey();
+                $gone[] = $occurrence['id'];
             }
         }
 
@@ -167,20 +172,13 @@ final class AlertEngine
         }
 
         if ($fresh !== []) {
-            /** @var Collection<int, AlertOccurrence> $added */
-            $added = AlertOccurrence::query()
-                ->where('alert_rule_id', $rule->getKey())
-                ->where('alertable_type', $alertable)
-                ->whereNull('resolved_at')
-                ->whereIn('alertable_id', array_keys($matched))
-                ->get();
+            $ids = array_map(
+                static fn(array $row): int => (int) $row['alertable_id'],
+                $fresh,
+            );
 
-            foreach ($added as $occurrence) {
-                $id = (int) $occurrence->alertable_id;
-
-                if (!isset($since[$id])) {
-                    $since[$id] = $occurrence;
-                }
+            foreach ($this->openOccurrences($ruleId, $alertable, $ids) as $occurrence) {
+                $since[$occurrence['alertable_id']] ??= $occurrence;
             }
         }
 
@@ -192,18 +190,18 @@ final class AlertEngine
         foreach ($matched as $id => $value) {
             $occurrence = $since[$id] ?? null;
 
-            if ($occurrence === null || $occurrence->acknowledged_at === null) {
+            if ($occurrence === null || $occurrence['acknowledged_at'] === null) {
                 continue;
             }
 
-            if (!$this->worsened($value, $occurrence->acknowledged_value)) {
+            if (!$this->worsened($value, $occurrence['acknowledged_value'])) {
                 continue;
             }
 
-            $revived[] = (int) $occurrence->getKey();
-            $occurrence->acknowledged_at = null;
-            $occurrence->acknowledged_by = null;
-            $occurrence->acknowledged_value = null;
+            $revived[] = $occurrence['id'];
+            $since[$id]['acknowledged_at'] = null;
+            $since[$id]['acknowledged_by'] = null;
+            $since[$id]['acknowledged_value'] = null;
         }
 
         if ($revived !== []) {
@@ -214,21 +212,13 @@ final class AlertEngine
             ]);
         }
 
-        // Podpisy pobierane raz dla calej reguly, nie wiersz po wierszu:
-        // pasmo alertow ma nazwac kazda rzecz, ktorej alert dotyczy, a
-        // nie tylko zlecenie.
-        $subjects = $condition->subjects(array_map(
-            static fn(int|string $id): int => (int) $id,
-            array_keys($matched),
-        ));
-
         $rows = [];
 
         foreach ($matched as $id => $value) {
             $occurrence = $since[$id] ?? null;
 
             $rows[] = [
-                'rule_id' => (int) $rule->getKey(),
+                'rule_id' => $ruleId,
                 'code' => $rule->code,
                 'name' => $rule->name,
                 'label' => $rule->label,
@@ -243,33 +233,99 @@ final class AlertEngine
                 'alertable_id' => $id,
                 // Wartosc biezaca z przebiegu, nie zapisana w bazie.
                 'value' => $value,
-                // Bez `?->` na samej dacie: `triggered_at` nigdy nie jest
-                // nullem, a PHPStan slusznie uznaje taki zapis za blad.
-                'since' => $occurrence === null ? null : $occurrence->triggered_at->toDateString(),
-                'occurrence_id' => $occurrence === null ? null : (int) $occurrence->getKey(),
-                'acknowledged' => $occurrence?->acknowledged_at !== null,
-                'acknowledged_at' => $occurrence?->acknowledged_at?->toDateString(),
-                'acknowledged_by' => $this->personName($occurrence),
-                'subject_label' => $subjects[$id]['label'] ?? null,
-                'subject_path' => $subjects[$id]['path'] ?? null,
+                'since' => $occurrence['since'] ?? null,
+                'occurrence_id' => $occurrence['id'] ?? null,
+                'acknowledged' => ($occurrence['acknowledged_at'] ?? null) !== null,
+                'acknowledged_at' => $occurrence['acknowledged_at'] ?? null,
+                'acknowledged_by' => $occurrence['acknowledged_by'] ?? null,
             ];
         }
 
         return $rows;
     }
 
-    /** Kto odhaczył — imię i nazwisko, bez identyfikatora na ekranie. */
-    private function personName(?AlertOccurrence $occurrence): ?string
+    /**
+     * Podpisy rzeczy objętych regułą — tylko dla podanych identyfikatorów.
+     *
+     * Silnik liczył podpis dla każdego zapalonego alertu, a pasmo pulpitu
+     * pokazuje pięć na regułę. Przy 1700 zleceniach po terminie to 1700
+     * nazw kontrahentów, z których ekran brał pięć. Podpis składa nadal
+     * warunek — ten sam, który alert zapalił, zapamiętany w przebiegu.
+     *
+     * @param list<int> $ids
+     * @return array<int, array{label: string, path: string|null}>
+     */
+    public function subjects(string $code, array $ids): array
     {
-        $user = $occurrence?->acknowledger;
+        $condition = $this->conditions[$code] ?? null;
 
-        if ($user === null) {
-            return null;
+        if ($condition === null || $ids === []) {
+            return [];
         }
 
-        $name = trim((string) $user->first_name . ' ' . (string) $user->last_name);
+        return $condition->subjects($ids);
+    }
 
-        return $name === '' ? null : $name;
+    /**
+     * Otwarte wystąpienia reguły — same kolumny, bez modeli.
+     *
+     * Przy kilku tysiącach otwartych alertów budowanie modelu z relacją
+     * odhaczającego dla każdego wiersza było jedną piątą przebiegu,
+     * a z modelu brane były cztery pola. Imię odhaczającego dochodzi
+     * złączeniem w tym samym zapytaniu.
+     *
+     * Daty ucinane do dnia wprost z kolumny: ekran pokazuje „od kiedy"
+     * z dokładnością do dnia, a parsowanie każdej daty do obiektu
+     * po to, żeby ją z powrotem sformatować, kosztuje tyle samo co odczyt.
+     *
+     * @param list<int>|null $ids
+     * @return list<array{id: int, alertable_id: int, since: string, acknowledged_at: string|null,
+     *     acknowledged_value: string|null, acknowledged_by: string|null}>
+     */
+    private function openOccurrences(int $ruleId, string $alertable, ?array $ids = null): array
+    {
+        $rows = AlertOccurrence::query()
+            ->toBase()
+            ->leftJoin('users', 'users.id', '=', 'alert_occurrences.acknowledged_by')
+            ->where('alert_occurrences.alert_rule_id', $ruleId)
+            ->where('alert_occurrences.alertable_type', $alertable)
+            ->whereNull('alert_occurrences.resolved_at')
+            ->when(
+                $ids !== null,
+                static fn(QueryBuilder $query): QueryBuilder => $query->whereIn(
+                    'alert_occurrences.alertable_id',
+                    $ids ?? [],
+                ),
+            )
+            ->orderBy('alert_occurrences.id')
+            ->get([
+                'alert_occurrences.id',
+                'alert_occurrences.alertable_id',
+                'alert_occurrences.triggered_at',
+                'alert_occurrences.acknowledged_at',
+                'alert_occurrences.acknowledged_value',
+                'users.first_name',
+                'users.last_name',
+            ]);
+
+        $out = [];
+
+        foreach ($rows as $row) {
+            $name = trim((string) $row->first_name . ' ' . (string) $row->last_name);
+
+            $out[] = [
+                'id' => (int) $row->id,
+                'alertable_id' => (int) $row->alertable_id,
+                'since' => substr((string) $row->triggered_at, 0, 10),
+                'acknowledged_at' => $row->acknowledged_at === null ? null : substr((string) $row->acknowledged_at, 0, 10),
+                'acknowledged_value' => $row->acknowledged_value === null ? null : (string) $row->acknowledged_value,
+                // Odhaczajacy moze miec skasowane konto — wtedy wiadomo,
+                // ze odhaczono, ale nie ma kogo podpisac.
+                'acknowledged_by' => $name === '' ? null : $name,
+            ];
+        }
+
+        return $out;
     }
 
     /**

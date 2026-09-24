@@ -112,7 +112,7 @@ class SimulateOrders extends Command
         );
 
         $this->table(
-            ['Reguła', 'Zapaliła', 'Warunek ms', 'zap.', 'Podpisy ms', 'zap.', 'Otwarte ms', 'zap.'],
+            ['Reguła', 'Zapaliła', 'Warunek ms', 'zap.', 'Podpisy (5) ms', 'zap.', 'Otwarte ms', 'zap.'],
             array_map(
                 static fn(array $row): array => [
                     $row['code'],
@@ -194,7 +194,7 @@ class SimulateOrders extends Command
         $lines[] = 'Same odczyty: warunek, podpisy, otwarte wystąpienia. Różnica do czasu całego'
             . ' przebiegu to uzgadnianie wystąpień i składanie wierszy.';
         $lines[] = '';
-        $lines[] = '| Reguła | Zapaliła | Warunek ms | zap. | Podpisy ms | zap. | Otwarte ms | zap. |';
+        $lines[] = '| Reguła | Zapaliła | Warunek ms | zap. | Podpisy (5) ms | zap. | Otwarte ms | zap. |';
         $lines[] = '|---|---:|---:|---:|---:|---:|---:|---:|';
 
         foreach ($result['rules'] as $row) {
