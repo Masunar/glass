@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $duration_days
  * @property bool $is_subcontracted
  * @property bool $requires_parameter
+ * @property bool $requires_drawing
  * @property int $default_order
  * @property bool $is_active
  */
@@ -32,7 +33,7 @@ class Process extends Dateable
     protected $fillable = [
         'code', 'name', 'workstation_id', 'unit', 'duration_days',
         'setup_minutes', 'unit_minutes', 'buffer_days',
-        'is_subcontracted', 'requires_parameter', 'default_order',
+        'is_subcontracted', 'requires_parameter', 'requires_drawing', 'default_order',
         'is_active', 'legacy_id',
     ];
 
@@ -46,6 +47,7 @@ class Process extends Dateable
             'buffer_days' => 'integer',
             'is_subcontracted' => 'boolean',
             'requires_parameter' => 'boolean',
+            'requires_drawing' => 'boolean',
             'default_order' => 'integer',
             'legacy_id' => 'integer',
         ];

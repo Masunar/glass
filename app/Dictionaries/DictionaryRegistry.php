@@ -277,6 +277,13 @@ final readonly class DictionaryRegistry
                     inList: false,
                     hint: 'Proces niosący wartość: kod RAL, faza, rodzaj folii.',
                 ),
+                new Field(
+                    'requires_drawing',
+                    'Wymaga rysunku',
+                    FieldType::BOOLEAN,
+                    inList: false,
+                    hint: 'Zlecenie z tym procesem nie przejdzie do produkcji bez potwierdzenia rysunków.',
+                ),
                 new Field('default_order', 'Kolejność', FieldType::INTEGER, max: 999, inList: false),
                 new Field('is_active', 'Aktywny', FieldType::BOOLEAN),
             ],

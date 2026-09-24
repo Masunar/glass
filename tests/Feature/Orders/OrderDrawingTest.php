@@ -6,6 +6,12 @@ namespace Tests\Feature\Orders;
 
 use Tests\TestCase;
 use App\Enum\Section;
+use App\Enum\PaneShape;
+use App\Models\Process;
+use App\Models\OrderPane;
+use App\Models\OrderItemProcess;
+use App\Services\Orders\DrawingRequirement;
+use App\Services\Alerts\AlertEngine;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\Status;
@@ -46,8 +52,18 @@ class OrderDrawingTest extends TestCase
         $this->service = new OrderDrawingService();
     }
 
-    private function order(string $statusCode = 'ZLECENIE'): Order
-    {
+    /**
+     * Zlecenie z jedną formatką. Domyślnie z kształtem — takie wymaga
+     * rysunków, a o nie chodzi w większości testów tej klasy.
+     *
+     * @param list<string> $processCodes
+     */
+    private function order(
+        string $statusCode = 'ZLECENIE',
+        PaneShape $shape = PaneShape::IRREGULAR,
+        array $processCodes = [],
+        bool $included = true,
+    ): Order {
         /** @var Status $status */
         $status = Status::findByCode(StatusDomain::ORDER, $statusCode);
 
@@ -70,11 +86,12 @@ class OrderDrawingTest extends TestCase
         $list = OrderList::query()->create([
             'order_id' => $order->id,
             'number' => 1,
-            'role' => 'component',
-            'is_included' => true,
+            'role' => $included ? 'component' : 'alternative',
+            'is_included' => $included,
         ]);
 
-        OrderItem::query()->create([
+        /** @var OrderItem $item */
+        $item = OrderItem::query()->create([
             'order_list_id' => $list->id,
             'section' => Section::GLASS->value,
             'name' => 'float 8mm',
@@ -82,6 +99,26 @@ class OrderDrawingTest extends TestCase
             'unit_net_price' => '1000.00',
             'amount' => '1000.00',
         ]);
+
+        OrderPane::query()->create([
+            'order_item_id' => $item->id,
+            'width_mm' => 1000,
+            'height_mm' => 800,
+            'shape' => $shape->value,
+        ]);
+
+        foreach ($processCodes as $position => $code) {
+            /** @var Process $process */
+            $process = Process::findByCode($code);
+
+            OrderItemProcess::query()->create([
+                'order_item_id' => $item->id,
+                'process_id' => $process->id,
+                'unit_net_price' => '10.00',
+                'amount' => '10.00',
+                'position' => ($position + 1) * 10,
+            ]);
+        }
 
         return $order;
     }
@@ -269,6 +306,88 @@ class OrderDrawingTest extends TestCase
 
         $this->assertNull($fresh->drawings_complete_at);
         $this->assertNull($fresh->drawings_complete_by);
+    }
+
+    #[Test]
+    public function prostokat_bez_procesow_z_rysunkiem_nie_czeka_na_oswiadczenie(): void
+    {
+        $order = $this->order(shape: PaneShape::RECTANGLE, processCodes: ['C', 'S']);
+
+        $step = $this->productionStep($order, new OrderNextStep());
+
+        // Proste docinki nie maja czego rysowac. Oswiadczenie o komplecie
+        // niczego tu nie zabezpiecza, a blokowalo produkcje.
+        $this->assertNotNull($step);
+        $this->assertNotSame('Nie zaznaczono, że wszystkie rysunki są dodane.', $step->blockedBy);
+        $this->assertSame([], $this->service->board((int) $order->getKey())['required']);
+    }
+
+    #[Test]
+    public function proces_z_rysunkiem_wymaga_oswiadczenia(): void
+    {
+        $order = $this->order(shape: PaneShape::RECTANGLE, processCodes: ['C', 'R']);
+
+        $step = $this->productionStep($order, new OrderNextStep());
+
+        $this->assertNotNull($step);
+        $this->assertSame('Nie zaznaczono, że wszystkie rysunki są dodane.', $step->blockedBy);
+        $this->assertSame(['CNC'], $this->service->board((int) $order->getKey())['required']);
+    }
+
+    #[Test]
+    public function owal_wymaga_rysunku_i_mowi_o_tym_na_zakladce(): void
+    {
+        $order = $this->order(shape: PaneShape::OVAL);
+
+        $this->assertSame(['Owal: 1 formatka'], $this->service->board((int) $order->getKey())['required']);
+    }
+
+    #[Test]
+    public function wariant_niewliczony_nie_wymaga_rysunku(): void
+    {
+        $order = $this->order(shape: PaneShape::IRREGULAR, processCodes: ['R'], included: false);
+
+        // Alternatywa z oferty nie pojedzie na hale — nie ma czego z niej
+        // wycinac.
+        $this->assertFalse((new DrawingRequirement())->requires($order));
+    }
+
+    #[Test]
+    public function alert_i_przejscie_licza_z_tej_samej_reguly(): void
+    {
+        $orders = [
+            $this->order(shape: PaneShape::RECTANGLE),
+            $this->order(shape: PaneShape::RECTANGLE, processCodes: ['W']),
+            $this->order(shape: PaneShape::IRREGULAR),
+            $this->order(shape: PaneShape::OVAL, included: false),
+            $this->order(shape: PaneShape::RECTANGLE, processCodes: ['C', 'S', 'P']),
+        ];
+
+        $requirement = new DrawingRequirement();
+
+        /** @var list<int> $inSql */
+        $inSql = $requirement->scope(Order::query())->pluck('id')->map(static fn($id): int => (int) $id)->all();
+
+        $alerted = [];
+
+        foreach ((new AlertEngine())->run() as $row) {
+            if ($row['code'] === 'order_missing_drawings') {
+                $alerted[] = (int) $row['alertable_id'];
+            }
+        }
+
+        foreach ($orders as $order) {
+            $id = (int) $order->getKey();
+            $needs = $requirement->requires(Order::query()->findOrFail($id));
+
+            // Zapytanie dla alertu i odczyt z pozycji dla przejscia maja
+            // opisywac ten sam zbior. Alert „brak rysunkow" przy zleceniu,
+            // ktore przechodzi do produkcji bez nich, bylby rozjazdem.
+            $this->assertSame($needs, in_array($id, $inSql, true), 'Zlecenie #' . $order->number);
+            $this->assertSame($needs, in_array($id, $alerted, true), 'Alert przy #' . $order->number);
+        }
+
+        $this->assertSame(2, count($inSql));
     }
 
     private function productionStep(Order $order, OrderNextStep $steps): ?\App\DTO\Orders\NextStep

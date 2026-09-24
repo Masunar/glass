@@ -229,6 +229,24 @@ export default function Page() {
             </div>
 
             <div className="ge-section__body">
+              {/* Skad wymog: ta sama regula blokuje przejscie do produkcji
+                  i zapala alert. Bez powodu oswiadczenie wygladaloby na
+                  formalnosc, a jego brak — na przeoczenie. */}
+              {board.required.length > 0 ? (
+                <div className="ge-draw__required">
+                  <div>{t('page.orders.drawings.required')}</div>
+                  <ul>
+                    {board.required.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="ge-quiet">
+                  {t('page.orders.drawings.not_required')}
+                </div>
+              )}
+
               {complete.declared ? (
                 <>
                   <div className="ge-draw__declared">

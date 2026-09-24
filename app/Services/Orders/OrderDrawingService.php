@@ -61,7 +61,7 @@ final readonly class OrderDrawingService
     {
         /** @var Order $order */
         $order = Order::query()
-            ->with(['drawings.uploader', 'drawings.item', 'lists.items', 'status'])
+            ->with(['drawings.uploader', 'drawings.item', 'lists.items.pane', 'lists.items.processes', 'status'])
             ->findOrFail($orderId);
 
         $rows = [];
@@ -97,6 +97,9 @@ final readonly class OrderDrawingService
                 'at' => $order->drawings_complete_at?->format('d.m.Y H:i'),
                 'by' => $this->declarant($order),
             ],
+            // Dlaczego zlecenie wymaga rysunkow. Pusta lista — nie
+            // wymaga, a oswiadczenie nie jest warunkiem produkcji.
+            'required' => (new DrawingRequirement())->reasons($order),
             // Do przypisania rysunku do konkretnej formatki — puste pole
             // znaczy „dotyczy calego zlecenia".
             'items' => $this->items($order),

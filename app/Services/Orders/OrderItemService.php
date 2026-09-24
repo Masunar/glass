@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use App\Enum\Section;
+use App\Enum\PaneShape;
+use Illuminate\Validation\Rule;
 use App\Models\Order;
 use App\Models\InvoiceType;
 use App\Models\Process;
@@ -237,7 +239,7 @@ final readonly class OrderItemService
             widthMm: $width,
             heightMm: $height,
             quantity: max(1, (int) ($input['quantity'] ?? 1)),
-            isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
+            isIrregularShape: $this->shape($input)->hasShapeSurcharge(),
             isTempered: (bool) ($input['is_tempered'] ?? false),
             isUrgent: (bool) ($input['is_urgent'] ?? false),
             minBillableM2: $minBillable,
@@ -321,7 +323,7 @@ final readonly class OrderItemService
             widthMm: (int) $input['width_mm'],
             heightMm: (int) $input['height_mm'],
             quantity: (int) ($input['quantity'] ?? 1),
-            isIrregularShape: (bool) ($input['is_irregular_shape'] ?? false),
+            isIrregularShape: $this->shape($input)->hasShapeSurcharge(),
             isTempered: (bool) ($input['is_tempered'] ?? false),
             isUrgent: (bool) ($input['is_urgent'] ?? false),
             minBillableM2: $minBillable,
@@ -371,7 +373,7 @@ final readonly class OrderItemService
                 [
                     'width_mm' => $pane->widthMm,
                     'height_mm' => $pane->heightMm,
-                    'is_irregular_shape' => $pane->isIrregularShape,
+                    'shape' => $this->shape($input)->value,
                     'is_tempered' => $pane->isTempered,
                     'needs_mark' => (bool) ($input['needs_mark'] ?? false),
                     'min_billable_m2' => $pane->minBillableM2,
@@ -527,6 +529,15 @@ final readonly class OrderItemService
 
     /**
      * @param array<string, mixed> $input
+     */
+    private function shape(array $input): PaneShape
+    {
+        // Brak kształtu znaczy prostokąt — tak jak dotąd brak flagi.
+        return PaneShape::tryFrom((string) ($input['shape'] ?? '')) ?? PaneShape::RECTANGLE;
+    }
+
+    /**
+     * @param array<string, mixed> $input
      * @return array<string, list<string>>
      */
     private function validatePane(array $input): array
@@ -541,6 +552,7 @@ final readonly class OrderItemService
             // Ksztalt rozstrzyga `selections()`; tutaj pilnujemy tylko
             // tego, co da sie sprawdzic bez wiedzy o marszrucie.
             'is_urgent' => ['nullable', 'boolean'],
+            'shape' => ['nullable', Rule::enum(PaneShape::class)],
             'note' => ['nullable', 'string', 'max:300'],
             'production_note' => ['nullable', 'string', 'max:300'],
             // Puste znaczy „z parametrow wyceny". Zero jest prawidlowe:
@@ -554,6 +566,7 @@ final readonly class OrderItemService
             'processes.*.comment' => ['nullable', 'string', 'max:300'],
         ], [
             'product_id.required' => 'Wskaż materiał.',
+            'shape' => 'Nieznany kształt formatki.',
             'width_mm.required' => 'Podaj szerokość w milimetrach.',
             'height_mm.required' => 'Podaj wysokość w milimetrach.',
             'processes.*.days.max' => 'Etap trwający ponad rok to nie etap.',
@@ -659,7 +672,7 @@ final readonly class OrderItemService
                 widthMm: $pane->width_mm,
                 heightMm: $pane->height_mm,
                 quantity: (int) $item->quantity,
-                isIrregularShape: (bool) $pane->is_irregular_shape,
+                isIrregularShape: $pane->shape->hasShapeSurcharge(),
                 isTempered: (bool) $pane->is_tempered,
                 isUrgent: (bool) $item->is_urgent,
             );
@@ -685,7 +698,7 @@ final readonly class OrderItemService
             'price_path' => $item->price_path ?? [],
             'width_mm' => $pane?->width_mm,
             'height_mm' => $pane?->height_mm,
-            'is_irregular_shape' => (bool) ($pane->is_irregular_shape ?? false),
+            'shape' => ($pane->shape ?? PaneShape::RECTANGLE)->value,
             'is_tempered' => (bool) ($pane->is_tempered ?? false),
             'needs_mark' => (bool) ($pane->needs_mark ?? false),
             'is_urgent' => (bool) $item->is_urgent,

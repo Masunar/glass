@@ -1,4 +1,5 @@
 import { ApiRequest } from './ApiRequest';
+import type { PaneShape } from './OrdersApi';
 
 import type { ResponseContent, ResponseProps } from '@salvon/request';
 
@@ -22,7 +23,8 @@ export type ProductionRow = {
   quantity: string | null;
   width_mm: number | null;
   height_mm: number | null;
-  is_irregular_shape: boolean;
+  /** `null` przy usłudze — ta nie ma formatki. */
+  shape: PaneShape | null;
   /** Pilna pozycja — wchodzi na poczatek kolejki. */
   is_urgent: boolean;
   /** Instrukcja technologiczna z pozycji zlecenia. */

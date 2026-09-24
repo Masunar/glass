@@ -331,8 +331,8 @@ export default function Page() {
                     ? ` · ${row.width_mm} × ${row.height_mm} mm`
                     : ''}
                   {row.quantity ? ` · ${Number(row.quantity)} szt.` : ''}
-                  {row.is_irregular_shape
-                    ? ` · ${t('page.orders.card.irregular')}`
+                  {row.shape !== null && row.shape !== 'rectangle'
+                    ? ` · ${t(`page.orders.shape.${row.shape}`)}`
                     : ''}
                 </span>
               </span>

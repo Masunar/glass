@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enum\PaneShape;
 use Salvon\Model\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $order_item_id
  * @property int $width_mm
  * @property int $height_mm
- * @property bool $is_irregular_shape
+ * @property PaneShape $shape
  * @property bool $is_tempered
  * @property bool $needs_mark
  * @property float|null $min_billable_m2
@@ -33,7 +34,7 @@ class OrderPane extends Model
 
     protected $fillable = [
         'order_item_id', 'width_mm', 'height_mm',
-        'is_irregular_shape', 'is_tempered', 'needs_mark', 'pane_template_id',
+        'shape', 'is_tempered', 'needs_mark', 'pane_template_id',
         'min_billable_m2',
     ];
 
@@ -42,7 +43,7 @@ class OrderPane extends Model
         return [
             'width_mm' => 'integer',
             'height_mm' => 'integer',
-            'is_irregular_shape' => 'boolean',
+            'shape' => PaneShape::class,
             'is_tempered' => 'boolean',
             'needs_mark' => 'boolean',
             'min_billable_m2' => 'float',
