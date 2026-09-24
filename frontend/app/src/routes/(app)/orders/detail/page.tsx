@@ -1,5 +1,6 @@
 import OrderTabs from '../_components/OrderTabs';
 import InvestmentDrawer from '../_components/InvestmentDrawer';
+import OwnerDrawer from '../_components/OwnerDrawer';
 import VatLines from '../_components/VatLines';
 import { vatNote } from '../_components/vat';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -15,7 +16,9 @@ import {
   type OrderCardList,
   OrdersApi,
 } from '@app/api/OrdersApi';
+import HasPermission from '@app/components/HasPermission';
 import { Strip, Strips } from '@app/components/list';
+import { Permission, SubPermission } from '@app/config/permission';
 
 const money = (value: string | null) =>
   value === null
@@ -37,6 +40,7 @@ export default function Page() {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [investmentOpen, setInvestmentOpen] = useState(false);
+  const [ownerOpen, setOwnerOpen] = useState(false);
 
   const load = async () => {
     const { content } = await OrdersApi.card(id);
@@ -123,8 +127,22 @@ export default function Page() {
               {order.contractor?.display_name ?? '—'}
             </span>
           </h1>
+          {/* Prowadzacy przed zakladajacym: pierwsze pytanie brzmi
+              „kogo pytac o to zlecenie", a nie „kto je wpisal". */}
           <div className="ge-quiet">
-            {order.created_by ?? t('page.orders.card.no_owner')}
+            {t('page.orders.owner.label')}{' '}
+            {order.owner ?? t('page.orders.card.no_owner')}
+            <HasPermission
+              permission={Permission.ORDERS}
+              sub={SubPermission.UPDATE}
+            >
+              <Button variant="text" onClick={() => setOwnerOpen(true)}>
+                {t('page.orders.owner.change')}
+              </Button>
+            </HasPermission>
+            {order.created_by
+              ? ` · ${t('page.orders.card.created_by', { name: order.created_by })}`
+              : ''}
             {order.is_on_hold
               ? ` · ${t('page.orders.on_hold', { reason: order.hold_reason ?? '' })}`
               : ''}
@@ -640,6 +658,18 @@ export default function Page() {
           ))}
         </div>
       </div>
+
+      <OwnerDrawer
+        orderId={id}
+        ownerId={order.owner_id}
+        owners={card.owners}
+        open={ownerOpen}
+        onClose={() => setOwnerOpen(false)}
+        onSaved={() => {
+          setOwnerOpen(false);
+          void load();
+        }}
+      />
 
       <InvestmentDrawer
         orderId={id}

@@ -6,6 +6,7 @@ namespace App\Services\Alerts;
 
 use Carbon\Carbon;
 use App\Models\Order;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -68,9 +69,13 @@ final readonly class AlertBoard
      * liczy **zlecenia, nie alerty**: zlecenie z trzema problemami to
      * jedna sprawa do ruszenia, nie trzy.
      *
+     * `$ownerId` zawęża licznik do zleceń jednej osoby — lista z filtrem
+     * „moje" nad czerwoną liczbą liczoną z całości pokazywałaby problemy,
+     * których w widocznych wierszach nie ma.
+     *
      * @return array<string, int> kod statusu => liczba zleceń, plus klucz '' dla całości
      */
-    public function orderCounts(?Carbon $day = null): array
+    public function orderCounts(?Carbon $day = null, ?int $ownerId = null): array
     {
         $ids = [];
 
@@ -92,6 +97,10 @@ final readonly class AlertBoard
         $orders = Order::query()
             ->with('status')
             ->whereIn('id', $ids)
+            ->when(
+                $ownerId !== null,
+                static fn(Builder $builder): Builder => $builder->where('owner_id', $ownerId),
+            )
             ->get();
 
         $counts = ['' => $orders->count()];

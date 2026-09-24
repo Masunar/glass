@@ -13,6 +13,10 @@ export type DashboardTask = {
   /** Termin słowem: „dziś", „jutro", „5 dni po". Liczy serwer. */
   deadline_label: string | null;
   band: TaskBand;
+  /** Prowadzący = zalogowany. Moje sprawy idą na górę pasma. */
+  is_mine: boolean;
+  owner: string | null;
+  owner_initials: string | null;
   next_step: {
     transition_id: number;
     label: string;

@@ -68,7 +68,7 @@ final readonly class DashboardService
         $seesOrders = $this->may($user, Permission::ORDERS, 'zlec');
         $rows = $seesOrders ? $this->orderRows($day) : [];
 
-        $tasks = $this->tasks($rows);
+        $tasks = $this->tasks($rows, (int) $user->getKey());
         $counters = $this->counters($user, $rows, $seesOrders);
 
         return [
@@ -184,10 +184,16 @@ final readonly class DashboardService
      * Kolejność: najpierw po terminie (najdłużej stojące na górze),
      * potem dzisiejsze, na końcu reszta.
      *
+     * **Wewnątrz pasma pierwsze idą sprawy prowadzone przeze mnie.**
+     * Nie jako osobna sekcja — ta wersja już raz istniała i w
+     * jednoosobowym biurze pokazywała tę samą listę dwa razy. Cudze
+     * zlecenie po terminie dalej jest po terminie i zostaje na liście:
+     * pulpit mówi, co pilne, a nie co czyje.
+     *
      * @param list<array<string, mixed>> $rows
      * @return list<array<string, mixed>>
      */
-    private function tasks(array $rows): array
+    private function tasks(array $rows, int $userId): array
     {
         $tasks = [];
 
@@ -205,11 +211,16 @@ final readonly class DashboardService
             }
 
             $row['deadline_label'] = $this->deadlineLabel($row['days_left']);
+            // „Moje" znaczy **prowadzacy = ja**, tak samo jak filtr na
+            // liscie zlecen. Zakladajacy byl tu bez znaczenia juz
+            // wczesniej; teraz ma wlasne pole i ta sama definicja stoi
+            // w obu miejscach.
+            $row['is_mine'] = $row['owner_id'] !== null && (int) $row['owner_id'] === $userId;
             $tasks[] = $row;
         }
 
-        // Najpierw pasmo, potem **to, co da sie ruszyc**, dopiero na
-        // koncu dlugosc spoznienia. Zlecenie stojace trzydziesci dni
+        // Najpierw pasmo, potem **moje sprawy**, potem to, co da sie
+        // ruszyc, dopiero na koncu dlugosc spoznienia. Zlecenie stojace trzydziesci dni
         // bez zadnego dostepnego przejscia nie jest dobrym poczatkiem
         // dnia — jest na nie za pozno, zeby zaczynac od niego.
         usort($tasks, static function (array $a, array $b): int {
@@ -217,10 +228,12 @@ final readonly class DashboardService
 
             return [
                 $order[$a['band']],
+                $a['is_mine'] === true ? 0 : 1,
                 $a['next_step'] === null ? 1 : 0,
                 $a['days_left'] ?? PHP_INT_MAX,
             ] <=> [
                 $order[$b['band']],
+                $b['is_mine'] === true ? 0 : 1,
                 $b['next_step'] === null ? 1 : 0,
                 $b['days_left'] ?? PHP_INT_MAX,
             ];

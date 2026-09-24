@@ -157,6 +157,11 @@ final readonly class OrderService
             'client_deadline' => Normalize::text($input['client_deadline'] ?? null),
             'short_note' => Normalize::text($input['short_note'] ?? null),
             'created_by' => Auth::id(),
+            // Prowadzacy to osobne pole od zakladajacego, bo zlecenie
+            // przechodzi miedzy ludzmi. Na starcie to ta sama osoba —
+            // jedyne uczciwe domyslne. Zlecenie bez prowadzacego byloby
+            // zleceniem, ktorego nikt nie pilnuje.
+            'owner_id' => Auth::id(),
         ]);
 
         OrderList::query()->create([

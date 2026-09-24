@@ -34,7 +34,10 @@ export type OrderRow = {
   delivery_method: string;
   delivery_place: string | null;
   amount: string;
+  /** Inicjały prowadzącego, nie zakładającego. */
   owner_initials: string | null;
+  owner_id: number | null;
+  owner: string | null;
   is_on_hold: boolean;
   hold_reason: string | null;
   has_open_claim: boolean;
@@ -64,6 +67,8 @@ export type OrderBoard = {
     today: number;
     overdue: number;
     shown: number;
+    /** Czy lista jest zawężona do zleceń zalogowanego — razem z licznikami. */
+    mine: boolean;
     as_of: string;
   };
 };
@@ -135,7 +140,11 @@ export type OrderCard = {
     id: number;
     number: number;
     created_at: string | null;
+    /** Kto założył — zapis historyczny, nie zmienia się. */
     created_by: string | null;
+    /** Kto prowadzi zlecenie dzisiaj. To pole można zmienić. */
+    owner: string | null;
+    owner_id: number | null;
     status: string | null;
     status_code: string | null;
     is_final: boolean;
@@ -188,6 +197,8 @@ export type OrderCard = {
   };
   tabs: OrderTabCounts;
   money: OrderTotals;
+  /** Konta, które widzą zlecenia — tylko one mogą je prowadzić. */
+  owners: { id: number; name: string }[];
   payment: OrderPaymentSummary;
   credit: {
     limit: string;
@@ -559,8 +570,15 @@ export class OrdersApi extends ApiRequest {
   public static async board(
     query: string = '',
     status: string | null = null,
+    mine: boolean = false,
   ): Promise<ResponseProps<ResponseContent>> {
-    return await this.get('', { q: query, status: status ?? '' });
+    return await this.get('', {
+      q: query,
+      status: status ?? '',
+      // „Moje" to przelacznik na wlasna liste — serwer bierze
+      // zalogowanego, a nie identyfikator z adresu.
+      mine: mine ? '1' : '',
+    });
   }
 
   public static async formOptions(): Promise<ResponseProps<ResponseContent>> {
@@ -718,6 +736,14 @@ export class OrdersApi extends ApiRequest {
     drawingId: number,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.delete(`/${id}/drawings/${drawingId}`);
+  }
+
+  /** Przekazanie zlecenia innej osobie — własna akcja, jak każda decyzja. */
+  public static async changeOwner(
+    id: number,
+    ownerId: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/owner`, { owner_id: ownerId });
   }
 
   public static async declareDrawings(

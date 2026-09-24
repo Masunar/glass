@@ -42,6 +42,7 @@ final readonly class OrderCard
         private OrderSchedule $schedule = new OrderSchedule(),
         private TemperingBoard $tempering = new TemperingBoard(),
         private OfferBoard $offers = new OfferBoard(),
+        private OrderOwnerService $owners = new OrderOwnerService(),
     ) {
     }
 
@@ -60,6 +61,7 @@ final readonly class OrderCard
                 'status',
                 'pickupLocation',
                 'creator',
+                'owner',
                 'invoiceType',
                 'discounts',
                 'lists.items.pane',
@@ -75,6 +77,10 @@ final readonly class OrderCard
             'order' => $this->header($order, $day),
             'tabs' => $this->tabs->counts($order),
             'money' => $totals->toArray(),
+            // Kandydaci na prowadzacego jada z karta, bo zmiana
+            // prowadzacego jest jedna decyzja, a nie ekranem: druga
+            // podroz po liste ludzi otwieralaby pusta szuflade.
+            'owners' => $this->owners->candidates(),
             'payment' => $this->payment($order, $totals->gross),
             'credit' => $this->credit($order, (float) $totals->net, $totals->gross),
             // `null` znaczy, ze zlecenie nie bylo jeszcze ofertowane —
@@ -108,6 +114,10 @@ final readonly class OrderCard
             'number' => (int) $order->number,
             'created_at' => $order->getRawOriginal('created_at'),
             'created_by' => $this->personName($order),
+            // Zakladajacy i prowadzacy to dwie rozne odpowiedzi: „kto to
+            // wpisal" i „kogo pytac dzisiaj". Karta pokazuje obie.
+            'owner' => $order->owner === null ? null : OrderOwnerService::name($order->owner),
+            'owner_id' => $order->owner_id === null ? null : (int) $order->owner_id,
             'status' => $order->status?->name,
             'status_code' => $order->status?->code,
             'is_final' => (bool) ($order->status->is_final ?? false),

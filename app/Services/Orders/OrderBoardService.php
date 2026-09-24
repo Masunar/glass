@@ -42,6 +42,7 @@ final readonly class OrderBoardService
         ?string $statusCode = null,
         ?Carbon $today = null,
         int $limit = 200,
+        ?int $ownerId = null,
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
         $needle = $query !== null ? trim($query) : '';
@@ -52,7 +53,7 @@ final readonly class OrderBoardService
                 'contractor',
                 'status',
                 'pickupLocation',
-                'creator',
+                'owner',
                 'invoiceType',
                 'discounts',
                 'lists.items.processes',
@@ -68,6 +69,13 @@ final readonly class OrderBoardService
             ->when(
                 $needle !== '',
                 fn(Builder $builder): Builder => $this->applySearch($builder, $needle),
+            )
+            // „Moje" znaczy **prowadzacy = ja** i tylko to. Druga
+            // definicja tego samego slowa — na przyklad „zalozone przeze
+            // mnie" — rozjechalaby sie z pierwszym przekazaniem zlecenia.
+            ->when(
+                $ownerId !== null,
+                static fn(Builder $builder): Builder => $builder->where('owner_id', $ownerId),
             )
             ->orderByDesc('number')
             ->limit($limit)
@@ -98,11 +106,15 @@ final readonly class OrderBoardService
                 $this->band('overdue', $bands['overdue']),
                 $this->band('later', $bands['later']),
             ],
-            'filters' => $this->filters($day),
+            'filters' => $this->filters($day, $ownerId),
             'summary' => [
                 'today' => count($bands['today']),
                 'overdue' => count($bands['overdue']),
                 'shown' => $orders->count(),
+                // Ekran musi wiedziec, ktora liste widzi. Bez tego
+                // przelacznik „moje" moglby zostac wcisniety, a lista
+                // pokazywac calosc — i nikt by tego nie zauwazyl.
+                'mine' => $ownerId !== null,
                 'as_of' => $day->toDateString(),
             ],
         ];
@@ -197,11 +209,12 @@ final readonly class OrderBoardService
             'delivery_method' => $order->delivery_method->value,
             'delivery_place' => $order->pickupLocation->name ?? $order->delivery_address,
             'amount' => $this->value->net($order),
-            'owner_initials' => $this->initials($order),
+            'owner_initials' => OrderOwnerService::initials($order->owner),
             // Identyfikator, nie tylko inicjaly: pulpit dzieli wiersze
             // na „moje" i reszte, a dwie osoby moga miec te same
             // inicjaly.
-            'owner_id' => $order->created_by === null ? null : (int) $order->created_by,
+            'owner_id' => $order->owner_id === null ? null : (int) $order->owner_id,
+            'owner' => $order->owner === null ? null : OrderOwnerService::name($order->owner),
             'is_on_hold' => (bool) $order->is_on_hold,
             'hold_reason' => $order->hold_reason,
             'has_open_claim' => (bool) $order->has_open_claim,
@@ -231,36 +244,28 @@ final readonly class OrderBoardService
         return null;
     }
 
-    private function initials(Order $order): ?string
-    {
-        $user = $order->creator;
-
-        if ($user === null) {
-            return null;
-        }
-
-        $initials = '';
-
-        foreach (array_filter([$user->first_name, $user->last_name]) as $part) {
-            $initials .= mb_strtoupper(mb_substr((string) $part, 0, 1));
-        }
-
-        return $initials === '' ? null : mb_substr($initials, 0, 2);
-    }
-
     /**
      * Zakładki statusów z licznikami. Liczone po stronie bazy — lista
      * pokazuje najwyżej dwieście wierszy, a licznik ma mówić o całości.
      * To samo dotyczy czerwonego licznika alertów obok.
      *
+     * **Filtr „moje" obowiązuje też liczniki.** Zakładka mówiąca
+     * „Produkcja 40" nad listą czterech własnych zleceń nie jest
+     * pomyłką na ekranie, tylko drugą definicją tego samego zbioru —
+     * a takie rozjazdy nie zgłaszają się same.
+     *
      * @return list<array<string, mixed>>
      */
-    private function filters(Carbon $day): array
+    private function filters(Carbon $day, ?int $ownerId = null): array
     {
-        $alerts = $this->alerts->orderCounts($day);
+        $alerts = $this->alerts->orderCounts($day, $ownerId);
 
         /** @var array<int, int> $counts */
         $counts = Order::query()
+            ->when(
+                $ownerId !== null,
+                static fn(Builder $builder): Builder => $builder->where('owner_id', $ownerId),
+            )
             ->selectRaw('status_id, count(*) as total')
             ->groupBy('status_id')
             ->pluck('total', 'status_id')

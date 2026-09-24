@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $shift_reason
  * @property string|null $cancellation_reason
  * @property int|null $created_by
+ * @property int|null $owner_id
  * @property int|null $drawings_complete_by
  * @property Carbon|null $drawings_complete_at
  * @property-read Collection<int, OrderList> $lists
@@ -54,6 +55,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Status|null $status
  * @property-read Location|null $pickupLocation
  * @property-read User|null $creator
+ * @property-read User|null $owner
  * @property-read InvoiceType|null $invoiceType
  * @property-read Collection<int, OrderDrawing> $drawings
  * @property-read Collection<int, Payment> $payments
@@ -72,7 +74,7 @@ class Order extends Dateable
         'short_note', 'production_comment', 'installer_comment', 'offer_comment',
         'client_deadline', 'production_deadline', 'shifted_deadline',
         'shift_reason', 'shift_approved_by', 'cancellation_reason',
-        'created_by', 'measurement_id',
+        'created_by', 'owner_id', 'measurement_id',
         'drawings_complete_by', 'drawings_complete_at',
     ];
 
@@ -184,15 +186,29 @@ class Order extends Dateable
     }
 
     /**
-     * Handlowiec prowadzący zlecenie. Lista pokazuje jego inicjały przy
-     * kolumnie „co dalej" — decyzja ma mieć właściciela.
+     * Kto założył zlecenie. Zapis historyczny — nie zmienia się nigdy
+     * i nie mówi, kogo pytać o zlecenie dzisiaj.
      *
      * @return BelongsTo<User, $this>
      */
-    /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+
+    /**
+     * Prowadzący — osoba odpowiedzialna za zlecenie teraz. Lista
+     * pokazuje jego inicjały przy kolumnie „co dalej", a filtr „moje"
+     * i pulpit czytają wyłącznie to pole.
+     *
+     * Pusty prowadzący jest możliwy tylko wtedy, gdy konto zostało
+     * skasowane — zakładanie zlecenia zawsze kogoś wpisuje.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id', 'id');
     }
 
 }

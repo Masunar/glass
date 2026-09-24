@@ -195,6 +195,29 @@ class DashboardTest extends TestCase
         $this->assertArrayHasKey('count', $board['blocked'][0]);
     }
 
+    #[Test]
+    public function moje_sprawy_ida_na_gore_pasma(): void
+    {
+        $user = $this->userWith(['zlec.access', 'orders.list']);
+
+        $theirs = $this->order(90011, $this->user()->id, '2024-01-01');
+        $mine = $this->order(90012, (int) $user->getKey(), '2024-06-01');
+
+        $tasks = $this->board->board($user)['tasks'];
+
+        // W tym samym pasmie pierwsza idzie moja sprawa, choc cudza stoi
+        // dluzej. „Moje" znaczy **prowadzacy = ja** — ta sama definicja,
+        // co filtr na liscie zlecen.
+        $this->assertSame($mine->number, $tasks[0]['number']);
+        $this->assertTrue($tasks[0]['is_mine']);
+
+        // Cudza sprawa nie znika: pulpit mowi, co pilne, a nie co czyje.
+        // Osobna sekcja „moje" juz raz tu byla i w jednoosobowym biurze
+        // pokazywala te sama liste dwa razy.
+        $this->assertSame($theirs->number, $tasks[1]['number']);
+        $this->assertFalse($tasks[1]['is_mine']);
+    }
+
     /** @param list<string> $permissions */
     private function userWith(array $permissions): User
     {
@@ -226,7 +249,7 @@ class DashboardTest extends TestCase
         ]);
     }
 
-    private function order(int $number, ?int $createdBy, ?string $deadline = null): Order
+    private function order(int $number, ?int $ownerId, ?string $deadline = null): Order
     {
         /** @var Status $status */
         $status = Status::findByCode(StatusDomain::ORDER, 'ZLECENIE');
@@ -244,7 +267,10 @@ class DashboardTest extends TestCase
             'contractor_id' => $party->id,
             'status_id' => $status->id,
             'delivery_method' => DeliveryMethod::PICKUP->value,
-            'created_by' => $createdBy,
+            'created_by' => $ownerId,
+            // Pulpit czyta wylacznie prowadzacego. Zakladajacy zostaje
+            // ten sam, bo w aplikacji te dwa pola startuja rowne.
+            'owner_id' => $ownerId,
             'client_deadline' => $deadline,
         ]);
     }

@@ -200,6 +200,9 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/{order}/drawings/{drawing}', [OrderController::class, 'drawingFile'])->name('drawing_file');
     Route::delete('/{order}/drawings/{drawing}', [OrderController::class, 'deleteDrawing'])->name('drawing_delete');
     Route::put('/{order}/drawings-complete', [OrderController::class, 'declareDrawings'])->name('drawings_declare');
+    // Przekazanie zlecenia ma wlasna akcje, tak jak kazda inna decyzja
+    // w tym module — nie ma tu wspolnego PUT na cale zlecenie.
+    Route::put('/{order}/owner', [OrderController::class, 'changeOwner'])->name('owner');
     Route::get('/{order}/payments', [OrderController::class, 'payments'])->name('payments');
     Route::post('/{order}/payments', [OrderController::class, 'addPayment'])->name('payment_add');
     // Korekta dopisuje wiersz, nie kasuje — stad POST.

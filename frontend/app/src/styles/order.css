@@ -1066,7 +1066,12 @@
 .ge-task > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ge-task__number { font-weight: 600; font-variant-numeric: tabular-nums; }
-.ge-task__party { color: var(--ge-text); }
+/* Inicjaly prowadzacego stoja przy kontrahencie, a nie w osobnej
+   kolumnie: wiersz ma ich cztery i piata rozjechalaby siatke wszystkim
+   pozostalym wierszom. */
+.ge-task__party { color: var(--ge-text); display: flex; align-items: center; gap: 8px; }
+.ge-task__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ge-task__who { width: 22px; height: 22px; font-size: 10px; }
 .ge-task__due {
   font-size: 13px;
   color: var(--ge-neutral-800);

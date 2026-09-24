@@ -107,6 +107,13 @@ class OrderSeeder extends Seeder
                 'created_by' => $users->isEmpty()
                     ? null
                     : $users[$index % $users->count()]->id,
+                // Prowadzacy na starcie to zakladajacy — tak samo jak
+                // przy zakladaniu zlecenia z ekranu. Puste pole
+                // w danych probnych kazaloby testowac przypadek,
+                // ktorego aplikacja nie tworzy.
+                'owner_id' => $users->isEmpty()
+                    ? null
+                    : $users[$index % $users->count()]->id,
             ]);
 
             $this->fill($order, $products, $row['panes'], $row['rejected'] ?? false);

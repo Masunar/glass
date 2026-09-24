@@ -55,6 +55,7 @@ export default function Page() {
   const [board, setBoard] = useState<OrderBoard | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [mine, setMine] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,10 +65,11 @@ export default function Page() {
   const load = async (
     nextQuery: string = query,
     nextStatus: string | null = status,
+    nextMine: boolean = mine,
   ) => {
     setLoading(true);
 
-    const { content } = await OrdersApi.board(nextQuery, nextStatus);
+    const { content } = await OrdersApi.board(nextQuery, nextStatus, nextMine);
     const data: OrderBoard | undefined = content?.data;
 
     setLoading(false);
@@ -85,7 +87,7 @@ export default function Page() {
   };
 
   useEffect(() => {
-    void load('', null);
+    void load('', null, false);
   }, []);
 
   /**
@@ -120,6 +122,12 @@ export default function Page() {
     () => (board?.bands ?? []).filter((band) => band.rows.length > 0),
     [board],
   );
+
+  // Pusta lista pod wlaczonym „moje" znaczy co innego niz pusta baza —
+  // zdanie „nie ma zlecen" kazaloby szukac bledu tam, gdzie go nie ma.
+  const emptyLabel = board?.summary.mine
+    ? t('page.orders.empty_mine')
+    : t('page.orders.empty');
 
   const money = (value: string) =>
     new Intl.NumberFormat('pl-PL', {
@@ -167,7 +175,7 @@ export default function Page() {
             aria-label={t('page.orders.search')}
             onChange={(event) => {
               setQuery(event.target.value);
-              void load(event.target.value);
+              void load(event.target.value, status, mine);
             }}
           />
           <HasPermission
@@ -235,7 +243,7 @@ export default function Page() {
                 aria-pressed={here}
                 onClick={() => {
                   setStatus(filter.code);
-                  void load(query, filter.code);
+                  void load(query, filter.code, mine);
                 }}
               >
                 <span>{filter.name}</span>
@@ -254,6 +262,24 @@ export default function Page() {
             );
           })}
         </nav>
+
+        {/* „Moje" zaweza cala liste razem z licznikami przy zakladkach —
+            inaczej czerwona liczba mowilaby o zleceniach, ktorych
+            w wierszach nie ma. Nie odbiera przy tym niczyjego widoku:
+            wylaczony przelacznik to dalej wszystkie zlecenia firmy. */}
+        <label className="ge-toggle">
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(event) => {
+              setMine(event.target.checked);
+              void load(query, status, event.target.checked);
+            }}
+          />
+          <span className="ge-toggle__track" />
+          {t('page.orders.mine')}
+        </label>
+
         <span className="ge-segbar__end">{t('page.orders.sorted_by')}</span>
       </div>
 
@@ -271,7 +297,7 @@ export default function Page() {
       <DataList
         columns={columns}
         loading={loading}
-        empty={bands.length === 0 ? t('page.orders.empty') : undefined}
+        empty={bands.length === 0 ? emptyLabel : undefined}
       >
         <ListHead columns={columns} translate={t} />
 
@@ -370,7 +396,7 @@ export default function Page() {
         ))}
 
         {bands.length === 0 && (
-          <div className="ge-empty">{t('page.orders.empty')}</div>
+          <div className="ge-empty">{emptyLabel}</div>
         )}
       </DataList>
     </>

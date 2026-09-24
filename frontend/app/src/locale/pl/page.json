@@ -726,7 +726,8 @@
       "vat_split": "Rozbicie na stawki",
       "vat_none": "bez stawki",
       "vat_mixed": "brutto {{gross}} zł — stawki {{rates}}",
-      "vat_unknown": "{{amount}} zł bez znanej stawki — brutto nie do policzenia"
+      "vat_unknown": "{{amount}} zł bez znanej stawki — brutto nie do policzenia",
+      "created_by": "założył {{name}}"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -1075,7 +1076,19 @@
       "preview_blocked": "Przeglądarka zablokowała nową kartę. Pozwól na wyskakujące okna dla tej strony i spróbuj jeszcze raz."
     },
     "load_failed": "Nie udało się pobrać listy zleceń. Spróbuj ponownie.",
-    "alerts_title": "Zlecenia wymagające reakcji"
+    "alerts_title": "Zlecenia wymagające reakcji",
+    "mine": "Tylko moje",
+    "empty_mine": "Nie prowadzisz żadnego zlecenia w tym zakresie.",
+    "owner": {
+      "label": "Prowadzi:",
+      "change": "zmień",
+      "kicker": "Zlecenie",
+      "title": "Prowadzący",
+      "who": "Kto odpowiada",
+      "person": "Prowadzący",
+      "none": "— wskaż osobę —",
+      "note": "Prowadzący odpowiada za zlecenie: to jego inicjały widać na liście i jego pulpit podbija tę sprawę na górę. Zlecenie dalej widzą wszyscy — przekazanie niczego nikomu nie zabiera."
+    }
   },
   "production": {
     "loading": "Wczytywanie kolejki…",

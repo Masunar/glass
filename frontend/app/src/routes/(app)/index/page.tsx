@@ -229,7 +229,24 @@ export default function Page() {
                 <Link to={`/orders/${task.id}`} className="ge-task__number">
                   #{task.number}
                 </Link>
-                <span className="ge-task__party">{task.contractor ?? '—'}</span>
+                <span className="ge-task__party">
+                  <span className="ge-task__name">
+                    {task.contractor ?? '—'}
+                  </span>
+                  {/* Inicjaly tylko przy cudzych sprawach: wlasne sa na
+                      gorze i podpisywanie ich swoim nazwiskiem niczego
+                      nie mowi. Cudza sprawa zostaje na liscie — pulpit
+                      mowi, co pilne, a nie co czyje — wiec musi byc
+                      widac, kogo o nia zapytac. */}
+                  {!task.is_mine && task.owner_initials && (
+                    <span
+                      className="ge-avatar ge-task__who"
+                      title={task.owner ?? ''}
+                    >
+                      {task.owner_initials}
+                    </span>
+                  )}
+                </span>
                 <span
                   className={
                     task.band === 'overdue'

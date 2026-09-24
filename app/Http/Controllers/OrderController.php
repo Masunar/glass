@@ -21,6 +21,7 @@ use App\Services\Orders\OrderFittingService;
 use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
+use App\Services\Orders\OrderOwnerService;
 use App\Services\Orders\PaymentService;
 
 /**
@@ -40,6 +41,7 @@ class OrderController extends ApiController
         private readonly OrderListService $listService,
         private readonly OrderFittingService $fittingService,
         private readonly InvestmentService $investmentService,
+        private readonly OrderOwnerService $ownerService,
     ) {
         $this->protect(
             ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -56,7 +58,7 @@ class OrderController extends ApiController
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
                 'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
-                'saveInvestment',
+                'saveInvestment', 'changeOwner',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
@@ -74,9 +76,17 @@ class OrderController extends ApiController
             $query = $request->query('q');
             $status = $request->query('status');
 
+            // „Moje" nie przyjmuje cudzego identyfikatora: to
+            // przelacznik na wlasna liste, a nie podglad czyjejs.
+            // Ogladanie zlecen kolegi odbywa sie bez filtra — kazdy
+            // widzi wszystkie.
+            $mine = $request->boolean('mine');
+            $me = $mine ? $request->user()?->getKey() : null;
+
             return $this->dataResponse($this->board->board(
                 is_string($query) ? $query : null,
                 is_string($status) ? $status : null,
+                ownerId: is_numeric($me) ? (int) $me : null,
             ));
         });
     }
@@ -293,6 +303,24 @@ class OrderController extends ApiController
     {
         return $this->secure(function () use ($request, $order): JsonResponse {
             $result = $this->drawingService->declare($order, $request->boolean('complete'));
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
+        });
+    }
+
+    /**
+     * Przekazanie zlecenia innej osobie. Własna akcja, bo to decyzja —
+     * w tym kontrolerze każda ma swoją, zamiast jednego wspólnego PUT,
+     * po którym nie wiadomo, co się zmieniło.
+     */
+    public function changeOwner(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            $result = $this->ownerService->change($order, $request->input('owner_id'));
 
             if ($result['errors'] !== []) {
                 return $this->validationResponse($result['errors']);
