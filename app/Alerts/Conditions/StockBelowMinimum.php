@@ -88,14 +88,22 @@ final class StockBelowMinimum implements AlertCondition
             return [];
         }
 
-        /** @var array<int, string> $names */
-        $names = Product::query()->whereIn('id', $ids)->pluck('name', 'id')->all();
+        /** @var iterable<Product> $products */
+        $products = Product::query()->whereIn('id', $ids)->get();
 
         $rows = [];
 
-        foreach ($names as $id => $name) {
-            $rows[(int) $id] = [
-                'label' => (string) $name,
+        foreach ($products as $product) {
+            // Kod przed nazwa, bo nazwy sie powtarzaja: dwa rozne
+            // okucia potrafia nazywac sie „Unoszony PRAWY 90 stopni"
+            // i w pasmie alertow nie da sie ich odroznic. Podpis, po
+            // ktorym nie wiadomo, o ktora rzecz chodzi, jest tylko
+            // pozorem odpowiedzi.
+            $code = trim((string) $product->code);
+            $name = (string) $product->name;
+
+            $rows[(int) $product->getKey()] = [
+                'label' => $code === '' ? $name : $code . ' · ' . $name,
                 // Magazyn nie ma ekranu pojedynczego produktu — lista
                 // braków jest najblizszym miejscem, do ktorego da sie
                 // pojsc. Sciezka do nieistniejacego ekranu byłaby

@@ -88,10 +88,12 @@ class AlertSubjectTest extends TestCase
         // Brakujaca ilosc, nie stan: rosnie, gdy robi sie gorzej, wiec
         // odhaczenie samo wraca przy poglebieniu braku.
         $this->assertSame('3', $found[(int) $product->getKey()] ?? null);
-        $this->assertSame(
-            'Zawias z progiem',
-            $condition->subjects([(int) $product->getKey()])[(int) $product->getKey()]['label'] ?? null,
-        );
+
+        // Kod przed nazwa: nazwy okuc sie powtarzaja, wiec podpis samą
+        // nazwa nie mowi, o ktory produkt chodzi.
+        $label = $condition->subjects([(int) $product->getKey()])[(int) $product->getKey()]['label'] ?? '';
+        $this->assertStringStartsWith($product->code . ' · ', (string) $label);
+        $this->assertStringEndsWith('Zawias z progiem', (string) $label);
     }
 
     #[Test]

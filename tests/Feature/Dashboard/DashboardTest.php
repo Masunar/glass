@@ -152,6 +152,32 @@ class DashboardTest extends TestCase
     }
 
     #[Test]
+    public function zamkniete_zlecenie_po_terminie_nie_jest_sprawa(): void
+    {
+        $user = $this->userWith(['zlec.access', 'orders.list']);
+
+        /** @var Status $final */
+        $final = Status::query()
+            ->where('domain', StatusDomain::ORDER->value)
+            ->where('is_final', true)
+            ->firstOrFail();
+
+        $closed = $this->order(90008, null, '2024-01-01');
+        $closed->status_id = $final->id;
+        $closed->save();
+
+        $board = $this->board->board($user);
+
+        // Pasmo liczy lista i robi to swiadomie: zlecenie w statusie
+        // koncowym nie ma terminu do pilnowania. Pulpit liczyl je drugi
+        // raz z samego `days_left`, wiec rozliczone zlecenie sprzed
+        // miesiaca wracalo jako sprawa na dzis — a kafelek i zakladka
+        // pokazywaly dwie rozne liczby tego samego.
+        $this->assertNotContains($closed->number, array_column($board['tasks'], 'number'));
+        $this->assertSame($board['counters']['overdue'], $board['summary']['overdue']);
+    }
+
+    #[Test]
     public function zablokowane_nie_sa_sprawami_i_licza_sie_po_powodzie(): void
     {
         $user = $this->userWith(['zlec.access', 'orders.list']);

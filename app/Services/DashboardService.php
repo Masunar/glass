@@ -192,15 +192,19 @@ final readonly class DashboardService
         $tasks = [];
 
         foreach ($rows as $row) {
-            $days = $row['days_left'];
-            $late = $days !== null && (int) $days < 0;
+            // Pasmo przychodzi z listy i **nie jest liczone drugi raz**.
+            // Liczone tutaj z samego `days_left` gubilo regule, ktora
+            // lista stosuje swiadomie: zlecenie w statusie koncowym nie
+            // ma terminu do pilnowania. Zamkniete zlecenie sprzed
+            // miesiaca wracalo przez to na pulpit jako sprawa na dzis,
+            // a kafelek i zakladka pokazywaly dwie rozne liczby.
+            $late = $row['band'] === 'overdue';
 
             if ($row['next_step'] === null && !$late) {
                 continue;
             }
 
-            $row['deadline_label'] = $this->deadlineLabel($days);
-            $row['band'] = $late ? 'overdue' : ($days === 0 ? 'today' : 'later');
+            $row['deadline_label'] = $this->deadlineLabel($row['days_left']);
             $tasks[] = $row;
         }
 
