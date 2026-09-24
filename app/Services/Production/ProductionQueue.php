@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Production;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\Order;
 use App\Models\Workstation;
 use App\Enum\ProductionStatus;
@@ -44,7 +45,7 @@ final readonly class ProductionQueue
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
 
-        $query = ProductionTask::query()
+        $query = $this->queue($includeDone)
             ->with([
                 'process',
                 'workstation',
@@ -55,19 +56,7 @@ final readonly class ProductionQueue
             ])
             ->when($workstationId !== null, static fn($builder) => $builder->where('workstation_id', $workstationId))
             ->when($unassignedOnly, static fn($builder) => $builder->whereNull('workstation_id'))
-            ->when($processId !== null, static fn($builder) => $builder->where('process_id', $processId))
-            ->when(
-                !$includeDone,
-                static fn($builder) => $builder->where('status', '!=', ProductionStatus::DONE->value),
-            )
-            // Etapu podzlecanego hala nie odhacza: praca dzieje sie
-            // gdzie indziej, a zadanie zamyka powrot od podwykonawcy.
-            // Zadanie nadal istnieje i liczy sie do `allDone()`, wiec
-            // zlecenie nie przejdzie na „Gotowe" przed powrotem szkla.
-            ->whereHas(
-                'process',
-                static fn($builder) => $builder->where('is_subcontracted', false),
-            );
+            ->when($processId !== null, static fn($builder) => $builder->where('process_id', $processId));
 
         /** @var iterable<ProductionTask> $tasks */
         $tasks = $query->get();
@@ -200,9 +189,8 @@ final readonly class ProductionQueue
     private function workstations(): array
     {
         /** @var array<int, int> $counts */
-        $counts = ProductionTask::query()
+        $counts = $this->queue()
             ->selectRaw('workstation_id, COUNT(*) as open')
-            ->where('status', '!=', ProductionStatus::DONE->value)
             ->groupBy('workstation_id')
             ->pluck('open', 'workstation_id')
             ->all();
@@ -228,9 +216,8 @@ final readonly class ProductionQueue
         // Etapy bez stanowiska nie moga zniknac z ekranu. Slownik
         // procesow ma `workstation_id` puste tam, gdzie nikt go nie
         // uzupelnil - i to wlasnie te etapy trzeba zobaczyc.
-        $unassigned = ProductionTask::query()
+        $unassigned = $this->queue()
             ->whereNull('workstation_id')
-            ->where('status', '!=', ProductionStatus::DONE->value)
             ->count();
 
         if ($unassigned > 0) {
@@ -238,6 +225,39 @@ final readonly class ProductionQueue
         }
 
         return $rows;
+    }
+
+    /**
+     * Zbiór, o którym mówi kolejka — **jeden dla wierszy i dla liczników
+     * przy zakładkach**.
+     *
+     * Liczniki liczyły osobnym zapytaniem, bez warunku o etapach
+     * podzlecanych. Zakładka „Bez stanowiska 9" stała nad listą sześciu
+     * wierszy: trzy etapy hartowania siedziały w liczniku i nigdy nie
+     * pojawiały się na ekranie. Dwa zapytania o ten sam zbiór rozjadą się
+     * przy pierwszym nowym warunku, a taki rozjazd nie zgłasza się sam.
+     *
+     * @return Builder<ProductionTask>
+     */
+    private function queue(bool $includeDone = false): Builder
+    {
+        return ProductionTask::query()
+            ->when(
+                !$includeDone,
+                static fn(Builder $builder): Builder => $builder->where(
+                    'production_tasks.status',
+                    '!=',
+                    ProductionStatus::DONE->value,
+                ),
+            )
+            // Etapu podzlecanego hala nie odhacza: praca dzieje sie
+            // gdzie indziej, a zadanie zamyka powrot od podwykonawcy.
+            // Zadanie nadal istnieje i liczy sie do `allDone()`, wiec
+            // zlecenie nie przejdzie na „Gotowe" przed powrotem szkla.
+            ->whereHas(
+                'process',
+                static fn(Builder $builder): Builder => $builder->where('is_subcontracted', false),
+            );
     }
 
     private function name(ProductionTask $task): ?string

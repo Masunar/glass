@@ -407,4 +407,29 @@ class ProductionTaskTest extends TestCase
         $this->assertSame(1, $orphans['summary']['shown']);
         $this->assertSame('C', $orphans['rows'][0]['process_code']);
     }
+
+    #[Test]
+    public function licznik_zakladki_mowi_o_tych_samych_wierszach(): void
+    {
+        $order = $this->order(['C', 'S', 'H']);
+        $this->plan->sync($order);
+
+        $board = $this->queue->board();
+        $orphans = $this->queue->board(unassignedOnly: true);
+
+        $tab = null;
+
+        foreach ($board['workstations'] as $station) {
+            if ($station['id'] === null) {
+                $tab = $station['open'];
+            }
+        }
+
+        // Etap podzlecany istnieje, ale hala go nie odhacza — nie ma go
+        // w wierszach, wiec nie moze go byc w liczniku nad nimi.
+        // Zakladka „Bez stanowiska 9" nad szescioma wierszami to dwa
+        // zapytania o ten sam zbior, z ktorych jedno zgubilo warunek.
+        $this->assertSame(3, ProductionTask::query()->where('order_id', $order->getKey())->count());
+        $this->assertSame($orphans['summary']['shown'], $tab);
+    }
 }
