@@ -136,6 +136,14 @@ migrate-fresh-seed:
 	make art c="migrate:fresh --seed"
 reload-db:
 	make migrate-fresh-seed
+# Symulacja duzej bazy: zaklada N zlecen droga ekranu i mierzy ekrany.
+# Dane zostaja w bazie deweloperskiej — male demo przywraca
+# `make migrate-fresh-seed`. Raport w storage/app/symulacja/.
+simulate:
+	make art c="glass:simulate --orders=$(or $(N),10000)"
+# Sam pomiar na tym, co jest w bazie — po poprawce, bez zakladania od nowa.
+simulate-measure:
+	make art c="glass:simulate --measure-only"
 reverb:
 	make art c="reverb:start"
 
