@@ -1141,6 +1141,8 @@
     "issue_hint": "bez tego nikt tego nie odblokuje",
     "issue_save": "Zgłoś",
     "keys": "Strzałki wybierają pozycję, Enter odhacza, S zaczyna, P zgłasza problem.",
+    "keys_read_only": "Strzałki wybierają pozycję.",
+    "read_only": "Podgląd — odhaczanie etapów wymaga uprawnienia {{permission}}.",
     "status": {
       "pending": "czeka",
       "in_progress": "w toku",

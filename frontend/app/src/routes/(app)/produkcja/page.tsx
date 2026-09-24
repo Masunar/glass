@@ -11,6 +11,8 @@ import type {
   ProductionRow,
 } from '@app/api/ProductionApi';
 import { ProductionApi } from '@app/api/ProductionApi';
+import { Permission, SubPermission } from '@app/config/permission';
+import { useHasPermission } from '@app/hook/use-permissions';
 
 const ISSUES: ProductionIssue[] = ['breakage', 'material', 'drawing', 'rework'];
 
@@ -41,6 +43,15 @@ export default function Page() {
   const [issueNote, setIssueNote] = useState('');
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // Podglad kolejki to nie praca przy niej. Serwer i tak odmowi bez
+  // `production.update`, ale przycisk, ktory konczy sie odmowa, jest
+  // obietnica, ktorej ekran nie dotrzyma — handlowiec widzial
+  // „Wykonane" przy kazdym etapie.
+  const canWork = useHasPermission()(
+    Permission.PRODUCTION,
+    SubPermission.UPDATE,
+  );
 
   const load = useCallback(async () => {
     const { content } = await ProductionApi.board(station, done);
@@ -97,12 +108,15 @@ export default function Page() {
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
         setCursor((index) => Math.max(index - 1, 0));
-      } else if (event.key === 'Enter' && current) {
+      } else if (!canWork || !current) {
+        // Skroty zmieniaja stan — bez prawa zmiany zostaja same strzalki.
+        return;
+      } else if (event.key === 'Enter') {
         event.preventDefault();
         void act(current, current.status === 'done' ? 'reopen' : 'finish');
-      } else if ((event.key === 's' || event.key === 'S') && current) {
+      } else if (event.key === 's' || event.key === 'S') {
         void act(current, 'start');
-      } else if ((event.key === 'p' || event.key === 'P') && current) {
+      } else if (event.key === 'p' || event.key === 'P') {
         event.preventDefault();
         setIssueFor(current.id);
         setIssueNote('');
@@ -112,7 +126,7 @@ export default function Page() {
     window.addEventListener('keydown', onKey);
 
     return () => window.removeEventListener('keydown', onKey);
-  }, [rows.length, current, act]);
+  }, [rows.length, current, act, canWork]);
 
   useEffect(() => {
     listRef.current
@@ -167,7 +181,10 @@ export default function Page() {
       </header>
 
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--filter" aria-label={t('page.production.stations')}>
+        <nav
+          className="ge-seg ge-seg--filter"
+          aria-label={t('page.production.stations')}
+        >
           {[
             { key: '', label: t('page.production.all_stations'), open: null },
             ...board.workstations.map((row) => ({
@@ -356,15 +373,26 @@ export default function Page() {
                           ? ` · ${t('page.production.took', { minutes: current.minutes_spent })}`
                           : ''}
                       </div>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        disabled={busy}
-                        onClick={() => void act(current, 'reopen')}
-                      >
-                        {t('page.production.reopen')}
-                      </Button>
+                      {canWork && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          disabled={busy}
+                          onClick={() => void act(current, 'reopen')}
+                        >
+                          {t('page.production.reopen')}
+                        </Button>
+                      )}
                     </>
+                  ) : !canWork ? (
+                    // Zamiast przyciskow zdanie z nazwa uprawnienia — tak
+                    // samo jak ekran „Brak dostepu". „Nie mozesz" bez
+                    // powodu kaze pytac administratora, czego brakuje.
+                    <div className="ge-quiet">
+                      {t('page.production.read_only', {
+                        permission: 'production.update',
+                      })}
+                    </div>
                   ) : (
                     <>
                       {current.status !== 'in_progress' && (
@@ -474,7 +502,13 @@ export default function Page() {
               </section>
 
               <section className="ge-section">
-                <div className="ge-quiet">{t('page.production.keys')}</div>
+                <div className="ge-quiet">
+                  {t(
+                    canWork
+                      ? 'page.production.keys'
+                      : 'page.production.keys_read_only',
+                  )}
+                </div>
               </section>
             </>
           )}
