@@ -117,38 +117,53 @@ final readonly class OrderTransition
                 'status_changed',
             );
 
-            // Marszruta staje sie praca do wykonania dopiero tutaj.
-            // Wywolanie jest powtarzalne: powrot na produkcje po
-            // poprawce odnajduje te same zadania, nie zaklada drugich.
-            if ($target->code === self::PRODUCTION) {
-                $this->plan->sync($order);
-            }
-
-            // Magazyn rusza sie razem ze statusem, a nie osobna
-            // czynnoscia do zapamietania — to ona nie byla wykonywana
-            // w starym systemie. Kazda z tych metod uzgadnia stan
-            // rezerwacji z tym, co wynika ze zlecenia teraz, wiec
-            // powtorne wejscie na ten sam status niczego nie dubluje.
-            match ($target->code) {
-                self::ORDERED => $this->stock->reserve($order),
-                self::PRODUCTION => $this->stock->issue($order),
-                self::CANCELLED => $this->stock->release($order),
-                default => null,
-            };
-
-            // Kolejka hartowni idzie tym samym torem: szyby oznaczone
-            // jako hartowane trafiaja do niej przy wejsciu na produkcje,
-            // a przy anulowaniu znika z niej to, co jeszcze nie
-            // pojechalo. Wyslanych nie ruszamy — szklo jest
-            // u podwykonawcy i wroci niezaleznie od losow zlecenia.
-            match ($target->code) {
-                self::PRODUCTION => $this->tempering->sync($order),
-                self::CANCELLED => $this->tempering->release($order),
-                default => null,
-            };
+            $this->enter($order, $target->code);
         });
 
         return ['errors' => [], 'status' => $target->name, 'status_code' => $target->code];
+    }
+
+    /**
+     * Skutki wejścia zlecenia na status — wszystko, co musi się wydarzyć
+     * poza samą zmianą kolumny.
+     *
+     * **Jedno miejsce dla przejścia i dla danych próbnych.** Zasiew
+     * wpisywał status wprost i omijał tę listę, więc trzy zlecenia stały
+     * „na produkcji" bez jednego zadania na hali — kolejka była pusta
+     * u wszystkich, a moduł produkcji nie dał się przejść żadną rolą.
+     * Druga kopia tej listy w zasiewie rozjechałaby się przy pierwszym
+     * nowym skutku i dane próbne znowu kłamałyby bez objawów.
+     *
+     * Każdy skutek jest powtarzalny: ponowne wejście na ten sam status
+     * uzgadnia stan, a nie dokłada drugiego kompletu.
+     */
+    public function enter(Order $order, string $code): void
+    {
+        // Marszruta staje sie praca do wykonania dopiero tutaj.
+        if ($code === self::PRODUCTION) {
+            $this->plan->sync($order);
+        }
+
+        // Magazyn rusza sie razem ze statusem, a nie osobna czynnoscia
+        // do zapamietania — to ona nie byla wykonywana w starym
+        // systemie.
+        match ($code) {
+            self::ORDERED => $this->stock->reserve($order),
+            self::PRODUCTION => $this->stock->issue($order),
+            self::CANCELLED => $this->stock->release($order),
+            default => null,
+        };
+
+        // Kolejka hartowni idzie tym samym torem: szyby oznaczone jako
+        // hartowane trafiaja do niej przy wejsciu na produkcje, a przy
+        // anulowaniu znika z niej to, co jeszcze nie pojechalo.
+        // Wyslanych nie ruszamy — szklo jest u podwykonawcy i wroci
+        // niezaleznie od losow zlecenia.
+        match ($code) {
+            self::PRODUCTION => $this->tempering->sync($order),
+            self::CANCELLED => $this->tempering->release($order),
+            default => null,
+        };
     }
 
     private function acceptsReason(StatusTransition $transition): bool

@@ -25,6 +25,7 @@ use App\Models\ProductService;
 use App\Services\Pricing\PriceResolver;
 use App\Models\OrderItemProcess;
 use App\Services\NumberSequence;
+use App\Services\Orders\OrderTransition;
 
 /**
  * Zlecenia do pracy nad ekranami.
@@ -76,6 +77,7 @@ class OrderSeeder extends Seeder
 
         $today = Carbon::today();
         $sequence = new NumberSequence();
+        $transition = new OrderTransition();
         $users = User::query()->orderBy('id')->get();
         $stobno = Location::query()->where('name', 'Stobno')->first();
         $invoiceType = InvoiceType::query()->where('is_default', true)->first();
@@ -117,6 +119,20 @@ class OrderSeeder extends Seeder
             ]);
 
             $this->fill($order, $products, $row['panes'], $row['rejected'] ?? false);
+
+            // Status wpisany wprost nie robi niczego poza zmiana kolumny.
+            // Skutki wejscia na status — zadania na hali, magazyn, piec —
+            // ida ta sama droga, co przy prawdziwym przejsciu. Bez tego
+            // zlecenia stoja „na produkcji", a kolejka jest pusta.
+            //
+            // Tylko biezacy status, bez drogi do niego: zlecenie
+            // „Gotowe" nie dostaje zadan, bo udawanie wykonanej pracy
+            // byloby wymyslaniem danych.
+            //
+            // Zlecenie z okuciami ponad stan wywali zasiew na wydaniu —
+            // i dobrze: dane probne nie maja pokazywac stanu, ktorego
+            // aplikacja nie dopuszcza.
+            $transition->enter($order->fresh() ?? $order, $row['status']);
         }
     }
 
