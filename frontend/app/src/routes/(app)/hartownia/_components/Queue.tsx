@@ -1,8 +1,7 @@
+import { decimal } from '../../magazyn/_components/decimal';
 import { Link } from 'react-router';
 
 import type { TemperingQueue } from '@app/api/TemperingApi';
-
-import { decimal } from '../../magazyn/_components/decimal';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -46,10 +45,15 @@ export function Queue({
   return (
     <>
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--filter" aria-label={t('page.tempering.thickness')}>
+        <nav
+          className="ge-seg ge-seg--filter"
+          aria-label={t('page.tempering.thickness')}
+        >
           <button
             type="button"
-            className={thickness === '' ? 'ge-seg__item is-active' : 'ge-seg__item'}
+            className={
+              thickness === '' ? 'ge-seg__item is-active' : 'ge-seg__item'
+            }
             aria-pressed={thickness === ''}
             onClick={() => onThickness('')}
           >
@@ -86,14 +90,22 @@ export function Queue({
             {/* Mieszanka grubosci w jednym wsadzie podnosi koszt
                 i ryzyko — hartownia ustawia piec pod jedna. */}
             <span
-              className={thicknesses.size > 1 ? 'ge-temp__sum ge-note--warn' : 'ge-temp__sum'}
+              className={
+                thicknesses.size > 1
+                  ? 'ge-temp__sum ge-note--warn'
+                  : 'ge-temp__sum'
+              }
             >
               {t('page.tempering.thickness_count', { count: thicknesses.size })}
             </span>
             <button type="button" onClick={onClear}>
               {t('page.warehouse.clear_selection')}
             </button>
-            <button type="button" className="ge-act--go" onClick={onCreateBatch}>
+            <button
+              type="button"
+              className="ge-act--go"
+              onClick={onCreateBatch}
+            >
               {t('page.tempering.create_batch')}
             </button>
           </span>
@@ -118,7 +130,9 @@ export function Queue({
         {rows.map((row) => (
           <div
             className={
-              selected.includes(row.id) ? 'ge-stock__row is-open' : 'ge-stock__row'
+              selected.includes(row.id)
+                ? 'ge-stock__row is-open'
+                : 'ge-stock__row'
             }
             key={row.id}
           >
@@ -138,7 +152,9 @@ export function Queue({
             <span className="ge-cell--wrap">{row.contractor ?? '—'}</span>
             <span className="ge-cell--wrap">{row.name}</span>
             <span className="r ge-quiet">
-              {row.thickness_mm === null ? '—' : `${decimal(row.thickness_mm)} mm`}
+              {row.thickness_mm === null
+                ? '—'
+                : `${decimal(row.thickness_mm)} mm`}
             </span>
             <span className="r ge-quiet">
               {row.width_mm} × {row.height_mm}
@@ -156,17 +172,23 @@ export function Queue({
                   {t('page.tempering.urgent')}
                 </span>
               )}
-              {row.is_irregular_shape && (
-                <span className="ge-tag">{t('page.tempering.shape')}</span>
+              {row.shape !== 'rectangle' && (
+                <span className="ge-tag">
+                  {t(`page.orders.shape.${row.shape}`)}
+                </span>
               )}
               {/* Znak jest sygnalem dla operatora przy wysylce. */}
               {row.needs_mark && (
-                <span className="ge-tag ge-tag--mark">{t('page.tempering.mark')}</span>
+                <span className="ge-tag ge-tag--mark">
+                  {t('page.tempering.mark')}
+                </span>
               )}
               {/* Pozycja zastepcza po stluczce — ta sama formatka
                   jedzie do pieca drugi raz i widac to wprost. */}
               {row.replaces_id !== null && (
-                <span className="ge-tag ge-tag--again">{t('page.tempering.again')}</span>
+                <span className="ge-tag ge-tag--again">
+                  {t('page.tempering.again')}
+                </span>
               )}
             </span>
           </div>

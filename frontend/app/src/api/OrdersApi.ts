@@ -101,10 +101,13 @@ export type OrderBoardAlerts = {
   counts: Record<string, number>;
 };
 
+/** Kształt formatki — prostokąt bez dopłaty, kształt i owal z dopłatą i rysunkiem. */
+export type PaneShape = 'rectangle' | 'irregular' | 'oval';
+
 export type OrderPane = {
   width_mm: number;
   height_mm: number;
-  is_irregular_shape: boolean;
+  shape: PaneShape;
   is_tempered: boolean;
   needs_mark: boolean;
 };
@@ -320,7 +323,7 @@ export type OrderPaneRow = {
   }[];
   width_mm: number | null;
   height_mm: number | null;
-  is_irregular_shape: boolean;
+  shape: PaneShape;
   is_tempered: boolean;
   needs_mark: boolean;
   is_urgent: boolean;
@@ -505,6 +508,8 @@ export type OrderDrawingsBoard = {
   drawings: OrderDrawingRow[];
   /** Komplet deklaruje człowiek — tu jest kto i kiedy. */
   complete: { declared: boolean; at: string | null; by: string | null };
+  /** Powody, dla których zlecenie wymaga rysunków; pusta — nie wymaga. */
+  required: string[];
   items: { id: number; name: string; list: number }[];
   accepts: string[];
   max_kilobytes: number;

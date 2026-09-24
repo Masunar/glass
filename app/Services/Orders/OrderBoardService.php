@@ -110,6 +110,9 @@ final readonly class OrderBoardService
                 'invoiceType',
                 'discounts',
                 'lists.items.processes',
+                // Ksztalt formatki rozstrzyga, czy zlecenie wymaga
+                // rysunkow — warunek przejscia pyta o to przy kazdym wierszu.
+                'lists.items.pane',
                 'payments',
             ])
             ->limit($limit)

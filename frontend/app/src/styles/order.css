@@ -359,6 +359,14 @@
   background: var(--m-mag-tint);
 }
 
+/* Dlaczego rysunki sa wymagane — nad oswiadczeniem, zeby bylo wiadomo,
+   czego ma dotyczyc. */
+.ge-draw__required {
+  font-size: 13.5px;
+  margin-bottom: 10px;
+}
+.ge-draw__required ul { margin: 4px 0 0; padding-left: 18px; }
+
 /* ---------- paski decyzyjne: rowna wysokosc ---------- */
 
 /* Pasek "co dalej" rosl razem z liczba slepych sciezek i rozpychal caly

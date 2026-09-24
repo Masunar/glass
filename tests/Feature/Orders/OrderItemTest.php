@@ -582,7 +582,7 @@ class OrderItemTest extends TestCase
         $plain = $this->service->preview((int) $order->getKey(), $input);
         $shaped = $this->service->preview(
             (int) $order->getKey(),
-            [...$input, 'is_irregular_shape' => true],
+            [...$input, 'shape' => 'irregular'],
         );
 
         // Doplata musi byc widoczna jako wlasny krok, a nie tylko jako
@@ -594,6 +594,44 @@ class OrderItemTest extends TestCase
         $this->assertNotContains('shape', array_column($plain['steps'], 'code'));
         $this->assertContains('shape', $codes);
         $this->assertGreaterThan((float) $plain['total'], (float) $shaped['total']);
+    }
+
+    #[Test]
+    public function owal_placi_jak_ksztalt_i_zapisuje_sie_jako_owal(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $input = $this->pane(['width_mm' => 1500, 'height_mm' => 1000]);
+
+        $shaped = $this->service->preview((int) $order->getKey(), [...$input, 'shape' => 'irregular']);
+        $oval = $this->service->preview((int) $order->getKey(), [...$input, 'shape' => 'oval']);
+
+        // Osobnej stawki za owal nikt nie ustalil. Do tego czasu placi
+        // jak ksztalt — bez doplaty bylby tanszy od prostokata z wycieciem.
+        $this->assertSame($shaped['total'], $oval['total']);
+
+        $saved = $this->service->savePane((int) $order->getKey(), [...$input, 'shape' => 'oval']);
+
+        $this->assertSame([], $saved['errors']);
+        $this->assertSame(
+            \App\Enum\PaneShape::OVAL,
+            \App\Models\OrderPane::query()->findOrFail($saved['id'])->shape,
+        );
+    }
+
+    #[Test]
+    public function nieznany_ksztalt_jest_odrzucany(): void
+    {
+        $this->priceGlass();
+        $order = $this->order();
+
+        $result = $this->service->savePane(
+            (int) $order->getKey(),
+            [...$this->pane(['width_mm' => 1500, 'height_mm' => 1000]), 'shape' => 'trojkat'],
+        );
+
+        $this->assertArrayHasKey('shape', $result['errors']);
     }
 
     #[Test]

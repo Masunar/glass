@@ -226,7 +226,8 @@ final readonly class ProductionQueue
             'quantity' => $item->quantity,
             'width_mm' => $pane?->width_mm,
             'height_mm' => $pane?->height_mm,
-            'is_irregular_shape' => (bool) ($pane->is_irregular_shape ?? false),
+            // Usluga nie ma formatki — wtedy nie ma i ksztaltu.
+            'shape' => $pane?->shape->value,
             // Parametr to powod, dla ktorego operator idzie zapytac do
             // biura. Ma stac przy pozycji, nie w zakladce obok.
             'parameter' => $task->parameter,

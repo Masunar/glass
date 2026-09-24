@@ -328,7 +328,7 @@ final readonly class TemperingBoard
             widthMm: $pane->width_mm,
             heightMm: $pane->height_mm,
             quantity: (int) ceil($quantity),
-            isIrregularShape: $pane->is_irregular_shape,
+            isIrregularShape: $pane->shape->hasShapeSurcharge(),
             isTempered: $pane->is_tempered,
         );
 
@@ -349,7 +349,7 @@ final readonly class TemperingBoard
             'quantity' => $quantity,
             'kg' => $glass?->weightOfPane($pane->width_mm, $pane->height_mm, (int) ceil($quantity)) ?? 0.0,
             'm2' => round($specification->squareMeters(), 3),
-            'is_irregular_shape' => $pane->is_irregular_shape,
+            'shape' => $pane->shape->value,
             // Znak jedzie wprost z formatki. Co fizycznie oznacza —
             // H-01, nadal bez odpowiedzi, wiec zostaje flaga.
             'needs_mark' => $pane->needs_mark,

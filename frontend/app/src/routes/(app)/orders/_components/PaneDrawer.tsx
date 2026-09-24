@@ -33,7 +33,7 @@ const empty = {
   width_mm: '',
   height_mm: '',
   quantity: 1,
-  is_irregular_shape: false,
+  shape: 'rectangle',
   is_tempered: false,
   needs_mark: false,
   is_urgent: false,
@@ -128,7 +128,7 @@ export default function PaneDrawer({
       width_mm: item?.width_mm ?? '',
       height_mm: item?.height_mm ?? '',
       quantity: Number(item?.quantity ?? 1),
-      is_irregular_shape: item?.is_irregular_shape ?? false,
+      shape: item?.shape ?? 'rectangle',
       is_tempered: item?.is_tempered ?? false,
       needs_mark: item?.needs_mark ?? false,
       is_urgent: item?.is_urgent ?? false,
@@ -404,14 +404,26 @@ export default function PaneDrawer({
               />
             </FieldRow>
 
+            {/* Rodzaj zamiast przelacznika: owal to nie prostokat i nie
+                „jakis ksztalt". Ksztalt i owal wchodza z doplata i wymagaja
+                rysunku przed produkcja. */}
+            <FieldRow columns="1fr" paddingTop={10}>
+              <Choice
+                name="shape"
+                label={t('page.orders.shape.label')}
+                options={(['rectangle', 'irregular', 'oval'] as const).map(
+                  (shape) => ({
+                    value: shape,
+                    label: t(`page.orders.shape.${shape}`),
+                  }),
+                )}
+              />
+            </FieldRow>
+
             <FieldRow columns="1fr" paddingTop={10}>
               <Toggle
                 name="is_tempered"
                 label={t('page.orders.panes.tempered')}
-              />
-              <Toggle
-                name="is_irregular_shape"
-                label={t('page.orders.panes.irregular')}
               />
               <Toggle name="needs_mark" label={t('page.orders.panes.mark')} />
               <Toggle name="is_urgent" label={t('page.orders.panes.urgent')} />

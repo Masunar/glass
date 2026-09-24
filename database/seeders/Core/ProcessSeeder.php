@@ -43,6 +43,10 @@ class ProcessSeeder extends Seeder
             [14, 'M', 'Montaż', 7, Unit::PIECE, false, false],
         ];
 
+        // Procesy, ktore bez rysunku nie ruszaja (decyzja Marcina). Flaga
+        // jest w slowniku procesow i tam sie ja zmienia — tu tylko start.
+        $withDrawing = ['R', 'W', 'N', 'I'];
+
         $order = 0;
 
         foreach ($processes as [$legacyId, $code, $name, $days, $unit, $subcontracted, $parameter]) {
@@ -53,6 +57,7 @@ class ProcessSeeder extends Seeder
                 'duration_days' => $days,
                 'is_subcontracted' => $subcontracted,
                 'requires_parameter' => $parameter,
+                'requires_drawing' => in_array($code, $withDrawing, true),
                 'default_order' => $order += 10,
                 'legacy_id' => $legacyId,
             ]);

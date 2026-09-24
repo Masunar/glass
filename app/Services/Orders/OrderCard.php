@@ -343,7 +343,7 @@ final readonly class OrderCard
                     'pane' => $pane === null ? null : [
                         'width_mm' => $pane->width_mm,
                         'height_mm' => $pane->height_mm,
-                        'is_irregular_shape' => (bool) $pane->is_irregular_shape,
+                        'shape' => $pane->shape->value,
                         'is_tempered' => (bool) $pane->is_tempered,
                         'needs_mark' => (bool) $pane->needs_mark,
                     ],

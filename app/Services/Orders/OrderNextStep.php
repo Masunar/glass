@@ -34,6 +34,7 @@ final readonly class OrderNextStep
         private ProductionPlan $plan = new ProductionPlan(),
         private OrderStock $stock = new OrderStock(),
         private TransitionCatalog $catalog = new TransitionCatalog(),
+        private DrawingRequirement $drawings = new DrawingRequirement(),
     ) {
     }
 
@@ -197,9 +198,12 @@ final readonly class OrderNextStep
             'pickup_point_set' => $order->pickup_location_id !== null,
             'no_open_complaint' => !$order->has_open_claim,
             'cancellation_reason_set' => $order->cancellation_reason !== null,
-            // Komplet rysunkow deklaruje czlowiek, nie licznik plikow:
-            // zlecenie na proste docinki nie potrzebuje zadnego rysunku.
-            'all_drawings_added' => $order->drawings_complete_at !== null,
+            // Komplet rysunkow deklaruje czlowiek, nie licznik plikow.
+            // Oswiadczenie jest potrzebne tylko wtedy, gdy zlecenie ma
+            // cos do narysowania — ksztalt, owal albo proces z rysunkiem.
+            // Ta sama regula zapala alert „brak rysunkow".
+            'all_drawings_added' => $order->drawings_complete_at !== null
+                || !$this->drawings->requires($order),
             // Zaliczka albo limit kupiecki. Sama zaliczka wystarczy —
             // klient, ktory cos wplacil, potwierdzil zamowienie czynem.
             'prepayment_or_credit_limit' => $this->prepaidOrWithinLimit($order),

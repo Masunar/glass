@@ -1,5 +1,5 @@
-import OrderTabs from '../_components/OrderTabs';
 import InvestmentDrawer from '../_components/InvestmentDrawer';
+import OrderTabs from '../_components/OrderTabs';
 import OwnerDrawer from '../_components/OwnerDrawer';
 import VatLines from '../_components/VatLines';
 import { vatNote } from '../_components/vat';
@@ -511,10 +511,7 @@ export default function Page() {
                         })}
                 </div>
               )}
-              <Button
-                variant="text"
-                onClick={() => setInvestmentOpen(true)}
-              >
+              <Button variant="text" onClick={() => setInvestmentOpen(true)}>
                 {t('page.orders.investment.edit')}
               </Button>
             </div>
@@ -561,7 +558,9 @@ export default function Page() {
               <div className="ge-section__body">
                 <div className="ge-kv">
                   <span className="ge-kv__k">{card.offers.last.number}</span>
-                  <span className={`ge-offers__state is-${card.offers.last.status}`}>
+                  <span
+                    className={`ge-offers__state is-${card.offers.last.status}`}
+                  >
                     {card.offers.last.status_label}
                   </span>
                 </div>
@@ -931,8 +930,8 @@ function ListSection({
                 {item.pane.width_mm} × {item.pane.height_mm} mm
               </span>
             )}
-            {item.pane?.is_irregular_shape
-              ? ` · ${t('page.orders.card.irregular')}`
+            {item.pane && item.pane.shape !== 'rectangle'
+              ? ` · ${t(`page.orders.shape.${item.pane.shape}`)}`
               : ''}
             {item.processes.length > 0 ? ` · ${item.processes.join(', ')}` : ''}
           </span>

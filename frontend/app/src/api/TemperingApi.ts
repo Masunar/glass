@@ -1,4 +1,5 @@
 import { ApiRequest } from './ApiRequest';
+import type { PaneShape } from './OrdersApi';
 
 import type { ResponseContent, ResponseProps } from '@salvon/request';
 
@@ -14,7 +15,7 @@ export type TemperingRow = {
   quantity: number;
   kg: number;
   m2: number;
-  is_irregular_shape: boolean;
+  shape: PaneShape;
   /** Znak z formatki. Co fizycznie oznacza — H-01, nadal otwarte. */
   needs_mark: boolean;
   note: string | null;
@@ -103,7 +104,9 @@ export class TemperingApi extends ApiRequest {
     return await this.get('/batches', { status });
   }
 
-  public static async batch(id: number): Promise<ResponseProps<ResponseContent>> {
+  public static async batch(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
     return await this.get(`/batches/${id}`, {});
   }
 
@@ -172,7 +175,9 @@ export class TemperingApi extends ApiRequest {
     });
   }
 
-  public static async cancelBatch(id: number): Promise<ResponseProps<ResponseContent>> {
+  public static async cancelBatch(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
     return await this.post(`/batches/${id}/cancel`, {});
   }
 }

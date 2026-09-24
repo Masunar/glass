@@ -686,7 +686,6 @@
       "role_component": "składnik",
       "role_alternative": "alternatywa",
       "excluded": "nie wchodzi do kwoty",
-      "irregular": "kształt nieregularny",
       "column": {
         "no": "Lp.",
         "item": "Pozycja",
@@ -787,7 +786,6 @@
       "height": "Wysokość (mm)",
       "quantity": "Ilość",
       "tempered": "Hartowana",
-      "irregular": "Kształt nieregularny",
       "mark": "Znak",
       "size_note": "Hartowanie zmienia minimalną powierzchnię rozliczeniową, kształt i gabaryt dokładają dopłatę.",
       "processes_note": "Kliknięcie procesu dokłada etap. Ten sam proces może wystąpić kilka razy — dwie różne fazy na jednej szybie to dwie różne prace.",
@@ -899,11 +897,13 @@
       "list": "Wgrane rysunki",
       "empty": "Do tego zlecenia nie wgrano jeszcze żadnego rysunku.",
       "declaration": "Komplet rysunków",
-      "declaration_note": "Produkcja rusza na podstawie tego oświadczenia, więc zostanie zapisane, kto i kiedy je złożył. Zlecenie na proste docinki może nie potrzebować żadnego rysunku — o komplecie decydujesz Ty, nie liczba plików.",
+      "declaration_note": "Produkcja rusza na podstawie tego oświadczenia, więc zostanie zapisane, kto i kiedy je złożył.",
       "declare": "Potwierdzam komplet",
       "declared_by": "{{who}}, {{when}}",
       "withdraw": "Cofnij oświadczenie",
-      "withdraw_note": "Dodanie lub usunięcie rysunku cofa oświadczenie — po zmianie kompletu trzeba potwierdzić go jeszcze raz."
+      "withdraw_note": "Dodanie lub usunięcie rysunku cofa oświadczenie — po zmianie kompletu trzeba potwierdzić go jeszcze raz.",
+      "required": "Rysunki są wymagane:",
+      "not_required": "To zlecenie nie wymaga rysunków — nie ma kształtów, owali ani procesów z rysunkiem. Przejdzie do produkcji bez oświadczenia."
     },
     "payments": {
       "title": "Płatności",
@@ -1099,7 +1099,13 @@
     "progress_note_many": "{{done}} z {{count}} etapów",
     "progress_note_other": "{{done}} z {{count}} etapów",
     "alerts_loading": "Sprawdzam alerty…",
-    "alerts_failed": "Nie udało się pobrać alertów — znaczniki i liczby przy zakładkach mogą być niepełne."
+    "alerts_failed": "Nie udało się pobrać alertów — znaczniki i liczby przy zakładkach mogą być niepełne.",
+    "shape": {
+      "label": "Kształt",
+      "rectangle": "Prostokąt",
+      "irregular": "Kształt",
+      "oval": "Owal"
+    }
   },
   "production": {
     "loading": "Wczytywanie kolejki…",
@@ -1261,7 +1267,6 @@
     "create_batch_with": "Załóż partię z {{count}} poz.",
     "queue_empty": "Nic nie czeka na wsad.",
     "batches_empty": "Brak partii w tym widoku.",
-    "shape": "kształt",
     "mark": "znak",
     "again": "ponownie",
     "supplier": "Hartownia",

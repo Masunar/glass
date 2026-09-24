@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Dev;
 
+use App\Enum\PaneShape;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Order;
@@ -198,7 +199,7 @@ class OrderSeeder extends Seeder
             'order_item_id' => $item->id,
             'width_mm' => $spec['w'],
             'height_mm' => $spec['h'],
-            'is_irregular_shape' => $spec['irregular'] ?? false,
+            'shape' => ($spec['irregular'] ?? false) ? PaneShape::IRREGULAR->value : PaneShape::RECTANGLE->value,
             'is_tempered' => true,
         ]);
 
