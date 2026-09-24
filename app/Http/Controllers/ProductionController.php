@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Enum\Permission;
+use App\Services\UserPreferences;
 use Illuminate\Http\Request;
 use Salvon\Enum\SubPermission;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +25,7 @@ class ProductionController extends ApiController
     public function __construct(
         private readonly ProductionQueue $queue,
         private readonly TaskExecution $execution,
+        private readonly UserPreferences $preferences,
     ) {
         $this->protect(['board'], Permission::PRODUCTION->value, SubPermission::LIST->value);
         $this->protect(
@@ -37,6 +40,7 @@ class ProductionController extends ApiController
         return $this->secure(function () use ($request): JsonResponse {
             $workstation = $request->query('workstation');
             $process = $request->query('process');
+            $user = $request->user();
 
             return $this->dataResponse($this->queue->board(
                 // „none" to nie brak filtru, tylko filtr na etapy bez
@@ -45,6 +49,12 @@ class ProductionController extends ApiController
                 $workstation === 'none',
                 is_numeric($process) ? (int) $process : null,
                 $request->boolean('done'),
+                perPage: $this->preferences->resolve(
+                    $user instanceof User ? $user : null,
+                    UserPreferences::PRODUCTION_PER_PAGE,
+                    $request->query('per_page'),
+                ),
+                page: max(1, $request->integer('page', 1)),
             ));
         });
     }

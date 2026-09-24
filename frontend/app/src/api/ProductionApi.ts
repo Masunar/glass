@@ -32,6 +32,8 @@ export type ProductionRow = {
   comment: string | null;
   list_comment: string | null;
   drawings: number;
+  /** Postęp całego zlecenia — ile jego etapów jest zrobionych. */
+  order_progress: { done: number; total: number; percent: number } | null;
   status: ProductionStatus;
   issue_type: ProductionIssue | null;
   note: string | null;
@@ -47,6 +49,11 @@ export type ProductionBoard = {
   rows: ProductionRow[];
   summary: {
     shown: number;
+    /** Ile etapów pasuje do filtra — na wszystkich stronach. */
+    total: number;
+    page: number;
+    pages: number;
+    per_page: number;
     problems: number;
     overdue: number;
     as_of: string;
@@ -59,8 +66,13 @@ export class ProductionApi extends ApiRequest {
   public static async board(
     workstation: string = '',
     done: boolean = false,
+    page: number = 1,
   ): Promise<ResponseProps<ResponseContent>> {
-    return await this.get('', { workstation, done: done ? '1' : '' });
+    return await this.get('', {
+      workstation,
+      done: done ? '1' : '',
+      page: String(page),
+    });
   }
 
   public static async start(

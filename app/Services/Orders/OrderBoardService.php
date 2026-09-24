@@ -32,6 +32,7 @@ final readonly class OrderBoardService
         private OrderNextStep $nextStep = new OrderNextStep(),
         private OrderValue $value = new OrderValue(),
         private AlertBoard $alerts = new AlertBoard(),
+        private OrderProgress $progress = new OrderProgress(),
     ) {
     }
 
@@ -129,10 +130,18 @@ final readonly class OrderBoardService
         // czerwony licznik przy zakladce ma mowic o calosci.
         $alerts = $this->alerts->forOrders($day);
 
+        // Postep hali dla calej strony jednym zapytaniem.
+        $production = $this->progress->production($orders->modelKeys());
+
         $bands = ['today' => [], 'overdue' => [], 'later' => []];
 
         foreach ($orders as $order) {
-            $bands[$this->bandFor($order, $day)][] = $this->row($order, $day, $alerts);
+            $bands[$this->bandFor($order, $day)][] = $this->row(
+                $order,
+                $day,
+                $alerts,
+                $production[(int) $order->getKey()] ?? null,
+            );
         }
 
         $total = $scope()->count();
@@ -299,11 +308,20 @@ final readonly class OrderBoardService
 
     /**
      * @param array<int, list<array<string, mixed>>> $alerts
+     * @param array{done: int, total: int, percent: int}|null $production
      * @return array<string, mixed>
      */
-    private function row(Order $order, Carbon $day, array $alerts = []): array
+    private function row(Order $order, Carbon $day, array $alerts = [], ?array $production = null): array
     {
         $deadline = $this->deadline($order);
+        $totals = $this->value->totals($order);
+        $paid = 0.0;
+
+        // Korekta to wiersz z kwota ujemna — sumuje sie sama.
+        foreach ($order->payments as $payment) {
+            $paid += (float) $payment->amount_base;
+        }
+
         $step = $this->nextStep->firstAvailable($order);
         $blocked = $step === null ? $this->firstBlocked($order) : null;
 
@@ -321,7 +339,12 @@ final readonly class OrderBoardService
             'is_shifted' => $order->shifted_deadline !== null,
             'delivery_method' => $order->delivery_method->value,
             'delivery_place' => $order->pickupLocation->name ?? $order->delivery_address,
-            'amount' => $this->value->net($order),
+            'amount' => $totals->net,
+            // Oba procenty z `OrderProgress` — ta sama regula co karta
+            // i zakladka wplat. `null` to „nie wiadomo" (brak typu
+            // faktury, zlecenie jeszcze bez etapow), nie zero.
+            'paid_percent' => OrderProgress::paidPercent($paid, $totals->gross === null ? null : (float) $totals->gross),
+            'production' => $production,
             'owner_initials' => OrderOwnerService::initials($order->owner),
             // Identyfikator, nie tylko inicjaly: pulpit dzieli wiersze
             // na „moje" i reszte, a dwie osoby moga miec te same

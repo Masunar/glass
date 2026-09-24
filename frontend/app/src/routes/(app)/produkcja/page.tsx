@@ -5,12 +5,14 @@ import { Button } from '@salvon/components/button';
 import { useTranslation } from '@salvon/hooks/useTranslation';
 import { notifyError } from '@salvon/utils/notify';
 
+import { PreferencesApi } from '@app/api/PreferencesApi';
 import type {
   ProductionBoard,
   ProductionIssue,
   ProductionRow,
 } from '@app/api/ProductionApi';
 import { ProductionApi } from '@app/api/ProductionApi';
+import { Pager } from '@app/components/list';
 import { Permission, SubPermission } from '@app/config/permission';
 import { useHasPermission } from '@app/hook/use-permissions';
 
@@ -37,6 +39,7 @@ export default function Page() {
   const [board, setBoard] = useState<ProductionBoard | null>(null);
   const [station, setStation] = useState<string>('');
   const [done, setDone] = useState(false);
+  const [page, setPage] = useState(1);
   const [cursor, setCursor] = useState(0);
   const [issueFor, setIssueFor] = useState<number | null>(null);
   const [issueType, setIssueType] = useState<ProductionIssue>('breakage');
@@ -54,22 +57,50 @@ export default function Page() {
   );
 
   const load = useCallback(async () => {
-    const { content } = await ProductionApi.board(station, done);
+    const { content } = await ProductionApi.board(station, done, page);
     const data: ProductionBoard | undefined = content?.data;
 
     if (data) {
       setBoard(data);
+      // Serwer cofa strone, ktorej juz nie ma (ostatni etap ostatniej
+      // strony odhaczony) — ekran ma pokazywac te, ktora dostal.
+      if (data.summary.page !== page) {
+        setPage(data.summary.page);
+      }
+
       setCursor((current) =>
         Math.min(current, Math.max(0, data.rows.length - 1)),
       );
     }
-  }, [station, done]);
+  }, [station, done, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const rows = useMemo(() => board?.rows ?? [], [board]);
+
+  /** Liczba etapów na stronę zapamiętana przy koncie, jak na liście zleceń. */
+  const changePerPage = async (perPage: number) => {
+    const { response } = await PreferencesApi.save({
+      'production.per_page': perPage,
+    });
+
+    if (!response.success) {
+      notifyError(t('api.ise'));
+
+      return;
+    }
+
+    setCursor(0);
+
+    if (page === 1) {
+      await load();
+    } else {
+      setPage(1);
+    }
+  };
+
   const current = rows[cursor] ?? null;
 
   const act = useCallback(
@@ -169,7 +200,9 @@ export default function Page() {
           <div className="ge-head__kicker">{t('page.production.kicker')}</div>
           <h1 className="ge-head__title">{t('page.production.title')}</h1>
           <div className="ge-quiet">
-            {t('page.production.count', { count: board.summary.shown })}
+            {/* Cala kolejka, nie strona — „50 etapow" nad kolejka
+                z tysiacem to ten sam blad co licznik z pokazanych wierszy. */}
+            {t('page.production.count', { count: board.summary.total })}
             {board.summary.overdue > 0
               ? ` · ${t('page.production.overdue', { count: board.summary.overdue })}`
               : ''}
@@ -210,6 +243,7 @@ export default function Page() {
                 aria-pressed={here}
                 onClick={() => {
                   setStation(tab.key);
+                  setPage(1);
                   setCursor(0);
                 }}
               >
@@ -225,7 +259,11 @@ export default function Page() {
           <input
             type="checkbox"
             checked={done}
-            onChange={(event) => setDone(event.target.checked)}
+            onChange={(event) => {
+              setDone(event.target.checked);
+              setPage(1);
+              setCursor(0);
+            }}
           />
           <span className="ge-toggle__track" />
           {t('page.production.show_done')}
@@ -277,6 +315,15 @@ export default function Page() {
                     #{row.order_number}
                   </Link>{' '}
                   {row.item ?? '—'}
+                  {/* Jak daleko jest cale zlecenie: czy ten etap to
+                      jedna z wielu rzeczy, czy ostatnia przed wydaniem. */}
+                  {row.order_progress && (
+                    <span className="ge-task__order">
+                      {t('page.production.order_chip', {
+                        percent: row.order_progress.percent,
+                      })}
+                    </span>
+                  )}
                 </span>
                 <span className="ge-quiet">
                   {row.process ?? '—'}
@@ -335,6 +382,18 @@ export default function Page() {
                     <div className="ge-from__row ge-from__row--off">
                       <span>{t('page.production.parameter')}</span>
                       <span>{current.parameter}</span>
+                    </div>
+                  )}
+                  {current.order_progress && (
+                    <div className="ge-from__row">
+                      <span>{t('page.production.order_progress_label')}</span>
+                      <span>
+                        {t('page.production.order_progress', {
+                          percent: current.order_progress.percent,
+                          done: current.order_progress.done,
+                          count: current.order_progress.total,
+                        })}
+                      </span>
                     </div>
                   )}
                   <div className="ge-from__row">
@@ -514,6 +573,16 @@ export default function Page() {
           )}
         </aside>
       </div>
+
+      <Pager
+        summary={board.summary}
+        translate={t}
+        onPage={(next) => {
+          setPage(next);
+          setCursor(0);
+        }}
+        onPerPage={(size) => void changePerPage(size)}
+      />
     </>
   );
 }

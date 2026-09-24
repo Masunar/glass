@@ -97,33 +97,85 @@ export function Due({
  * Kwota z paskiem zapłaty.
  *
  * Przy zerze pasek zostaje widoczny jako tło — inaczej wiersz bez wpłaty
- * wyglądałby jak wiersz bez informacji.
+ * wyglądałby jak wiersz bez informacji. `null` to co innego niż zero:
+ * procentu nie da się policzyć (brak brutto), więc pasek jest pusty,
+ * a notka mówi dlaczego.
  */
 export function Money({
   value,
   paidPercent,
+  note,
   tone = 'module',
 }: {
   value: string;
-  paidPercent: number;
+  paidPercent: number | null;
+  /** Podpis pod paskiem; domyślnie „N % zapłacone". */
+  note?: string;
   tone?: 'module' | 'prod' | 'done' | 'alert';
 }) {
-  const clamped = Math.max(0, Math.min(100, paidPercent));
+  const clamped =
+    paidPercent === null ? 0 : Math.max(0, Math.min(100, paidPercent));
 
   return (
     <div className="ge-money">
       <div className="ge-money__value">{value}</div>
-      <div className="ge-bar">
-        <div
-          className={
-            tone === 'module'
-              ? 'ge-bar__fill'
-              : `ge-bar__fill ge-bar__fill--${tone}`
-          }
-          style={{ width: `${clamped}%` }}
-        />
+      <Bar percent={clamped} tone={tone} />
+      <div className="ge-money__note">
+        {note ?? `${paidPercent ?? 0} % zapłacone`}
       </div>
-      <div className="ge-money__note">{clamped} % zapłacone</div>
+    </div>
+  );
+}
+
+/**
+ * Postęp z paskiem — ten sam pasek co przy kwocie, żeby dwa procenty
+ * w jednym wierszu czytało się tak samo.
+ */
+export function Progress({
+  percent,
+  label,
+  note,
+  tone = 'prod',
+}: {
+  /** `null` — nie ma czego mierzyć; pokazujemy kreskę, nie zero. */
+  percent: number | null;
+  label?: string;
+  note?: string;
+  tone?: 'module' | 'prod' | 'done' | 'alert';
+}) {
+  return (
+    <div className="ge-progress">
+      <div className="ge-progress__value">
+        {percent === null ? '—' : (label ?? `${percent} %`)}
+      </div>
+      {percent !== null && (
+        <Bar
+          percent={Math.max(0, Math.min(100, percent))}
+          tone={percent >= 100 ? 'done' : tone}
+        />
+      )}
+      {note ? <div className="ge-money__note">{note}</div> : null}
+    </div>
+  );
+}
+
+function Bar({
+  percent,
+  tone,
+}: {
+  percent: number;
+  tone: 'module' | 'prod' | 'done' | 'alert';
+}) {
+  return (
+    <div className="ge-bar">
+      <div
+        className={
+          tone === 'module'
+            ? 'ge-bar__fill'
+            : `ge-bar__fill ge-bar__fill--${tone}`
+        }
+        style={{ width: `${percent}%` }}
+      />
     </div>
   );
 }

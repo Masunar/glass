@@ -21,6 +21,9 @@ import {
   type Column,
   DataList,
   ListHead,
+  Money,
+  Pager,
+  Progress,
   Row,
   Stage,
   Strip,
@@ -35,6 +38,7 @@ const columns: Column[] = [
   { labelKey: 'page.orders.column.deadline', width: '124px' },
   { labelKey: 'page.orders.column.handover', width: '140px' },
   { labelKey: 'page.orders.column.amount', width: '132px', align: 'right' },
+  { labelKey: 'page.orders.column.progress', width: '112px' },
   { labelKey: 'page.orders.column.next', width: '230px' },
 ];
 
@@ -518,12 +522,30 @@ export default function Page() {
                     <div className="ge-note">{row.delivery_place ?? ''}</div>
                   </div>
 
-                  <div
-                    className="ge-money__value"
-                    style={{ textAlign: 'right' }}
-                  >
-                    {money(row.amount)}
-                  </div>
+                  {/* Kwota z paskiem wplat. Bez typu faktury brutto nie
+                      istnieje, wiec procent tez — notka mowi dlaczego,
+                      zamiast pokazywac zero, ktore wyglada jak dlug. */}
+                  <Money
+                    value={money(row.amount)}
+                    paidPercent={row.paid_percent}
+                    note={
+                      row.paid_percent === null
+                        ? t('page.orders.paid_unknown')
+                        : undefined
+                    }
+                  />
+
+                  <Progress
+                    percent={row.production?.percent ?? null}
+                    note={
+                      row.production
+                        ? t('page.orders.progress_note', {
+                            done: row.production.done,
+                            count: row.production.total,
+                          })
+                        : t('page.orders.progress_none')
+                    }
+                  />
 
                   <NextCell
                     row={row}
@@ -540,47 +562,14 @@ export default function Page() {
         {bands.length === 0 && <div className="ge-empty">{emptyLabel}</div>}
       </DataList>
 
-      {summary && summary.total > 0 && (
-        <nav className="ge-pager" aria-label={t('page.orders.pager')}>
-          <div className="ge-pager__size">
-            <span>{t('page.orders.per_page')}</span>
-            {[50, 100, 200].map((size) => (
-              <button
-                key={size}
-                type="button"
-                className={
-                  size === summary.per_page
-                    ? 'ge-pager__option is-active'
-                    : 'ge-pager__option'
-                }
-                aria-pressed={size === summary.per_page}
-                onClick={() => void changePerPage(size)}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-          <Button
-            variant="text"
-            disabled={loading || summary.page <= 1}
-            onClick={() => void load(query, status, mine, summary.page - 1)}
-          >
-            {t('page.orders.prev')}
-          </Button>
-          <span className="ge-pager__where">
-            {t('page.orders.page_of', {
-              page: summary.page,
-              pages: summary.pages,
-            })}
-          </span>
-          <Button
-            variant="text"
-            disabled={loading || summary.page >= summary.pages}
-            onClick={() => void load(query, status, mine, summary.page + 1)}
-          >
-            {t('page.orders.next')}
-          </Button>
-        </nav>
+      {summary && (
+        <Pager
+          summary={summary}
+          loading={loading}
+          translate={t}
+          onPage={(next) => void load(query, status, mine, next)}
+          onPerPage={(size) => void changePerPage(size)}
+        />
       )}
     </>
   );

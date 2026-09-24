@@ -20,9 +20,16 @@ final readonly class UserPreferences
     /** Ile zleceń na stronie listy. */
     public const ORDERS_PER_PAGE = 'orders.per_page';
 
+    /**
+     * Ile etapów na stronie kolejki produkcji. Osobno od zleceń: biuro
+     * i stanowisko przy maszynie to różne ekrany i różni ludzie.
+     */
+    public const PRODUCTION_PER_PAGE = 'production.per_page';
+
     /** @var array<string, list<int>> */
     private const ALLOWED = [
         self::ORDERS_PER_PAGE => [50, 100, 200],
+        self::PRODUCTION_PER_PAGE => [50, 100, 200],
     ];
 
     /**
@@ -33,6 +40,7 @@ final readonly class UserPreferences
      */
     private const DEFAULTS = [
         self::ORDERS_PER_PAGE => 50,
+        self::PRODUCTION_PER_PAGE => 50,
     ];
 
     public function get(?User $user, string $key): int
@@ -40,6 +48,15 @@ final readonly class UserPreferences
         $stored = $user?->preferences[$key] ?? null;
 
         return $this->valid($key, $stored) ? (int) $stored : self::DEFAULTS[$key];
+    }
+
+    /**
+     * Wartość z żądania, jeśli dozwolona — inaczej zapamiętana przy
+     * koncie. Jedna reguła dla każdego ekranu ze stronicowaniem.
+     */
+    public function resolve(?User $user, string $key, mixed $requested): int
+    {
+        return $this->valid($key, $requested) ? (int) $requested : $this->get($user, $key);
     }
 
     /**

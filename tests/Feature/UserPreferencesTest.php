@@ -49,6 +49,30 @@ class UserPreferencesTest extends TestCase
     }
 
     #[Test]
+    public function kolejka_i_lista_pamietaja_osobno(): void
+    {
+        $user = $this->user();
+
+        $this->preferences->save($user, [UserPreferences::PRODUCTION_PER_PAGE => 200]);
+
+        // Biuro i stanowisko to rozne ekrany: wybor na hali nie moze
+        // przestawic listy zlecen temu samemu kontu.
+        $this->assertSame(200, $this->preferences->get($user->fresh(), UserPreferences::PRODUCTION_PER_PAGE));
+        $this->assertSame(50, $this->preferences->get($user->fresh(), UserPreferences::ORDERS_PER_PAGE));
+    }
+
+    #[Test]
+    public function wartosc_z_zadania_ma_pierwszenstwo_tylko_z_listy(): void
+    {
+        $user = $this->user();
+        $this->preferences->save($user, [UserPreferences::PRODUCTION_PER_PAGE => 100]);
+
+        $this->assertSame(200, $this->preferences->resolve($user, UserPreferences::PRODUCTION_PER_PAGE, '200'));
+        $this->assertSame(100, $this->preferences->resolve($user, UserPreferences::PRODUCTION_PER_PAGE, '5000'));
+        $this->assertSame(100, $this->preferences->resolve($user, UserPreferences::PRODUCTION_PER_PAGE, null));
+    }
+
+    #[Test]
     public function wartosc_spoza_listy_jest_odrzucana_i_niczego_nie_zmienia(): void
     {
         $user = $this->user();

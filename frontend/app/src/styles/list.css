@@ -114,6 +114,10 @@
 .ge-bar__fill--done { background: var(--m-mag); }
 .ge-bar__fill--alert { background: var(--m-alert); }
 
+/* Postep hali: procent nad paskiem, ten sam pasek co przy kwocie. */
+.ge-progress { min-width: 0; }
+.ge-progress__value { font-size: 14px; font-variant-numeric: tabular-nums; }
+
 /* ---------- co dalej ---------- */
 
 .ge-next { display: flex; align-items: center; gap: 10px; }
