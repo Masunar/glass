@@ -7,6 +7,7 @@ namespace App\Services\Orders;
 use Carbon\Carbon;
 use App\Models\Order;
 use App\Models\Status;
+use App\Enum\OrderPhase;
 use App\Enum\StatusDomain;
 use App\Services\Alerts\AlertBoard;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,12 +45,15 @@ final readonly class OrderBoardService
         int $limit = 200,
         ?int $ownerId = null,
         int $page = 1,
+        ?string $phase = null,
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
         $date = $day->toDateString();
         $page = max(1, $page);
         $needle = $query !== null ? trim($query) : '';
         $statusCode = $statusCode === '' ? null : $statusCode;
+        $phaseCase = $statusCode === null && $phase !== null ? OrderPhase::tryFrom($phase) : null;
+        $phaseCodes = $phaseCase === null ? [] : $this->phaseCodes($phaseCase);
 
         // Zbior, o ktorym mowi ekran: zakladka, szukanie, „moje". Z niego
         // biora sie i wiersze, i liczniki — dwa osobne zapytania o ten
@@ -60,6 +64,15 @@ final readonly class OrderBoardService
                 static fn(Builder $builder): Builder => $builder->whereHas(
                     'status',
                     static fn(Builder $status): Builder => $status->where('code', $statusCode),
+                ),
+            )
+            // Cala faza naraz: pierwsze klikniecie w „Realizacje" pokazuje
+            // zlecenia, produkcje i gotowe razem, a nie tylko menu.
+            ->when(
+                $phaseCase !== null,
+                static fn(Builder $builder): Builder => $builder->whereHas(
+                    'status',
+                    static fn(Builder $status): Builder => $status->whereIn('code', $phaseCodes),
                 ),
             )
             ->when(
@@ -78,7 +91,7 @@ final readonly class OrderBoardService
             // swoje zakladki i znajduja sie szukaniem. Przy dziesieciu
             // tysiacach zlecen archiwum to wiekszosc bazy.
             ->when(
-                $statusCode === null && $needle === '',
+                $statusCode === null && $phaseCase === null && $needle === '',
                 static fn(Builder $builder): Builder => $builder->whereHas(
                     'status',
                     static fn(Builder $status): Builder => $status->where('is_final', false),
@@ -131,6 +144,12 @@ final readonly class OrderBoardService
                 $this->band('later', $bands['later']),
             ],
             'filters' => $this->filters($day, $ownerId),
+            // Kolejnosc i nazwy faz stoja w jednym miejscu — w kodzie,
+            // obok przypisania statusow — a ekran tylko je rysuje.
+            'phases' => array_map(
+                static fn(OrderPhase $case): array => ['key' => $case->value, 'name' => $case->label()],
+                OrderPhase::cases(),
+            ),
             'summary' => [
                 // Liczone w bazie ta sama regula, co pasmo, a nie
                 // z pokazanych wierszy. Symulacja na 10 000 zlecen:
@@ -152,6 +171,28 @@ final readonly class OrderBoardService
                 'as_of' => $day->toDateString(),
             ],
         ];
+    }
+
+    /**
+     * Kody statusów zlecenia należących do fazy — ze słownika, więc
+     * status dodany później i nieznany mapie trafia do „Innych".
+     *
+     * @return list<string>
+     */
+    private function phaseCodes(OrderPhase $phase): array
+    {
+        /** @var Collection<int, Status> $statuses */
+        $statuses = Status::query()->where('domain', StatusDomain::ORDER->value)->get();
+
+        $codes = [];
+
+        foreach ($statuses as $status) {
+            if (OrderPhase::forStatus((string) $status->code, (bool) $status->is_final) === $phase) {
+                $codes[] = (string) $status->code;
+            }
+        }
+
+        return $codes;
     }
 
     /**
@@ -374,6 +415,7 @@ final readonly class OrderBoardService
             'count' => $open,
             'alerts' => $alerts[''] ?? 0,
             'is_final' => false,
+            'phase' => null,
         ]];
 
         foreach ($statuses as $status) {
@@ -390,10 +432,8 @@ final readonly class OrderBoardService
                 'name' => $status->name,
                 'count' => $count,
                 'alerts' => $alerts[$status->code] ?? 0,
-                // Zamkniete ekran zbiera w jedna grupe — domyslnie lista
-                // ich nie pokazuje, a dwanascie zakladek w jednym rzedzie
-                // wypychalo reszte paska poza ekran.
                 'is_final' => (bool) $status->is_final,
+                'phase' => OrderPhase::forStatus((string) $status->code, (bool) $status->is_final)->value,
             ];
         }
 

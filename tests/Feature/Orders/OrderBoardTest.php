@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Status;
 use App\Models\OrderList;
 use App\Models\OrderItem;
+use App\Enum\OrderPhase;
 use App\Enum\StatusDomain;
 use App\Models\Contractor;
 use App\Enum\ContractorType;
@@ -281,5 +282,38 @@ class OrderBoardTest extends TestCase
             $row['next_step'] !== null || $row['blocked_step'] !== null,
             'Wiersz nie mówi, co dalej.',
         );
+    }
+
+    #[Test]
+    public function faza_pokazuje_wszystkie_swoje_statusy(): void
+    {
+        $this->order('ZLECENIE', $this->today->copy()->addDays(3));
+        $this->order('PRODUKCJA', $this->today->copy()->addDays(3));
+        $this->order('DO_WYCENY', $this->today->copy()->addDays(3));
+
+        $board = $this->board->board(null, null, $this->today, phase: 'production');
+
+        // „Realizacja" to zlecenie, produkcja i gotowe razem — pierwsze
+        // klikniecie w faze ma pokazac cala faze, a nie tylko menu.
+        $this->assertSame(2, $board['summary']['total']);
+    }
+
+    #[Test]
+    public function kazdy_zaseedowany_status_ma_swoja_faze(): void
+    {
+        $statuses = Status::query()->where('domain', StatusDomain::ORDER->value)->get();
+
+        $this->assertNotEmpty($statuses);
+
+        // „Inne" jest siatka bezpieczenstwa dla statusu dodanego pozniej
+        // w slowniku, nie miejscem dla statusow z katalogu. Status
+        // z katalogu w „Innych" znaczy, ze mapa faz zostala w tyle.
+        foreach ($statuses as $status) {
+            $this->assertNotSame(
+                OrderPhase::OTHER,
+                OrderPhase::forStatus((string) $status->code, (bool) $status->is_final),
+                (string) $status->code,
+            );
+        }
     }
 }

@@ -343,8 +343,13 @@
 
 /* Prawy koniec paska: zdanie o tym, co widac (sortowanie, licznik) albo
    przelacznik. Nie jest segmentem, wiec nie wyglada jak zakladka. */
+/* Przelacznik w pasku nie lamie sie na dwie linie — „Tylko / moje"
+   pod soba czytalo sie jak dwa osobne slowa. */
+.ge-segbar .ge-toggle { flex: none; white-space: nowrap; }
+
 .ge-segbar__end {
   margin-left: auto;
+  white-space: nowrap;
   color: var(--ge-neutral-600);
   font-size: 13px;
 }
@@ -377,22 +382,15 @@
 }
 .ge-seg__item:last-child { border-right: 0; }
 
-/* Zakladki w toku przewijaja sie we wlasnym pasku. Bez tego dwanascie
-   statusow wypychalo przelacznik „tylko moje" i grupe zamknietych poza
-   prawa krawedz, a ostatnia zakladka byla uciety w polowie slowa. */
-.ge-seg--scroll {
-  min-width: 0;
-  flex: 0 1 auto;
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-
-/* Grupa zamknietych: jeden segment z menu. Stoi poza przewijanym
-   paskiem, bo menu w kontenerze z `overflow` zostaloby przyciete. */
-.ge-seg__group {
+/* Faza procesu: segment z menu statusow. Zamiast przewijanego paska
+   dwunastu zakladek, ktory ucinal „W toku" w polowie slowa. Pasek nie
+   ma `overflow`, wiec menu nie jest przycinane. */
+.ge-seg__phase {
   position: relative;
-  flex: none;
+  display: flex;
 }
+.ge-seg__phase:last-child .ge-seg__item { border-right: 0; }
+.ge-seg__phase .ge-seg__item svg { margin-left: -4px; color: var(--ge-neutral-600); }
 .ge-seg__menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -422,6 +420,11 @@
   cursor: pointer;
 }
 .ge-seg__menu-item:last-child { border-bottom: 0; }
+/* „Cala faza" oddzielona od statusow — to inny rodzaj wyboru. */
+.ge-seg__menu-item--all {
+  font-weight: 600;
+  border-bottom: 1px solid var(--ge-neutral-300);
+}
 .ge-seg__menu-item:hover { background: var(--ge-neutral-100); }
 
 /* Stronicowanie pod lista: gdzie jestem i dokad dalej. */
@@ -432,6 +435,31 @@
   gap: 18px;
   padding: 14px 24px;
   border-top: 1px solid var(--ge-divider);
+}
+/* Liczba wierszy na strone, zapamietana przy koncie. */
+.ge-pager__size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--ge-neutral-800);
+}
+.ge-pager__option {
+  padding: 3px 9px;
+  border: 1px solid var(--ge-neutral-300);
+  background: var(--ge-neutral-100);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ge-neutral-700);
+  cursor: pointer;
+}
+.ge-pager__option.is-active {
+  background: var(--ge-surface);
+  color: var(--ge-text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--ge-mod);
 }
 .ge-pager__where {
   font-size: 13.5px;

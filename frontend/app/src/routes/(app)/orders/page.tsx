@@ -13,6 +13,7 @@ import {
   type OrderRow,
   OrdersApi,
 } from '@app/api/OrdersApi';
+import { PreferencesApi } from '@app/api/PreferencesApi';
 import HasPermission from '@app/components/HasPermission';
 import AlertChips from '@app/components/alerts/AlertChips';
 import {
@@ -57,7 +58,8 @@ export default function Page() {
   const [status, setStatus] = useState<string | null>(null);
   const [mine, setMine] = useState(false);
   const [page, setPage] = useState(1);
-  const [closedOpen, setClosedOpen] = useState(false);
+  const [phase, setPhase] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,15 +73,18 @@ export default function Page() {
     // Po akcji w wierszu lista wczytuje sie od nowa na tej samej
     // stronie; zmiana filtra zawsze wraca na pierwsza.
     nextPage: number = page,
+    nextPhase: string | null = phase,
   ) => {
     setLoading(true);
     setPage(nextPage);
+    setPhase(nextPhase);
 
     const { content } = await OrdersApi.board(
       nextQuery,
       nextStatus,
       nextMine,
       nextPage,
+      nextPhase,
     );
     const data: OrderBoard | undefined = content?.data;
 
@@ -98,8 +103,48 @@ export default function Page() {
   };
 
   useEffect(() => {
-    void load('', null, false);
+    void load('', null, false, 1, null);
   }, []);
+
+  // Menu fazy zamyka sie kliknieciem obok — inaczej zostaje otwarte nad
+  // lista, az ktos trafi drugi raz dokladnie w ten sam przycisk.
+  useEffect(() => {
+    if (openMenu === null) {
+      return;
+    }
+
+    const close = (event: MouseEvent) => {
+      if (!(event.target as Element | null)?.closest('.ge-seg__phase')) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', close);
+
+    return () => document.removeEventListener('mousedown', close);
+  }, [openMenu]);
+
+  /** Wybór statusu albo całej fazy — zawsze od pierwszej strony. */
+  const pick = (nextStatus: string | null, nextPhase: string | null) => {
+    setOpenMenu(null);
+    setStatus(nextStatus);
+    void load(query, nextStatus, mine, 1, nextPhase);
+  };
+
+  /** Liczba wierszy zapamiętana przy koncie, nie w przeglądarce. */
+  const changePerPage = async (perPage: number) => {
+    const { response } = await PreferencesApi.save({
+      'orders.per_page': perPage,
+    });
+
+    if (!response.success) {
+      setError(t('api.ise'));
+
+      return;
+    }
+
+    await load(query, status, mine, 1, phase);
+  };
 
   /**
    * Przejście wykonane z listy, bez wchodzenia w zlecenie — po nim
@@ -129,14 +174,24 @@ export default function Page() {
   };
 
   const summary = board?.summary;
-  const openFilters = (board?.filters ?? []).filter((f) => !f.is_final);
-  const closedFilters = (board?.filters ?? []).filter((f) => f.is_final);
-  const closedActive =
-    closedFilters.find((filter) => filter.code === status) ?? null;
-  const closedTotal = closedFilters.reduce(
-    (sum, filter) => sum + filter.count,
-    0,
-  );
+  const inProgress =
+    (board?.filters ?? []).find((filter) => filter.phase === null) ?? null;
+  // Fazy w kolejnosci procesu; faza bez ani jednego zlecenia nie
+  // dostaje zakladki, tak samo jak pusty status wczesniej.
+  const phaseGroups = (board?.phases ?? [])
+    .map((group) => {
+      const filters = (board?.filters ?? []).filter(
+        (filter) => filter.phase === group.key,
+      );
+
+      return {
+        ...group,
+        filters,
+        count: filters.reduce((sum, filter) => sum + filter.count, 0),
+        alerts: filters.reduce((sum, filter) => sum + filter.alerts, 0),
+      };
+    })
+    .filter((group) => group.filters.length > 0);
   const bands = useMemo(
     () => (board?.bands ?? []).filter((band) => band.rows.length > 0),
     [board],
@@ -249,94 +304,106 @@ export default function Page() {
       )}
 
       <div className="ge-segbar">
-        {/* Zakladki w toku przewijaja sie w swoim pasku, zamiast wypychac
-            przelacznik i grupe zamknietych poza ekran. */}
+        {/* Fazy procesu zamiast dwunastu statusow w rzedzie: przewijany
+            pasek ucinal „W toku" w polowie slowa, a przelacznik obok
+            lamal sie na dwie linie. Faza z jednym statusem jest zwykla
+            zakladka; z kilkoma — otwiera menu z cala faza na gorze. */}
         <nav
-          className="ge-seg ge-seg--filter ge-seg--scroll"
+          className="ge-seg ge-seg--filter"
           aria-label={t('page.orders.filters')}
         >
-          {openFilters.map((filter) => {
-            const here = filter.code === status;
+          {inProgress && (
+            <SegTab
+              name={inProgress.name}
+              count={inProgress.count}
+              alerts={inProgress.alerts}
+              active={status === null && phase === null}
+              alertsTitle={t('page.orders.alerts_title')}
+              onClick={() => pick(null, null)}
+            />
+          )}
+
+          {phaseGroups.map((group) => {
+            if (group.filters.length === 1) {
+              const only = group.filters[0];
+
+              return (
+                <SegTab
+                  key={group.key}
+                  name={only.name}
+                  count={only.count}
+                  alerts={only.alerts}
+                  active={status === only.code}
+                  alertsTitle={t('page.orders.alerts_title')}
+                  onClick={() => pick(only.code, null)}
+                />
+              );
+            }
+
+            const chosen =
+              group.filters.find((filter) => filter.code === status) ?? null;
+            const active = chosen !== null || phase === group.key;
 
             return (
-              <button
-                key={filter.code ?? 'all'}
-                type="button"
-                className={[
-                  'ge-seg__item',
-                  here ? 'is-active' : '',
-                  // Filtr bez zlecen zostaje sama etykieta: pusty licznik
-                  // i tak nie niesie nic poza zerem.
-                  filter.count === 0 && !here ? 'ge-seg__item--empty' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-pressed={here}
-                onClick={() => {
-                  setStatus(filter.code);
-                  void load(query, filter.code, mine, 1);
-                }}
-              >
-                <span>{filter.name}</span>
-                {filter.count === 0 ? null : (
-                  <span className="ge-seg__count">{filter.count}</span>
-                )}
-                {filter.alerts > 0 && (
-                  <span
-                    className="ge-seg__alerts"
-                    title={t('page.orders.alerts_title')}
-                  >
-                    {filter.alerts}
+              <div className="ge-seg__phase" key={group.key}>
+                <button
+                  type="button"
+                  className={active ? 'ge-seg__item is-active' : 'ge-seg__item'}
+                  aria-expanded={openMenu === group.key}
+                  onClick={() =>
+                    setOpenMenu((value) =>
+                      value === group.key ? null : group.key,
+                    )
+                  }
+                >
+                  {/* Wybrany status staje sie etykieta fazy, zeby bylo
+                      widac, co jest na liscie. */}
+                  <span>{chosen?.name ?? group.name}</span>
+                  <span className="ge-seg__count">
+                    {chosen?.count ?? group.count}
                   </span>
+                  {(chosen?.alerts ?? group.alerts) > 0 && (
+                    <span
+                      className="ge-seg__alerts"
+                      title={t('page.orders.alerts_title')}
+                    >
+                      {chosen?.alerts ?? group.alerts}
+                    </span>
+                  )}
+                  <PiCaretDown />
+                </button>
+
+                {openMenu === group.key && (
+                  <div className="ge-seg__menu" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="ge-seg__menu-item ge-seg__menu-item--all"
+                      onClick={() => pick(null, group.key)}
+                    >
+                      <span>
+                        {t('page.orders.whole_phase', { phase: group.name })}
+                      </span>
+                      <span className="ge-seg__count">{group.count}</span>
+                    </button>
+                    {group.filters.map((filter) => (
+                      <button
+                        key={filter.code ?? group.key}
+                        type="button"
+                        role="menuitem"
+                        className="ge-seg__menu-item"
+                        onClick={() => pick(filter.code, null)}
+                      >
+                        <span>{filter.name}</span>
+                        <span className="ge-seg__count">{filter.count}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </nav>
-
-        {/* Zamkniete w jednej grupie: domyslnie lista ich nie pokazuje,
-            a trzy dodatkowe zakladki w rzedzie wypychaly reszte paska
-            poza ekran. Wybrany status zamkniety staje sie etykieta
-            grupy, zeby bylo widac, co jest na liscie. */}
-        {closedFilters.length > 0 && (
-          <div className="ge-seg ge-seg--filter ge-seg__group">
-            <button
-              type="button"
-              className={
-                closedActive ? 'ge-seg__item is-active' : 'ge-seg__item'
-              }
-              aria-expanded={closedOpen}
-              onClick={() => setClosedOpen((value) => !value)}
-            >
-              <span>{closedActive?.name ?? t('page.orders.closed')}</span>
-              <span className="ge-seg__count">
-                {closedActive?.count ?? closedTotal}
-              </span>
-              <PiCaretDown />
-            </button>
-
-            {closedOpen && (
-              <div className="ge-seg__menu" role="menu">
-                {closedFilters.map((filter) => (
-                  <button
-                    key={filter.code ?? 'closed'}
-                    type="button"
-                    role="menuitem"
-                    className="ge-seg__menu-item"
-                    onClick={() => {
-                      setClosedOpen(false);
-                      setStatus(filter.code);
-                      void load(query, filter.code, mine, 1);
-                    }}
-                  >
-                    <span>{filter.name}</span>
-                    <span className="ge-seg__count">{filter.count}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* „Moje" zaweza cala liste razem z licznikami przy zakladkach —
             inaczej czerwona liczba mowilaby o zleceniach, ktorych
@@ -473,8 +540,26 @@ export default function Page() {
         {bands.length === 0 && <div className="ge-empty">{emptyLabel}</div>}
       </DataList>
 
-      {summary && summary.pages > 1 && (
+      {summary && summary.total > 0 && (
         <nav className="ge-pager" aria-label={t('page.orders.pager')}>
+          <div className="ge-pager__size">
+            <span>{t('page.orders.per_page')}</span>
+            {[50, 100, 200].map((size) => (
+              <button
+                key={size}
+                type="button"
+                className={
+                  size === summary.per_page
+                    ? 'ge-pager__option is-active'
+                    : 'ge-pager__option'
+                }
+                aria-pressed={size === summary.per_page}
+                onClick={() => void changePerPage(size)}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
           <Button
             variant="text"
             disabled={loading || summary.page <= 1}
@@ -574,5 +659,49 @@ function NextCell({
 
   return (
     <span className="ge-next__text">{t('page.orders.nothing_to_do')}</span>
+  );
+}
+
+/**
+ * Zakładka paska: nazwa, liczba zleceń i czerwona liczba alertów.
+ * Pusta zostaje samą etykietą — zero trzeba przeczytać, żeby dowiedzieć
+ * się tego samego.
+ */
+function SegTab({
+  name,
+  count,
+  alerts,
+  active,
+  alertsTitle,
+  onClick,
+}: {
+  name: string;
+  count: number;
+  alerts: number;
+  active: boolean;
+  alertsTitle: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={[
+        'ge-seg__item',
+        active ? 'is-active' : '',
+        count === 0 && !active ? 'ge-seg__item--empty' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      <span>{name}</span>
+      {count > 0 && <span className="ge-seg__count">{count}</span>}
+      {alerts > 0 && (
+        <span className="ge-seg__alerts" title={alertsTitle}>
+          {alerts}
+        </span>
+      )}
+    </button>
   );
 }
