@@ -43,24 +43,20 @@ final readonly class OrderBoardService
         ?Carbon $today = null,
         int $limit = 200,
         ?int $ownerId = null,
+        int $page = 1,
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
+        $date = $day->toDateString();
+        $page = max(1, $page);
         $needle = $query !== null ? trim($query) : '';
+        $statusCode = $statusCode === '' ? null : $statusCode;
 
-        /** @var Collection<int, Order> $orders */
-        $orders = Order::query()
-            ->with([
-                'contractor',
-                'status',
-                'pickupLocation',
-                'owner',
-                'invoiceType',
-                'discounts',
-                'lists.items.processes',
-                'payments',
-            ])
+        // Zbior, o ktorym mowi ekran: zakladka, szukanie, „moje". Z niego
+        // biora sie i wiersze, i liczniki — dwa osobne zapytania o ten
+        // sam zbior rozjada sie przy pierwszym nowym warunku.
+        $scope = fn(): Builder => Order::query()
             ->when(
-                $statusCode !== null && $statusCode !== '',
+                $statusCode !== null,
                 static fn(Builder $builder): Builder => $builder->whereHas(
                     'status',
                     static fn(Builder $status): Builder => $status->where('code', $statusCode),
@@ -77,8 +73,34 @@ final readonly class OrderBoardService
                 $ownerId !== null,
                 static fn(Builder $builder): Builder => $builder->where('owner_id', $ownerId),
             )
-            ->orderByDesc('number')
+            // Bez zakladki i bez szukania lista pokazuje sprawy w toku.
+            // Zamkniete — historia, anulowane, odrzucone oferty — maja
+            // swoje zakladki i znajduja sie szukaniem. Przy dziesieciu
+            // tysiacach zlecen archiwum to wiekszosc bazy.
+            ->when(
+                $statusCode === null && $needle === '',
+                static fn(Builder $builder): Builder => $builder->whereHas(
+                    'status',
+                    static fn(Builder $status): Builder => $status->where('is_final', false),
+                ),
+            );
+
+        /** @var Collection<int, Order> $orders */
+        $orders = $this->byUrgency($scope(), $date)
+            ->with([
+                'contractor',
+                'status',
+                'pickupLocation',
+                'owner',
+                'invoiceType',
+                'discounts',
+                'lists.items.processes',
+                'payments',
+            ])
             ->limit($limit)
+            // Kolejne strony ida ta sama kolejnoscia pilnosci — druga
+            // strona to nastepne dwiescie spraw, nie nastepne numery.
+            ->offset(($page - 1) * $limit)
             ->get();
 
         // Warunek zaliczki pyta o saldo kontrahenta przy kazdym wierszu.
@@ -100,6 +122,8 @@ final readonly class OrderBoardService
             $bands[$this->bandFor($order, $day)][] = $this->row($order, $day, $alerts);
         }
 
+        $total = $scope()->count();
+
         return [
             'bands' => [
                 $this->band('today', $bands['today']),
@@ -108,9 +132,19 @@ final readonly class OrderBoardService
             ],
             'filters' => $this->filters($day, $ownerId),
             'summary' => [
-                'today' => count($bands['today']),
-                'overdue' => count($bands['overdue']),
+                // Liczone w bazie ta sama regula, co pasmo, a nie
+                // z pokazanych wierszy. Symulacja na 10 000 zlecen:
+                // pasek „Zalegle 27", a zaleglych bylo 1700.
+                'today' => $this->due($scope(), '=', $date),
+                'overdue' => $this->due($scope(), '<', $date),
                 'shown' => $orders->count(),
+                // Ile pasuje do filtra, zanim lista zostala przycieta.
+                // Przyciecie bez sygnalu to ta sama cicha awaria, co
+                // licznik liczony z pokazanych wierszy.
+                'total' => $total,
+                'page' => $page,
+                'pages' => max(1, (int) ceil($total / max(1, $limit))),
+                'per_page' => $limit,
                 // Ekran musi wiedziec, ktora liste widzi. Bez tego
                 // przelacznik „moje" moglby zostac wcisniety, a lista
                 // pokazywac calosc — i nikt by tego nie zauwazyl.
@@ -118,6 +152,44 @@ final readonly class OrderBoardService
                 'as_of' => $day->toDateString(),
             ],
         ];
+    }
+
+    /**
+     * Kolejność wyboru wierszy: **najpierw to, co się pali**.
+     *
+     * Dzisiejsze, potem zaległe od najstarszego terminu, potem kolejne
+     * dni, na końcu bez terminu i zamknięte. Wcześniej lista brała
+     * dwieście najnowszych numerów, więc najdłużej zaległe — czyli
+     * najpilniejsze — nie trafiały nigdzie: ani do pasma, ani na pulpit.
+     *
+     * Termin to przesunięty albo klienta, tak samo jak w `bandFor()`.
+     * Dzisiejsze idą przed zaległymi, bo przy tysiącu zaległych limit
+     * wierszy inaczej wypchnąłby wszystko, co trzeba zrobić dziś.
+     */
+    private function byUrgency(Builder $builder, string $date): Builder
+    {
+        $deadline = 'COALESCE(orders.shifted_deadline, orders.client_deadline)';
+        $final = '(SELECT statuses.is_final FROM statuses WHERE statuses.id = orders.status_id)';
+
+        return $builder
+            ->orderByRaw(
+                "CASE WHEN {$final} = 1 THEN 4 WHEN {$deadline} IS NULL THEN 3"
+                . " WHEN {$deadline} = ? THEN 0 WHEN {$deadline} < ? THEN 1 ELSE 2 END",
+                [$date, $date],
+            )
+            ->orderByRaw("{$deadline} ASC")
+            ->orderByDesc('orders.number');
+    }
+
+    /**
+     * Zlecenia w toku z terminem dziś albo po terminie — regułą pasma.
+     */
+    private function due(Builder $builder, string $operator, string $date): int
+    {
+        return $builder
+            ->whereHas('status', static fn(Builder $status): Builder => $status->where('is_final', false))
+            ->whereRaw('COALESCE(orders.shifted_deadline, orders.client_deadline) ' . $operator . ' ?', [$date])
+            ->count();
     }
 
     private function applySearch(Builder $builder, string $needle): Builder
@@ -278,11 +350,30 @@ final readonly class OrderBoardService
             ->orderBy('position')
             ->get();
 
+        $final = Status::query()
+            ->where('domain', StatusDomain::ORDER->value)
+            ->where('is_final', true)
+            ->pluck('id')
+            ->map(static fn(mixed $id): int => (int) $id)
+            ->all();
+
+        // Zakladka bez statusu pokazuje sprawy w toku, wiec i jej licznik
+        // liczy tylko je. „Wszystkie 10 210" nad lista bez archiwum
+        // bylby druga definicja tego samego zbioru.
+        $open = 0;
+
+        foreach ($counts as $statusId => $count) {
+            if (!in_array((int) $statusId, $final, true)) {
+                $open += (int) $count;
+            }
+        }
+
         $filters = [[
             'code' => null,
-            'name' => 'Wszystkie',
-            'count' => array_sum($counts),
+            'name' => 'W toku',
+            'count' => $open,
             'alerts' => $alerts[''] ?? 0,
+            'is_final' => false,
         ]];
 
         foreach ($statuses as $status) {
@@ -299,6 +390,10 @@ final readonly class OrderBoardService
                 'name' => $status->name,
                 'count' => $count,
                 'alerts' => $alerts[$status->code] ?? 0,
+                // Zamkniete ekran zbiera w jedna grupe — domyslnie lista
+                // ich nie pokazuje, a dwanascie zakladek w jednym rzedzie
+                // wypychalo reszte paska poza ekran.
+                'is_final' => (bool) $status->is_final,
             ];
         }
 

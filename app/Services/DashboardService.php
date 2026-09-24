@@ -66,10 +66,11 @@ final readonly class DashboardService
         $day = ($today ?? Carbon::today())->startOfDay();
 
         $seesOrders = $this->may($user, Permission::ORDERS, 'zlec');
-        $rows = $seesOrders ? $this->orderRows($day) : [];
+        $board = $seesOrders ? $this->orders->board(null, null, $day) : null;
+        $rows = $board === null ? [] : $this->orderRows($board);
 
         $tasks = $this->tasks($rows, (int) $user->getKey());
-        $counters = $this->counters($user, $rows, $seesOrders);
+        $counters = $this->counters($user, $board);
 
         return [
             'as_of' => $day->toDateString(),
@@ -163,11 +164,11 @@ final readonly class DashboardService
     }
 
     /**
+     * @param array<string, mixed> $board
      * @return list<array<string, mixed>>
      */
-    private function orderRows(Carbon $day): array
+    private function orderRows(array $board): array
     {
-        $board = $this->orders->board(null, null, $day);
         $rows = [];
 
         /** @var list<array<string, mixed>> $bands */
@@ -293,23 +294,25 @@ final readonly class DashboardService
      * kreską na ekranie — inaczej zero i brak uprawnienia wyglądałyby
      * tak samo.
      *
-     * @param list<array<string, mixed>> $rows
+     * **Kafelki zleceń biorą liczby z bazy, nie z wierszy.** Lista
+     * pokazuje wycinek, a kafelek mówi o całości — symulacja na 10 000
+     * zleceń: „Po terminie 27" obok alertu „po terminie 1700" na tym
+     * samym pulpicie. Liczby pochodzą z tej samej usługi co pasek listy,
+     * więc pulpit i lista nie mogą podać dwóch różnych.
+     *
+     * @param array<string, mixed>|null $board
      * @return array<string, int|null>
      */
-    private function counters(User $user, array $rows, bool $seesOrders): array
+    private function counters(User $user, ?array $board): array
     {
         $overdue = null;
         $today = null;
 
-        if ($seesOrders) {
-            $overdue = count(array_filter(
-                $rows,
-                static fn(array $row): bool => $row['band'] === 'overdue',
-            ));
-            $today = count(array_filter(
-                $rows,
-                static fn(array $row): bool => $row['band'] === 'today',
-            ));
+        if ($board !== null) {
+            /** @var array<string, int> $summary */
+            $summary = $board['summary'];
+            $overdue = (int) $summary['overdue'];
+            $today = (int) $summary['today'];
         }
 
         $production = null;

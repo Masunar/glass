@@ -87,6 +87,7 @@ class OrderController extends ApiController
                 is_string($query) ? $query : null,
                 is_string($status) ? $status : null,
                 ownerId: is_numeric($me) ? (int) $me : null,
+                page: max(1, $request->integer('page', 1)),
             ));
         });
     }

@@ -1,6 +1,6 @@
 import OrderDrawer from './_components/OrderDrawer';
 import { useEffect, useMemo, useState } from 'react';
-import { PiPlus, PiWarningCircle } from 'react-icons/pi';
+import { PiCaretDown, PiPlus, PiWarningCircle } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 
 import { Button } from '@salvon/components/button';
@@ -56,6 +56,8 @@ export default function Page() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [mine, setMine] = useState(false);
+  const [page, setPage] = useState(1);
+  const [closedOpen, setClosedOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,10 +68,19 @@ export default function Page() {
     nextQuery: string = query,
     nextStatus: string | null = status,
     nextMine: boolean = mine,
+    // Po akcji w wierszu lista wczytuje sie od nowa na tej samej
+    // stronie; zmiana filtra zawsze wraca na pierwsza.
+    nextPage: number = page,
   ) => {
     setLoading(true);
+    setPage(nextPage);
 
-    const { content } = await OrdersApi.board(nextQuery, nextStatus, nextMine);
+    const { content } = await OrdersApi.board(
+      nextQuery,
+      nextStatus,
+      nextMine,
+      nextPage,
+    );
     const data: OrderBoard | undefined = content?.data;
 
     setLoading(false);
@@ -118,6 +129,14 @@ export default function Page() {
   };
 
   const summary = board?.summary;
+  const openFilters = (board?.filters ?? []).filter((f) => !f.is_final);
+  const closedFilters = (board?.filters ?? []).filter((f) => f.is_final);
+  const closedActive =
+    closedFilters.find((filter) => filter.code === status) ?? null;
+  const closedTotal = closedFilters.reduce(
+    (sum, filter) => sum + filter.count,
+    0,
+  );
   const bands = useMemo(
     () => (board?.bands ?? []).filter((band) => band.rows.length > 0),
     [board],
@@ -175,7 +194,7 @@ export default function Page() {
             aria-label={t('page.orders.search')}
             onChange={(event) => {
               setQuery(event.target.value);
-              void load(event.target.value, status, mine);
+              void load(event.target.value, status, mine, 1);
             }}
           />
           <HasPermission
@@ -214,17 +233,29 @@ export default function Page() {
             variant="plain"
             label={t('page.orders.strip.shown')}
             value={summary.shown}
-            note={t('page.orders.strip.shown_note')}
+            // Przyciecie do strony musi byc widac — inaczej 200 wierszy
+            // wyglada jak cala baza.
+            note={
+              summary.total > summary.shown
+                ? t('page.orders.strip.shown_of', {
+                    from: (summary.page - 1) * summary.per_page + 1,
+                    to: (summary.page - 1) * summary.per_page + summary.shown,
+                    total: summary.total,
+                  })
+                : t('page.orders.strip.shown_note')
+            }
           />
         </Strips>
       )}
 
       <div className="ge-segbar">
+        {/* Zakladki w toku przewijaja sie w swoim pasku, zamiast wypychac
+            przelacznik i grupe zamknietych poza ekran. */}
         <nav
-          className="ge-seg ge-seg--filter"
+          className="ge-seg ge-seg--filter ge-seg--scroll"
           aria-label={t('page.orders.filters')}
         >
-          {(board?.filters ?? []).map((filter) => {
+          {openFilters.map((filter) => {
             const here = filter.code === status;
 
             return (
@@ -243,7 +274,7 @@ export default function Page() {
                 aria-pressed={here}
                 onClick={() => {
                   setStatus(filter.code);
-                  void load(query, filter.code, mine);
+                  void load(query, filter.code, mine, 1);
                 }}
               >
                 <span>{filter.name}</span>
@@ -263,6 +294,50 @@ export default function Page() {
           })}
         </nav>
 
+        {/* Zamkniete w jednej grupie: domyslnie lista ich nie pokazuje,
+            a trzy dodatkowe zakladki w rzedzie wypychaly reszte paska
+            poza ekran. Wybrany status zamkniety staje sie etykieta
+            grupy, zeby bylo widac, co jest na liscie. */}
+        {closedFilters.length > 0 && (
+          <div className="ge-seg ge-seg--filter ge-seg__group">
+            <button
+              type="button"
+              className={
+                closedActive ? 'ge-seg__item is-active' : 'ge-seg__item'
+              }
+              aria-expanded={closedOpen}
+              onClick={() => setClosedOpen((value) => !value)}
+            >
+              <span>{closedActive?.name ?? t('page.orders.closed')}</span>
+              <span className="ge-seg__count">
+                {closedActive?.count ?? closedTotal}
+              </span>
+              <PiCaretDown />
+            </button>
+
+            {closedOpen && (
+              <div className="ge-seg__menu" role="menu">
+                {closedFilters.map((filter) => (
+                  <button
+                    key={filter.code ?? 'closed'}
+                    type="button"
+                    role="menuitem"
+                    className="ge-seg__menu-item"
+                    onClick={() => {
+                      setClosedOpen(false);
+                      setStatus(filter.code);
+                      void load(query, filter.code, mine, 1);
+                    }}
+                  >
+                    <span>{filter.name}</span>
+                    <span className="ge-seg__count">{filter.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* „Moje" zaweza cala liste razem z licznikami przy zakladkach —
             inaczej czerwona liczba mowilaby o zleceniach, ktorych
             w wierszach nie ma. Nie odbiera przy tym niczyjego widoku:
@@ -273,7 +348,7 @@ export default function Page() {
             checked={mine}
             onChange={(event) => {
               setMine(event.target.checked);
-              void load(query, status, event.target.checked);
+              void load(query, status, event.target.checked, 1);
             }}
           />
           <span className="ge-toggle__track" />
@@ -395,10 +470,33 @@ export default function Page() {
           </div>
         ))}
 
-        {bands.length === 0 && (
-          <div className="ge-empty">{emptyLabel}</div>
-        )}
+        {bands.length === 0 && <div className="ge-empty">{emptyLabel}</div>}
       </DataList>
+
+      {summary && summary.pages > 1 && (
+        <nav className="ge-pager" aria-label={t('page.orders.pager')}>
+          <Button
+            variant="text"
+            disabled={loading || summary.page <= 1}
+            onClick={() => void load(query, status, mine, summary.page - 1)}
+          >
+            {t('page.orders.prev')}
+          </Button>
+          <span className="ge-pager__where">
+            {t('page.orders.page_of', {
+              page: summary.page,
+              pages: summary.pages,
+            })}
+          </span>
+          <Button
+            variant="text"
+            disabled={loading || summary.page >= summary.pages}
+            onClick={() => void load(query, status, mine, summary.page + 1)}
+          >
+            {t('page.orders.next')}
+          </Button>
+        </nav>
+      )}
     </>
   );
 }

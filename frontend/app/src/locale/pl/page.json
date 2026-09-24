@@ -635,7 +635,8 @@
       "today_note": "termin na dzisiaj",
       "overdue_note": "termin minął",
       "shown": "Na liście",
-      "shown_note": "po bieżącym filtrze"
+      "shown_note": "po bieżącym filtrze",
+      "shown_of": "{{from}}–{{to}} z {{total}}"
     },
     "card": {
       "loading": "Wczytywanie zlecenia…",
@@ -1088,7 +1089,12 @@
       "person": "Prowadzący",
       "none": "— wskaż osobę —",
       "note": "Prowadzący odpowiada za zlecenie: to jego inicjały widać na liście i jego pulpit podbija tę sprawę na górę. Zlecenie dalej widzą wszyscy — przekazanie niczego nikomu nie zabiera."
-    }
+    },
+    "closed": "Zamknięte",
+    "pager": "Strony listy",
+    "prev": "‹ Poprzednie",
+    "next": "Następne ›",
+    "page_of": "Strona {{page}} z {{pages}}"
   },
   "production": {
     "loading": "Wczytywanie kolejki…",

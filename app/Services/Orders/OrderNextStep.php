@@ -9,7 +9,6 @@ use App\Models\Status;
 use App\DTO\Orders\NextStep;
 use App\Enum\DeliveryMethod;
 use App\Enum\ContractorType;
-use App\Models\StatusTransition;
 use App\Services\Production\ProductionPlan;
 use App\Services\Warehouse\OrderStock;
 
@@ -34,6 +33,7 @@ final readonly class OrderNextStep
         private ContractorBalance $balance = new ContractorBalance(),
         private ProductionPlan $plan = new ProductionPlan(),
         private OrderStock $stock = new OrderStock(),
+        private TransitionCatalog $catalog = new TransitionCatalog(),
     ) {
     }
 
@@ -46,12 +46,7 @@ final readonly class OrderNextStep
      */
     public function forOrder(Order $order): array
     {
-        $transitions = StatusTransition::query()
-            ->with('toStatus')
-            ->where('from_status_id', $order->status_id)
-            ->where('is_active', true)
-            ->orderBy('position')
-            ->get();
+        $transitions = $this->catalog->from((int) $order->status_id);
 
         $steps = [];
 

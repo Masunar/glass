@@ -140,7 +140,62 @@ class OrderBoardTest extends TestCase
         $this->order('ARCHIWUM', $this->today->copy()->subDays(30));
 
         $this->assertCount(0, $this->bands()['overdue']['rows']);
-        $this->assertCount(1, $this->bands()['later']['rows']);
+
+        // Domyslnie lista pokazuje sprawy w toku — archiwum ma swoja
+        // zakladke i tam stoi w pasmie „kolejne dni", nie w zaleglych.
+        $this->assertCount(0, $this->bands()['later']['rows']);
+
+        $archive = [];
+
+        /** @var list<array{key: string, rows: list<array<string, mixed>>}> $raw */
+        $raw = $this->board->board(null, 'ARCHIWUM', $this->today)['bands'];
+
+        foreach ($raw as $band) {
+            $archive[$band['key']] = $band['rows'];
+        }
+
+        $this->assertCount(0, $archive['overdue']);
+        $this->assertCount(1, $archive['later']);
+    }
+
+    #[Test]
+    public function najstarsze_zalegle_nie_wypadaja_przez_limit(): void
+    {
+        // Najstarszy termin, ale najnizszy numer — przy wyborze po
+        // numerze wypadlby pierwszy. Symulacja na 10 000 zlecen:
+        // najdluzej zalegle nie trafialy ani do pasma, ani na pulpit.
+        $oldest = $this->order('ZLECENIE', $this->today->copy()->subDays(60), attributes: ['number' => 10001]);
+
+        foreach (range(1, 3) as $offset) {
+            $this->order('ZLECENIE', $this->today->copy()->addDays($offset), attributes: ['number' => 20000 + $offset]);
+        }
+
+        $board = $this->board->board(null, null, $this->today, limit: 2);
+        $numbers = [];
+
+        foreach ($board['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                $numbers[] = $row['number'];
+            }
+        }
+
+        $this->assertContains($oldest->number, $numbers);
+    }
+
+    #[Test]
+    public function liczniki_pasm_licza_cala_baze_a_nie_wiersze(): void
+    {
+        foreach (range(1, 3) as $offset) {
+            $this->order('ZLECENIE', $this->today->copy()->subDays($offset));
+        }
+
+        $board = $this->board->board(null, null, $this->today, limit: 1);
+
+        // Jeden wiersz na ekranie, trzy zalegle w bazie. Pasek ma mowic
+        // o bazie, a ekran — ze pokazuje jej wycinek.
+        $this->assertSame(1, $board['summary']['shown']);
+        $this->assertSame(3, $board['summary']['overdue']);
+        $this->assertSame(3, $board['summary']['total']);
     }
 
     #[Test]

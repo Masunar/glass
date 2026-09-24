@@ -159,7 +159,7 @@ final class ScaleCheck
             ->whereRaw('COALESCE(shifted_deadline, client_deadline) = ?', [$day->toDateString()])
             ->count();
 
-        $total = Order::query()->count();
+        $inProgress = $open()->count();
 
         /** @var array<string, mixed> $summary */
         $summary = $list['summary'];
@@ -168,22 +168,28 @@ final class ScaleCheck
 
         $rows = [
             [
-                'what' => 'Lista zleceń — zakładka „Wszystkie"',
+                'what' => 'Lista zleceń — zakładka „W toku"',
                 'screen' => (int) ($filters[0]['count'] ?? 0),
-                'truth' => $total,
-                'note' => 'licznik zakładki liczony w bazie',
+                'truth' => $inProgress,
+                'note' => 'zlecenia w statusach niezamkniętych',
+            ],
+            [
+                'what' => 'Lista zleceń — „z ilu" pod stroną',
+                'screen' => (int) ($summary['total'] ?? 0),
+                'truth' => $inProgress,
+                'note' => 'domyślny widok: sprawy w toku',
             ],
             [
                 'what' => 'Lista zleceń — pasek „Zaległe"',
                 'screen' => (int) $summary['overdue'],
                 'truth' => $overdue,
-                'note' => 'pasek liczy pokazane wiersze',
+                'note' => 'reguła pasma',
             ],
             [
                 'what' => 'Lista zleceń — pasek „Dziś"',
                 'screen' => (int) $summary['today'],
                 'truth' => $dueToday,
-                'note' => 'pasek liczy pokazane wiersze',
+                'note' => 'reguła pasma',
             ],
         ];
 
@@ -195,13 +201,13 @@ final class ScaleCheck
                 'what' => 'Pulpit — kafelek „Po terminie"',
                 'screen' => $counters['overdue'],
                 'truth' => $overdue,
-                'note' => 'kafelek liczy wiersze listy',
+                'note' => 'reguła pasma',
             ];
             $rows[] = [
                 'what' => 'Pulpit — kafelek „Na dziś"',
                 'screen' => $counters['today'],
                 'truth' => $dueToday,
-                'note' => 'kafelek liczy wiersze listy',
+                'note' => 'reguła pasma',
             ];
 
             /** @var list<array<string, mixed>> $alerts */

@@ -376,6 +376,68 @@
   white-space: nowrap;
 }
 .ge-seg__item:last-child { border-right: 0; }
+
+/* Zakladki w toku przewijaja sie we wlasnym pasku. Bez tego dwanascie
+   statusow wypychalo przelacznik „tylko moje" i grupe zamknietych poza
+   prawa krawedz, a ostatnia zakladka byla uciety w polowie slowa. */
+.ge-seg--scroll {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* Grupa zamknietych: jeden segment z menu. Stoi poza przewijanym
+   paskiem, bo menu w kontenerze z `overflow` zostaloby przyciete. */
+.ge-seg__group {
+  position: relative;
+  flex: none;
+}
+.ge-seg__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ge-neutral-300);
+  background: var(--ge-surface);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.08);
+}
+.ge-seg__menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ge-divider);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ge-text);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ge-seg__menu-item:last-child { border-bottom: 0; }
+.ge-seg__menu-item:hover { background: var(--ge-neutral-100); }
+
+/* Stronicowanie pod lista: gdzie jestem i dokad dalej. */
+.ge-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--ge-divider);
+}
+.ge-pager__where {
+  font-size: 13.5px;
+  color: var(--ge-neutral-800);
+  font-variant-numeric: tabular-nums;
+}
 .ge-seg__item:hover { color: var(--ge-text); background: var(--ge-neutral-200); }
 
 /* Zakladka pusta: sama etykieta, ciszej. Brak licznika jest informacja

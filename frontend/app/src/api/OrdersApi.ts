@@ -62,6 +62,8 @@ export type OrderBoard = {
     count: number;
     /** Zlecenia z alertem, nie liczba alertów: jedno zlecenie to jedna sprawa. */
     alerts: number;
+    /** Status zamknięty — ekran zbiera je w jedną grupę. */
+    is_final: boolean;
   }[];
   summary: {
     today: number;
@@ -69,6 +71,11 @@ export type OrderBoard = {
     shown: number;
     /** Czy lista jest zawężona do zleceń zalogowanego — razem z licznikami. */
     mine: boolean;
+    /** Ile pasuje do filtra, zanim lista została przycięta do strony. */
+    total: number;
+    page: number;
+    pages: number;
+    per_page: number;
     as_of: string;
   };
 };
@@ -571,6 +578,7 @@ export class OrdersApi extends ApiRequest {
     query: string = '',
     status: string | null = null,
     mine: boolean = false,
+    page: number = 1,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.get('', {
       q: query,
@@ -578,6 +586,7 @@ export class OrdersApi extends ApiRequest {
       // „Moje" to przelacznik na wlasna liste — serwer bierze
       // zalogowanego, a nie identyfikator z adresu.
       mine: mine ? '1' : '',
+      page: String(page),
     });
   }
 
