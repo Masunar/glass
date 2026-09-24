@@ -26,8 +26,26 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(Login::class, AuthListener::class);
 
-        Gate::before(static function (User $user): ?true {
-            return $user->isSuperUser() ? true : null;
+        // Dwa obejscia, oba swiadome.
+        //
+        // Rola nadrzedna omija sprawdzanie w calosci — takze to, co
+        // powstanie jutro.
+        //
+        // Uprawnienie z paczki roli nie istnieje dla spatie: paczki leza
+        // w osobnej tabeli, a `hasPermissionTo()` zna wylacznie
+        // przypisania roli i uzytkownika. Bez tego przejscia paczka
+        // dzialalaby dopiero po recznym zapisaniu roli, czyli bylaby
+        // kopia z chwili zapisu zamiast wiazania (U-07) — a rola
+        // skonfigurowana samym zasiewem nie dawalaby nic.
+        //
+        // `null` oddaje decyzje dalej, wiec zwykla droga spatie dziala
+        // jak dotad.
+        Gate::before(static function (User $user, string $ability): ?true {
+            if ($user->isSuperUser()) {
+                return true;
+            }
+
+            return $user->hasEffectivePermission($ability) ? true : null;
         });
     }
 }

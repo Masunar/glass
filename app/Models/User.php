@@ -10,6 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\NewAccessToken;
 use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
+use App\Services\Access\AccessResolver;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Notifications\Notifiable;
 use Salvon\Model\User as Authenticatable;
@@ -72,6 +73,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
+    /**
+     * Uprawnienia skuteczne, spamiętane na czas żądania.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $effective = null;
+
     public function activated(): bool
     {
         return $this->is_active;
@@ -84,6 +92,49 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuperUser(): bool
     {
         return $this->roles->contains(static fn(Role $role): bool => $role->is_superuser);
+    }
+
+    /**
+     * Uprawnienia skuteczne: z roli, **z paczek jej ról** i z nadań
+     * wprost (U-05).
+     *
+     * Liczy je `AccessResolver` — ten sam, który odpowiada ekranom
+     * `/access`. To nie jest wygoda, tylko warunek: paczka jest
+     * wiązaniem, a nie kopią (U-07), więc sprawdzanie musi zaglądać
+     * tam, gdzie zagląda ekran. Gdy liczyły to dwa różne mechanizmy,
+     * ekran pokazywał rolę w pełni skonfigurowaną, a jej użytkownik nie
+     * widział ani jednego modułu — i **żadna ze stron nie miała jak
+     * tego zgłosić**, bo każda była zgodna ze swoim źródłem.
+     *
+     * Spamiętane na instancji, bo `can()` pada kilkanaście razy na
+     * żądanie. Konsekwencja: zmiana uprawnień w trakcie żądania wymaga
+     * świeżego modelu (`fresh()`), tak samo jak przy pamięci spatie.
+     *
+     * @return array<string, true>
+     */
+    private function effectivePermissions(): array
+    {
+        if ($this->effective === null) {
+            $this->loadMissing(['roles.permissions', 'roles.packages.permissions', 'permissions']);
+
+            $this->effective = array_fill_keys(
+                (new AccessResolver())->namesForUser($this),
+                true,
+            );
+        }
+
+        return $this->effective;
+    }
+
+    /** @return list<string> */
+    public function effectivePermissionNames(): array
+    {
+        return array_keys($this->effectivePermissions());
+    }
+
+    public function hasEffectivePermission(string $name): bool
+    {
+        return isset($this->effectivePermissions()[$name]);
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void

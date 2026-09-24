@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use Salvon\Enum\AuthState;
+use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\DTO\Auth\ResetPasswordDTO;
@@ -106,7 +107,12 @@ final class AuthenticationController extends ApiController
 
         return [
             ...$user->toArray(),
-            'permissions' => $user->getAllPermissions(),
+            // Te same uprawnienia, ktore sprawdza bramka — razem
+            // z tymi z paczek. `getAllPermissions()` ich nie widzi,
+            // wiec listwa chowalaby moduly, do ktorych API wpuszcza.
+            'permissions' => Permission::query()
+                ->whereIn('name', $user->effectivePermissionNames())
+                ->get(),
             'is_super_user' => $user->isSuperUser(),
             'roles' => $user->getRoleNames(),
             'mfa_type' => $user->mfa?->type?->value,

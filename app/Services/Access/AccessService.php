@@ -84,32 +84,72 @@ final readonly class AccessService
         }
 
         $before = $role->permissions->pluck('name')->all();
+        $attached = array_map('intval', (array) $input['packages']);
 
-        $role->syncPermissions($wanted);
-        $role->packages()->sync(array_map('intval', (array) $input['packages']));
+        // Rola trzyma **wylacznie to, czego nie daje jej zadna paczka**.
+        // Ekran przysyla komplet zaznaczen, bo pokazuje pokrycie razem
+        // z paczkami; zapisanie tego wprost zamienialoby wiazanie
+        // w kopie z chwili zapisu i poprawiona paczka przestalaby
+        // cokolwiek zmieniac przy tej roli (U-07).
+        $own = array_values(array_diff($wanted, $this->fromPackages($attached)));
+
+        $role->syncPermissions($own);
+        $role->packages()->sync($attached);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $added = array_values(array_diff($wanted, $before));
-        $removed = array_values(array_diff($before, $wanted));
+        $added = array_values(array_diff($own, $before));
+        $removed = array_values(array_diff($before, $own));
 
         $this->write(
             $role,
             'uprawnienia',
             count($before) . ' nadanych',
-            count($wanted) . ' nadanych',
+            count($own) . ' nadanych',
             $added,
             $removed,
         );
 
+        // Bilans mowi o nadaniach wlasnych roli. Uprawnienia z paczek
+        // nie sa jej nadaniami i nie da sie ich tu odebrac — zmienia je
+        // paczka albo odpiecie paczki.
         return [
             'errors' => [],
             'balance' => [
-                'granted' => count($wanted),
+                'granted' => count($own),
                 'added' => count($added),
                 'removed' => count($removed),
             ],
         ];
+    }
+
+    /**
+     * Nazwy uprawnień, które dają wskazane paczki.
+     *
+     * @param list<int> $packageIds
+     * @return list<string>
+     */
+    private function fromPackages(array $packageIds): array
+    {
+        if ($packageIds === []) {
+            return [];
+        }
+
+        $names = [];
+
+        /** @var iterable<PermissionPackage> $packages */
+        $packages = PermissionPackage::query()
+            ->with('permissions')
+            ->whereIn('id', $packageIds)
+            ->get();
+
+        foreach ($packages as $package) {
+            foreach ($package->permissions as $permission) {
+                $names[] = (string) $permission->name;
+            }
+        }
+
+        return array_values(array_unique($names));
     }
 
     /**
