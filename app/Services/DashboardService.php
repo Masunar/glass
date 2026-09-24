@@ -101,6 +101,12 @@ final readonly class DashboardService
      * widzi rzecz, której alert dotyczy. `alerts` chroni ekran reguł,
      * czyli konfigurację, a nie dane.
      *
+     * **Adresat jest wyprowadzany, nie zapisany.** Reguły z moimi
+     * sprawami idą pierwsze, a w obrębie reguły pierwsze idą moje
+     * podpisy — cudze zostają, z inicjałami prowadzącego. Nic nie
+     * znika: zlecenie po terminie jest po terminie niezależnie od tego,
+     * czyje jest, a ktoś musi je zobaczyć, gdy prowadzący ma urlop.
+     *
      * **Przycina moduł reguły, nie zlecenia.** Od chwili, gdy alerty
      * objęły magazyn i piec, wspólna bramka „czy widzi zlecenia" byłaby
      * albo za wąska (magazynier nie zobaczyłby braków), albo za szeroka
@@ -112,7 +118,9 @@ final readonly class DashboardService
     {
         $rows = [];
 
-        foreach ($this->alerts->summary($day) as $row) {
+        $me = (int) $user->getKey();
+
+        foreach ($this->alerts->summary($day, $me) as $row) {
             $module = is_string($row['module']) ? $row['module'] : '';
 
             $resource = is_string($row['resource']) ? $row['resource'] : '';
@@ -129,7 +137,12 @@ final readonly class DashboardService
                 continue;
             }
 
-            $row['subjects'] = $this->alerts->subjectsFor((string) $row['code'], self::ROWS, $day);
+            $row['subjects'] = $this->alerts->subjectsFor(
+                (string) $row['code'],
+                self::ROWS,
+                $day,
+                $me,
+            );
             $rows[] = $row;
         }
 

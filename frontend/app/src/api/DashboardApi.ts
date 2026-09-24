@@ -36,7 +36,16 @@ export type DashboardAlert = {
   resource: string;
   count: number;
   /** Nie „zlecenia": reguła może dotyczyć produktu albo partii w piecu. */
-  subjects: { label: string; path: string | null; value: string | null }[];
+  subjects: {
+    label: string;
+    path: string | null;
+    value: string | null;
+    /** Prowadzący zlecenia. `null` przy rzeczy, która nie ma właściciela. */
+    owner: string | null;
+    owner_initials: string | null;
+    /** Moje sprawy przychodzą pierwsze — kolejność ustala serwer. */
+    is_mine: boolean;
+  }[];
 };
 
 export type DashboardBoard = {

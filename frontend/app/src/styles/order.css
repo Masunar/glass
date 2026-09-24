@@ -1181,3 +1181,13 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Inicjaly prowadzacego przy cudzej sprawie. Wlasny margines, a nie
+   spacja w tresci: sasiadujacy element liniowy bez odstepu sklei sie
+   z numerem, tak jak nazwa z modulem w wyszukiwarce. */
+.ge-home__alert-who {
+  margin-left: 5px;
+  color: var(--ge-neutral-700);
+  font-weight: 600;
+  font-variant-numeric: normal;
+}

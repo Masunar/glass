@@ -6,6 +6,7 @@ namespace App\Services\Alerts;
 
 use Carbon\Carbon;
 use App\Models\Order;
+use App\Services\Orders\OrderOwnerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -21,11 +22,31 @@ use Illuminate\Database\Eloquent\Collection;
  * odpowiada na pytanie „ile wymaga reakcji", a znacznik przy zleceniu na
  * „co z nim jest" — to dwa różne pytania. Gdyby odhaczenie zdejmowało
  * znacznik, sprawa znikałaby z oczu zamiast przestać krzyczeć.
+ *
+ * **Adresat alertu nie jest zapisany — jest wyprowadzany z rzeczy,
+ * której alert dotyczy.** Alert o zleceniu należy do jego prowadzącego.
+ * Odbiorca zapisany przy wystąpieniu byłby drugim źródłem tej samej
+ * prawdy: rozjechałby się przy pierwszym przekazaniu zlecenia i wisiał
+ * przy poprzedniej osobie bez żadnego objawu. Rzeczy bez właściciela —
+ * produkt na magazynie, partia w piecu — zostają wspólne i nie udają,
+ * że są czyjeś.
  */
-final readonly class AlertBoard
+final class AlertBoard
 {
+    /**
+     * Prowadzący zleceń objętych alertami, jeden raz na dzień przebiegu.
+     *
+     * Pasmo pulpitu pyta o podpisy osobno dla każdej reguły — przy ośmiu
+     * regułach byłoby to osiem takich samych zapytań o tę samą garść
+     * zleceń. Ten sam powód, dla którego przebieg silnika jest
+     * zapamiętywany.
+     *
+     * @var array<string, array<int, array{user_id: int, name: string, initials: string}>>
+     */
+    private array $ownerMemo = [];
+
     public function __construct(
-        private AlertEngine $engine = new AlertEngine(),
+        private readonly AlertEngine $engine = new AlertEngine(),
     ) {
     }
 
@@ -121,9 +142,14 @@ final readonly class AlertBoard
     /**
      * Pasmo alertów na pulpicie: reguła, ile razy zapalona, dokąd idzie.
      *
+     * **Reguły z moimi sprawami idą pierwsze.** Kolejność jest jedynym
+     * adresowaniem, jakie tu stosujemy: żadna reguła nie znika i nie
+     * dostaje osobnego licznika „ile z nich moich" — ten liczyłby ten
+     * sam zbiór drugi raz, obok czerwonych liczb przy zakładkach.
+     *
      * @return list<array<string, mixed>>
      */
-    public function summary(?Carbon $day = null): array
+    public function summary(?Carbon $day = null, ?int $userId = null): array
     {
         /** @var array<string, int> $counts */
         $counts = [];
@@ -149,14 +175,57 @@ final readonly class AlertBoard
             ];
         }
 
-        $rows = [];
+        $mine = $this->mineByCode($day, $userId);
+
+        // Dwa wiadra zamiast sortowania: reguły bez moich spraw
+        // zachowują kolejność z panelu, a przy sortowaniu po kluczu
+        // trzeba by pilnować, żeby remis nie zaczął porównywać samych
+        // wierszy.
+        $first = [];
+        $rest = [];
 
         foreach ($meta as $code => $row) {
             $row['count'] = $counts[$code] ?? 0;
-            $rows[] = $row;
+
+            if ($mine[$code] ?? false) {
+                $first[] = $row;
+
+                continue;
+            }
+
+            $rest[] = $row;
         }
 
-        return $rows;
+        return [...$first, ...$rest];
+    }
+
+    /**
+     * Które reguły mają choć jedną moją sprawę.
+     *
+     * @return array<string, bool>
+     */
+    private function mineByCode(?Carbon $day, ?int $userId): array
+    {
+        if ($userId === null) {
+            return [];
+        }
+
+        $owners = $this->owners($day);
+        $mine = [];
+
+        foreach ($this->engine->run($day) as $row) {
+            if ($row['acknowledged'] === true) {
+                continue;
+            }
+
+            $owner = $this->ownerOf($row, $owners);
+
+            if ($owner !== null && $owner['user_id'] === $userId) {
+                $mine[(string) $row['code']] = true;
+            }
+        }
+
+        return $mine;
     }
 
     /**
@@ -166,11 +235,23 @@ final readonly class AlertBoard
      * w piecu, a pasmo alertów ma je nazwać tak samo. Podpis składa
      * warunek, bo tam już stoi zapytanie o tę tabelę.
      *
-     * @return list<array{label: string, path: string|null, value: string|null}>
+     * **Moje sprawy idą pierwsze, cudze dostają podpis prowadzącego.**
+     * Kolejność ustala się **przed** przycięciem do `$limit` — inaczej
+     * moje zlecenie na szóstej pozycji zniknęłoby, zanim cokolwiek
+     * zdążyłoby je przesunąć, i nikt by się o tym nie dowiedział.
+     *
+     * @return list<array{label: string, path: string|null, value: string|null,
+     *     owner: string|null, owner_initials: string|null, is_mine: bool}>
      */
-    public function subjectsFor(string $code, int $limit = 5, ?Carbon $day = null): array
-    {
-        $rows = [];
+    public function subjectsFor(
+        string $code,
+        int $limit = 5,
+        ?Carbon $day = null,
+        ?int $userId = null,
+    ): array {
+        $owners = $this->owners($day);
+        $first = [];
+        $rest = [];
 
         foreach ($this->engine->run($day) as $row) {
             if ($row['code'] !== $code || $row['acknowledged'] === true) {
@@ -181,17 +262,102 @@ final readonly class AlertBoard
                 continue;
             }
 
-            $rows[] = [
+            $owner = $this->ownerOf($row, $owners);
+            $isMine = $userId !== null && $owner !== null && $owner['user_id'] === $userId;
+
+            $subject = [
                 'label' => (string) $row['subject_label'],
                 'path' => $row['subject_path'],
                 'value' => $row['value'],
+                // Pelne imie idzie razem z inicjalami: dwie osoby moga
+                // miec te same, a podpowiedz pod kursorem jest jedynym
+                // miejscem, gdzie da sie to rozstrzygnac.
+                'owner' => $owner['name'] ?? null,
+                'owner_initials' => $owner['initials'] ?? null,
+                'is_mine' => $isMine,
             ];
 
-            if (count($rows) >= $limit) {
-                break;
+            if ($isMine) {
+                $first[] = $subject;
+
+                continue;
+            }
+
+            $rest[] = $subject;
+        }
+
+        return array_slice([...$first, ...$rest], 0, $limit);
+    }
+
+    /**
+     * Prowadzący zleceń objętych dzisiejszymi alertami.
+     *
+     * Jedno zapytanie na przebieg, nie jedno na regułę.
+     *
+     * @return array<int, array{user_id: int, name: string, initials: string}>
+     */
+    private function owners(?Carbon $day): array
+    {
+        $key = ($day ?? Carbon::today())->startOfDay()->toDateString();
+
+        if (isset($this->ownerMemo[$key])) {
+            return $this->ownerMemo[$key];
+        }
+
+        $ids = [];
+
+        foreach ($this->engine->run($day) as $row) {
+            if ($row['alertable_type'] === Order::class) {
+                $ids[(int) $row['alertable_id']] = true;
             }
         }
 
-        return $rows;
+        $map = [];
+
+        if ($ids !== []) {
+            /** @var Collection<int, Order> $orders */
+            $orders = Order::query()
+                ->with('owner')
+                ->whereIn('id', array_keys($ids))
+                ->get();
+
+            foreach ($orders as $order) {
+                $owner = $order->owner;
+
+                // Zlecenie bez prowadzacego jest mozliwe tylko po
+                // skasowaniu konta — wtedy nie ma kogo podpisac i alert
+                // zostaje wspolny, tak jak magazynowy.
+                if ($owner === null) {
+                    continue;
+                }
+
+                $map[(int) $order->getKey()] = [
+                    'user_id' => (int) $owner->getKey(),
+                    'name' => OrderOwnerService::name($owner),
+                    'initials' => (string) OrderOwnerService::initials($owner),
+                ];
+            }
+        }
+
+        $this->ownerMemo[$key] = $map;
+
+        return $map;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<int, array{user_id: int, name: string, initials: string}> $owners
+     * @return array{user_id: int, name: string, initials: string}|null
+     */
+    private function ownerOf(array $row, array $owners): ?array
+    {
+        // Tylko zlecenie ma prowadzacego. Produkt i partia w piecu nie
+        // naleza do nikogo i udawanie, ze naleza, byloby wymyslaniem
+        // danych.
+        if ($row['alertable_type'] !== Order::class) {
+            return null;
+        }
+
+        return $owners[(int) $row['alertable_id']] ?? null;
     }
 }

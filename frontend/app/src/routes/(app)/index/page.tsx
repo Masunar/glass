@@ -314,10 +314,25 @@ export default function Page() {
                       bez ekranu zostaje samym tekstem — odnosnik
                       donikad byłby gorszy niz jego brak. */}
                   <span className="ge-home__alert-orders">
-                    {alert.subjects.map((subject, index) =>
-                      subject.path === null ? (
+                    {alert.subjects.map((subject, index) => {
+                      /* Inicjaly tylko przy cudzej sprawie: wlasne stoja
+                         pierwsze, a podpisywanie ich swoim nazwiskiem
+                         niczego nie mowi. Rzecz bez wlasciciela — towar,
+                         partia w piecu — nie dostaje ich wcale. */
+                      const who =
+                        !subject.is_mine && subject.owner_initials ? (
+                          <span
+                            className="ge-home__alert-who"
+                            title={subject.owner ?? ''}
+                          >
+                            {subject.owner_initials}
+                          </span>
+                        ) : null;
+
+                      return subject.path === null ? (
                         <span key={`${subject.label}-${index}`}>
                           {subject.label}
+                          {who}
                         </span>
                       ) : (
                         <Link
@@ -326,9 +341,10 @@ export default function Page() {
                           className="ge-link"
                         >
                           {subject.label}
+                          {who}
                         </Link>
-                      ),
-                    )}
+                      );
+                    })}
                   </span>
                 </div>
               ))}
