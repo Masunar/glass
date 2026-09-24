@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Salvon\Facade\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PreferenceController;
 use App\Http\Controllers\RegonController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OfferController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\GlobalParameterController;
 // a sekcje przycina usluga.
 Route::get('/dashboard', [DashboardController::class, 'board'])->name('dashboard');
 Route::get('/search', [SearchController::class, 'search'])->name('search');
+// Wlasne ustawienia ekranu — bez uprawnienia, kazdy zmienia tylko swoje.
+Route::put('/preferences', [PreferenceController::class, 'update'])->name('preferences');
 Route::post('/regon/find-by-nip', [RegonController::class, 'findByNip'])->name('regon.find-by-nip');
 Route::crudController(UserController::class, callback: function () {
     Route::get('roles', [UserController::class, 'roles'])->name('roles');

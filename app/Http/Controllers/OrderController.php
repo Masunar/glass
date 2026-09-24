@@ -22,6 +22,8 @@ use App\Services\Orders\OrderDiscountService;
 use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
 use App\Services\Orders\OrderOwnerService;
+use App\Services\UserPreferences;
+use App\Models\User;
 use App\Services\Orders\PaymentService;
 
 /**
@@ -42,6 +44,7 @@ class OrderController extends ApiController
         private readonly OrderFittingService $fittingService,
         private readonly InvestmentService $investmentService,
         private readonly OrderOwnerService $ownerService,
+        private readonly UserPreferences $preferences,
     ) {
         $this->protect(
             ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -75,6 +78,7 @@ class OrderController extends ApiController
         return $this->secure(function () use ($request): JsonResponse {
             $query = $request->query('q');
             $status = $request->query('status');
+            $phase = $request->query('phase');
 
             // „Moje" nie przyjmuje cudzego identyfikatora: to
             // przelacznik na wlasna liste, a nie podglad czyjejs.
@@ -83,11 +87,20 @@ class OrderController extends ApiController
             $mine = $request->boolean('mine');
             $me = $mine ? $request->user()?->getKey() : null;
 
+            // Liczba wierszy na strone: z zadania, jesli dozwolona,
+            // inaczej zapamietana przy koncie.
+            $user = $request->user();
+            $perPage = $this->preferences->valid(UserPreferences::ORDERS_PER_PAGE, $request->query('per_page'))
+                ? (int) $request->query('per_page')
+                : $this->preferences->get($user instanceof User ? $user : null, UserPreferences::ORDERS_PER_PAGE);
+
             return $this->dataResponse($this->board->board(
                 is_string($query) ? $query : null,
                 is_string($status) ? $status : null,
+                limit: $perPage,
                 ownerId: is_numeric($me) ? (int) $me : null,
                 page: max(1, $request->integer('page', 1)),
+                phase: is_string($phase) && $phase !== '' ? $phase : null,
             ));
         });
     }

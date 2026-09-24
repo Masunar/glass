@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $last_name
  * @property bool $is_active
  * @property int|null $location_id
+ * @property array<string, mixed>|null $preferences
  * @property Location|null $location
  * @property UserMfa|null $mfa
  * @property Carbon|null $last_login_at
@@ -197,6 +198,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_login_at' => 'datetime',
             'activation_token_expires_at' => 'datetime',
             'password' => 'hashed',
+            'preferences' => 'array',
             'is_active' => 'boolean',
         ];
     }

@@ -1090,11 +1090,12 @@
       "none": "— wskaż osobę —",
       "note": "Prowadzący odpowiada za zlecenie: to jego inicjały widać na liście i jego pulpit podbija tę sprawę na górę. Zlecenie dalej widzą wszyscy — przekazanie niczego nikomu nie zabiera."
     },
-    "closed": "Zamknięte",
     "pager": "Strony listy",
     "prev": "‹ Poprzednie",
     "next": "Następne ›",
-    "page_of": "Strona {{page}} z {{pages}}"
+    "page_of": "Strona {{page}} z {{pages}}",
+    "whole_phase": "Cała faza: {{phase}}",
+    "per_page": "Na stronę:"
   },
   "production": {
     "loading": "Wczytywanie kolejki…",

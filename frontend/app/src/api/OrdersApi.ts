@@ -64,7 +64,11 @@ export type OrderBoard = {
     alerts: number;
     /** Status zamknięty — ekran zbiera je w jedną grupę. */
     is_final: boolean;
+    /** Faza procesu; `null` przy zakładce „W toku". */
+    phase: string | null;
   }[];
+  /** Fazy w kolejności procesu — nazwy i przypisanie stoją na serwerze. */
+  phases: { key: string; name: string }[];
   summary: {
     today: number;
     overdue: number;
@@ -579,6 +583,7 @@ export class OrdersApi extends ApiRequest {
     status: string | null = null,
     mine: boolean = false,
     page: number = 1,
+    phase: string | null = null,
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.get('', {
       q: query,
@@ -587,6 +592,7 @@ export class OrdersApi extends ApiRequest {
       // zalogowanego, a nie identyfikator z adresu.
       mine: mine ? '1' : '',
       page: String(page),
+      phase: phase ?? '',
     });
   }
 
