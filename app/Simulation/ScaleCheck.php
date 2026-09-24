@@ -98,7 +98,7 @@ final class ScaleCheck
         }
 
         $queue = $this->probe->measure(static fn(): array => (new ProductionQueue())->board(today: $day));
-        $timings[] = $this->timing('Kolejka produkcji', $queue, sprintf('%d etapów', $queue['result']['summary']['shown']));
+        $timings[] = $this->timing('Kolejka produkcji', $queue, sprintf('%d etapów', $queue['result']['summary']['total']));
 
         $furnace = $this->probe->measure(static fn(): array => (new TemperingBoard())->queue());
         $timings[] = $this->timing('Kolejka pieca', $furnace, '');

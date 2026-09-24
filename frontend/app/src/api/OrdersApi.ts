@@ -34,6 +34,10 @@ export type OrderRow = {
   delivery_method: string;
   delivery_place: string | null;
   amount: string;
+  /** Procent wpłat od brutto; `null`, gdy brutto nieznane (brak typu faktury). */
+  paid_percent: number | null;
+  /** Etapy produkcji zlecenia; `null`, gdy zlecenie jeszcze ich nie ma. */
+  production: { done: number; total: number; percent: number } | null;
   /** Inicjały prowadzącego, nie zakładającego. */
   owner_initials: string | null;
   owner_id: number | null;

@@ -618,7 +618,8 @@
       "deadline": "Termin",
       "handover": "Wydanie",
       "amount": "Kwota",
-      "next": "Co dalej"
+      "next": "Co dalej",
+      "progress": "Wykonanie"
     },
     "band": {
       "today": "Dziś",
@@ -1090,12 +1091,13 @@
       "none": "— wskaż osobę —",
       "note": "Prowadzący odpowiada za zlecenie: to jego inicjały widać na liście i jego pulpit podbija tę sprawę na górę. Zlecenie dalej widzą wszyscy — przekazanie niczego nikomu nie zabiera."
     },
-    "pager": "Strony listy",
-    "prev": "‹ Poprzednie",
-    "next": "Następne ›",
-    "page_of": "Strona {{page}} z {{pages}}",
     "whole_phase": "Cała faza: {{phase}}",
-    "per_page": "Na stronę:"
+    "paid_unknown": "brak typu faktury",
+    "progress_none": "bez etapów",
+    "progress_note_one": "{{done}} z {{count}} etapu",
+    "progress_note_few": "{{done}} z {{count}} etapów",
+    "progress_note_many": "{{done}} z {{count}} etapów",
+    "progress_note_other": "{{done}} z {{count}} etapów"
   },
   "production": {
     "loading": "Wczytywanie kolejki…",
@@ -1161,7 +1163,13 @@
       "material": "brak materiału",
       "drawing": "błąd rysunku",
       "rework": "poprawka"
-    }
+    },
+    "order_chip": "zlecenie {{percent}} %",
+    "order_progress_label": "Zlecenie",
+    "order_progress_one": "{{percent}} % — {{done}} z {{count}} etapu",
+    "order_progress_few": "{{percent}} % — {{done}} z {{count}} etapów",
+    "order_progress_many": "{{percent}} % — {{done}} z {{count}} etapów",
+    "order_progress_other": "{{percent}} % — {{done}} z {{count}} etapów"
   },
   "warehouse": {
     "title": "Magazyn",
@@ -1445,5 +1453,12 @@
     "mark_acknowledged": "odhaczone przez {{who}} {{date}}",
     "mark_ack": "kliknij, żeby odhaczyć",
     "mark_revoke": "kliknij, żeby cofnąć odhaczenie"
+  },
+  "pager": {
+    "label": "Strony listy",
+    "per_page": "Na stronę:",
+    "prev": "‹ Poprzednie",
+    "next": "Następne ›",
+    "page_of": "Strona {{page}} z {{pages}}"
   }
 }

@@ -111,9 +111,8 @@ final readonly class PaymentService
                 'gross' => $gross,
                 'paid' => $this->money($paid),
                 'due' => $due === null ? null : $this->money($due),
-                'paid_percent' => $gross === null || (float) $gross <= 0.0
-                    ? null
-                    : (int) round($paid / (float) $gross * 100),
+                // Jedna regula procentu dla zakladki, karty i listy.
+                'paid_percent' => OrderProgress::paidPercent($paid, $gross === null ? null : (float) $gross),
             ],
             'credit' => $order->contractor === null ? null : [
                 'limit' => $order->contractor->credit_limit,

@@ -11,6 +11,7 @@ use App\Models\Workstation;
 use App\Enum\ProductionStatus;
 use App\Models\ProductionTask;
 use App\Models\OrderDrawing;
+use App\Services\Orders\OrderProgress;
 
 /**
  * Kolejka stanowiska — „co mam dziś zrobić".
@@ -33,6 +34,11 @@ use App\Models\OrderDrawing;
  */
 final readonly class ProductionQueue
 {
+    public function __construct(
+        private OrderProgress $progress = new OrderProgress(),
+    ) {
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -42,10 +48,39 @@ final readonly class ProductionQueue
         ?int $processId = null,
         bool $includeDone = false,
         ?Carbon $today = null,
+        int $perPage = 50,
+        int $page = 1,
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
+        $date = $day->toDateString();
+        $perPage = max(1, $perPage);
 
-        $query = $this->queue($includeDone)
+        // Zbior, o ktorym mowi ekran — jeden dla wierszy, stron
+        // i licznikow w naglowku. Liczniki liczone z pokazanych wierszy
+        // przestaja byc prawda w chwili, gdy lista ma strony.
+        $scope = fn(): Builder => $this->queue($includeDone)
+            ->when(
+                $workstationId !== null,
+                static fn(Builder $builder): Builder => $builder->where('production_tasks.workstation_id', $workstationId),
+            )
+            ->when(
+                $unassignedOnly,
+                static fn(Builder $builder): Builder => $builder->whereNull('production_tasks.workstation_id'),
+            )
+            ->when(
+                $processId !== null,
+                static fn(Builder $builder): Builder => $builder->where('production_tasks.process_id', $processId),
+            );
+
+        $total = $scope()->count();
+        $pages = max(1, (int) ceil($total / $perPage));
+        // Po odhaczeniu ostatniego etapu na ostatniej stronie ta strona
+        // znika. Ekran ma wtedy pokazac poprzednia, a nie pusta liste
+        // z napisem „nic nie czeka" nad kolejka, ktora czeka.
+        $page = min(max(1, $page), $pages);
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, ProductionTask> $tasks */
+        $tasks = $this->byUrgency($scope())
             ->with([
                 'process',
                 'workstation',
@@ -54,55 +89,77 @@ final readonly class ProductionQueue
                 'item.list',
                 'order.contractor',
             ])
-            ->when($workstationId !== null, static fn($builder) => $builder->where('workstation_id', $workstationId))
-            ->when($unassignedOnly, static fn($builder) => $builder->whereNull('workstation_id'))
-            ->when($processId !== null, static fn($builder) => $builder->where('process_id', $processId));
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get();
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, ProductionTask> $tasks */
-        $tasks = $query->get();
+        $orderIds = $tasks->pluck('order_id')->unique()->all();
 
-        // Liczba rysunkow jednym zapytaniem dla calej kolejki. Liczona
+        // Liczba rysunkow jednym zapytaniem dla calej strony. Liczona
         // w kazdym wierszu osobno dawala jedno zapytanie na etap —
         // przy duzej hali kilkanascie tysiecy na jedno otwarcie ekranu.
-        $drawings = $this->drawingCounts($tasks->pluck('order_id')->unique()->all());
+        $drawings = $this->drawingCounts($orderIds);
+        $progress = $this->progress->production($orderIds);
 
         $rows = [];
 
         foreach ($tasks as $task) {
-            $rows[] = $this->row($task, $day, $drawings);
+            $rows[] = $this->row($task, $day, $drawings, $progress);
         }
-
-        // Sortowanie po pilnosci robimy w pamieci, bo termin zlecenia to
-        // "przesuniety albo klienta" - warunek, ktorego nie da sie zapisac
-        // jednym indeksem, a liczba zadan w kolejce jest rzedu setek.
-        usort($rows, static function (array $a, array $b): int {
-            $left = $a['days_left'] ?? PHP_INT_MAX;
-            $right = $b['days_left'] ?? PHP_INT_MAX;
-
-            // Pilne idzie przed terminem, bo po to sie je zaznacza:
-            // to jedyny sposob, zeby czlowiek przestawil kolejnosc,
-            // ktorej data sama nie przestawi. Wewnatrz pilnych nadal
-            // rzadzi termin.
-            return [$a['is_urgent'] ? 0 : 1, $left, $a['order_number'], $a['position']]
-                <=> [$b['is_urgent'] ? 0 : 1, $right, $b['order_number'], $b['position']];
-        });
 
         return [
             'workstations' => $this->workstations(),
             'rows' => $rows,
             'summary' => [
                 'shown' => count($rows),
-                'problems' => count(array_filter(
-                    $rows,
-                    static fn(array $row): bool => $row['status'] === ProductionStatus::PROBLEM->value,
-                )),
-                'overdue' => count(array_filter(
-                    $rows,
-                    static fn(array $row): bool => $row['days_left'] !== null && $row['days_left'] < 0,
-                )),
-                'as_of' => $day->toDateString(),
+                'total' => $total,
+                'page' => $page,
+                'pages' => $pages,
+                'per_page' => $perPage,
+                'problems' => $scope()
+                    ->where('production_tasks.status', ProductionStatus::PROBLEM->value)
+                    ->count(),
+                'overdue' => $scope()
+                    ->whereHas(
+                        'order',
+                        static fn(Builder $order): Builder => $order->whereRaw(
+                            'COALESCE(shifted_deadline, client_deadline) < ?',
+                            [$date],
+                        ),
+                    )
+                    ->count(),
+                'as_of' => $date,
             ],
         ];
+    }
+
+    /**
+     * Kolejność pilności w bazie, nie w pamięci — inaczej strona druga
+     * byłaby „następne etapy po id", a nie następne najpilniejsze.
+     *
+     * Pilna pozycja idzie przed terminem, bo po to się ją zaznacza: to
+     * jedyny sposób, żeby człowiek przestawił kolejność, której data sama
+     * nie przestawi. Wewnątrz pilnych nadal rządzi termin; bez terminu —
+     * na końcu. Numer zlecenia i pozycja w marszrucie rozstrzygają remis,
+     * a id etapu czyni kolejność jednoznaczną między stronami.
+     *
+     * @param Builder<ProductionTask> $builder
+     * @return Builder<ProductionTask>
+     */
+    private function byUrgency(Builder $builder): Builder
+    {
+        $deadline = 'COALESCE(orders.shifted_deadline, orders.client_deadline)';
+
+        return $builder
+            ->select('production_tasks.*')
+            ->join('order_items', 'order_items.id', '=', 'production_tasks.order_item_id')
+            ->join('orders', 'orders.id', '=', 'production_tasks.order_id')
+            ->orderByDesc('order_items.is_urgent')
+            ->orderByRaw("CASE WHEN {$deadline} IS NULL THEN 1 ELSE 0 END")
+            ->orderByRaw($deadline)
+            ->orderBy('orders.number')
+            ->orderBy('production_tasks.position')
+            ->orderBy('production_tasks.id');
     }
 
     /**
@@ -141,9 +198,10 @@ final readonly class ProductionQueue
 
     /**
      * @param array<int, int> $drawings liczba rysunków na zlecenie
+     * @param array<int, array{done: int, total: int, percent: int}> $progress postęp zleceń
      * @return array<string, mixed>
      */
-    private function row(ProductionTask $task, Carbon $day, array $drawings): array
+    private function row(ProductionTask $task, Carbon $day, array $drawings, array $progress): array
     {
         // Zlecenie, pozycja i proces sa wymagane kluczem obcym, wiec
         // zawsze sa. Nullowalne zostaja szyba (usluga jej nie ma)
@@ -179,6 +237,10 @@ final readonly class ProductionQueue
             'item_note' => $item->production_note,
             'is_urgent' => (bool) $item->is_urgent,
             'drawings' => $drawings[(int) $task->order_id] ?? 0,
+            // Jak daleko jest cale zlecenie, nie ten jeden etap —
+            // operator widzi, czy to ostatnia rzecz przed wydaniem.
+            // Bez kwot: wplaty na hali nie maja czego szukac.
+            'order_progress' => $progress[(int) $task->order_id] ?? null,
             'status' => $task->status->value,
             'issue_type' => $task->issue_type?->value,
             'note' => $task->note,

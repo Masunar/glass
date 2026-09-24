@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\Test;
 use App\Services\Production\ProductionPlan;
 use App\Services\Production\ProductionQueue;
 use App\Services\Production\TaskExecution;
+use App\Services\Orders\OrderBoardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -430,7 +431,7 @@ class ProductionTaskTest extends TestCase
         // Zakladka „Bez stanowiska 9" nad szescioma wierszami to dwa
         // zapytania o ten sam zbior, z ktorych jedno zgubilo warunek.
         $this->assertSame(3, ProductionTask::query()->where('order_id', $order->getKey())->count());
-        $this->assertSame($orphans['summary']['shown'], $tab);
+        $this->assertSame($orphans['summary']['total'], $tab);
     }
 
     #[Test]
@@ -441,7 +442,7 @@ class ProductionTaskTest extends TestCase
 
         // Pulpit pyta o sama liczbe. Musi to byc liczba ekranu, a nie
         // osobne zapytanie, ktore za tydzien zgubi warunek.
-        $this->assertSame($this->queue->board()['summary']['shown'], $this->queue->count());
+        $this->assertSame($this->queue->board()['summary']['total'], $this->queue->count());
     }
 
     #[Test]
@@ -460,6 +461,103 @@ class ProductionTaskTest extends TestCase
         // zapytania na 18 174 etapy — jedno na wiersz. Kolejka ma
         // kosztowac tyle samo zapytan przy dwoch etapach co przy dwunastu.
         $this->assertSame($few, $many);
+    }
+
+    #[Test]
+    public function druga_strona_to_nastepne_najpilniejsze(): void
+    {
+        $today = Carbon::parse('2026-09-11');
+
+        $third = $this->order(['C'], deadline: '2026-09-30');
+        $first = $this->order(['C'], deadline: '2026-09-12');
+        $second = $this->order(['C'], deadline: '2026-09-20');
+
+        foreach ([$third, $first, $second] as $order) {
+            $this->plan->sync($order);
+        }
+
+        $page = $this->queue->board(today: $today, perPage: 1, page: 2);
+
+        // Kolejnosc idzie z bazy, nie z pamieci po pobraniu strony:
+        // inaczej druga strona bylaby „nastepny po id", nie po terminie.
+        $this->assertSame((int) $second->number, $page['rows'][0]['order_number']);
+        $this->assertSame(1, $page['summary']['shown']);
+        $this->assertSame(3, $page['summary']['total']);
+        $this->assertSame(3, $page['summary']['pages']);
+    }
+
+    #[Test]
+    public function liczniki_naglowka_licza_cala_kolejke_a_nie_strone(): void
+    {
+        $today = Carbon::parse('2026-09-11');
+
+        foreach (range(1, 3) as $ignored) {
+            $this->plan->sync($this->order(['C'], deadline: '2026-09-01'));
+        }
+
+        $board = $this->queue->board(today: $today, perPage: 1);
+
+        // Na liscie zlecen „Zalegle 27" stalo nad 1700 zaleglymi.
+        // Ten sam blad nie moze wrocic tu razem ze stronami.
+        $this->assertSame(1, $board['summary']['shown']);
+        $this->assertSame(3, $board['summary']['overdue']);
+    }
+
+    #[Test]
+    public function strona_za_koncem_pokazuje_ostatnia(): void
+    {
+        $this->plan->sync($this->order(['C']));
+        $this->plan->sync($this->order(['C']));
+
+        $board = $this->queue->board(perPage: 1, page: 5);
+
+        // Po odhaczeniu ostatniego etapu ostatniej strony ekran pyta
+        // o strone, ktorej juz nie ma. Pusta lista nad czekajaca
+        // kolejka mowilaby „nic nie czeka".
+        $this->assertSame(2, $board['summary']['page']);
+        $this->assertCount(1, $board['rows']);
+    }
+
+    #[Test]
+    public function postep_zlecenia_ten_sam_w_kolejce_i_na_liscie(): void
+    {
+        $order = $this->order(['C', 'S']);
+        $this->plan->sync($order);
+
+        $this->execution->finish((int) $this->firstTask($order)->getKey());
+
+        $queueRow = $this->queue->board()['rows'][0];
+
+        $listRow = null;
+
+        foreach ((new OrderBoardService())->board()['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                if ($row['id'] === (int) $order->getKey()) {
+                    $listRow = $row;
+                }
+            }
+        }
+
+        $this->assertSame(['done' => 1, 'total' => 2, 'percent' => 50], $queueRow['order_progress']);
+        $this->assertNotNull($listRow);
+        $this->assertSame($queueRow['order_progress'], $listRow['production']);
+    }
+
+    #[Test]
+    public function zlecenie_bez_etapow_nie_ma_zera_tylko_brak(): void
+    {
+        $order = $this->order(['C'], statusCode: 'ZLECENIE');
+
+        $rows = [];
+
+        foreach ((new OrderBoardService())->board()['bands'] as $band) {
+            $rows = [...$rows, ...$band['rows']];
+        }
+
+        // 0% znaczyloby „stoi na hali", a zlecenie jeszcze na nia nie
+        // weszlo. To dwie rozne wiadomosci dla handlowca.
+        $this->assertSame((int) $order->getKey(), $rows[0]['id']);
+        $this->assertNull($rows[0]['production']);
     }
 
     /**

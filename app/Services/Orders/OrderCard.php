@@ -181,7 +181,7 @@ final readonly class OrderCard
     /**
      * Wpłaty i saldo zlecenia.
      *
-     * Procent liczymy wyłącznie od brutto. Zlecenie bez typu faktury nie
+     * Procent liczymy wyłącznie od brutto (`OrderProgress`). Zlecenie bez typu faktury nie
      * ma znanej kwoty do zapłaty, więc pasek pokazuje samą sumę wpłat
      * i mówi, czego brakuje — zamiast dzielić przez netto i twierdzić,
      * że klient zapłacił więcej, niż zapłacił.
@@ -203,9 +203,9 @@ final readonly class OrderCard
         return [
             'paid' => $this->amount($paid),
             'due' => $due === null ? null : $this->amount($due),
-            'percent' => $gross === null || (float) $gross <= 0.0
-                ? null
-                : (int) round($paid / (float) $gross * 100),
+            // Ta sama regula co na liscie zlecen — jedna definicja
+            // procentu, nie dwie zaokraglane kazda po swojemu.
+            'percent' => OrderProgress::paidPercent($paid, $gross === null ? null : (float) $gross),
             'count' => $order->payments->count(),
             'currency' => PaymentService::BASE_CURRENCY,
         ];

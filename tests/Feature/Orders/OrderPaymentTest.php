@@ -20,6 +20,7 @@ use App\Enum\PaymentChannel;
 use App\Models\CashRegister;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Orders\PaymentService;
+use App\Services\Orders\OrderBoardService;
 use App\Services\Orders\ContractorBalance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -419,5 +420,51 @@ class OrderPaymentTest extends TestCase
 
         $this->assertSame(50, $board['summary']['paid_percent']);
         $this->assertSame(1, $board['tabs']['payments']);
+    }
+
+    #[Test]
+    public function lista_pokazuje_ten_sam_procent_wplat_co_zakladka(): void
+    {
+        $order = $this->order();
+        $register = $this->register();
+
+        // 1229,99 z 1230,00 — brakuje grosza, wiec to nie jest komplet.
+        $this->service->store((int) $order->getKey(), $this->input([
+            'cash_register_id' => $register->id,
+            'amount' => '1229.99',
+        ]));
+
+        $tab = $this->service->board((int) $order->getKey())['summary']['paid_percent'];
+
+        $row = null;
+
+        foreach ((new OrderBoardService())->board()['bands'] as $band) {
+            foreach ($band['rows'] as $candidate) {
+                if ($candidate['id'] === (int) $order->getKey()) {
+                    $row = $candidate;
+                }
+            }
+        }
+
+        $this->assertNotNull($row);
+        // Zaokraglenie w gore zrobiloby z tego 100% — „zaplacone",
+        // choc nie jest. Lista i zakladka licza jedna regula.
+        $this->assertSame(99, $tab);
+        $this->assertSame($tab, $row['paid_percent']);
+    }
+
+    #[Test]
+    public function bez_typu_faktury_lista_nie_zgaduje_procentu(): void
+    {
+        $order = $this->order(withInvoiceType: false);
+
+        $rows = [];
+
+        foreach ((new OrderBoardService())->board()['bands'] as $band) {
+            $rows = [...$rows, ...$band['rows']];
+        }
+
+        $this->assertSame((int) $order->getKey(), $rows[0]['id']);
+        $this->assertNull($rows[0]['paid_percent']);
     }
 }

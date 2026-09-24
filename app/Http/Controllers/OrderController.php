@@ -90,9 +90,11 @@ class OrderController extends ApiController
             // Liczba wierszy na strone: z zadania, jesli dozwolona,
             // inaczej zapamietana przy koncie.
             $user = $request->user();
-            $perPage = $this->preferences->valid(UserPreferences::ORDERS_PER_PAGE, $request->query('per_page'))
-                ? (int) $request->query('per_page')
-                : $this->preferences->get($user instanceof User ? $user : null, UserPreferences::ORDERS_PER_PAGE);
+            $perPage = $this->preferences->resolve(
+                $user instanceof User ? $user : null,
+                UserPreferences::ORDERS_PER_PAGE,
+                $request->query('per_page'),
+            );
 
             return $this->dataResponse($this->board->board(
                 is_string($query) ? $query : null,
