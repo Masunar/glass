@@ -47,6 +47,7 @@ final readonly class OrderBoardService
         ?int $ownerId = null,
         int $page = 1,
         ?string $phase = null,
+        bool $withAlerts = true,
     ): array {
         $day = ($today ?? Carbon::today())->startOfDay();
         $date = $day->toDateString();
@@ -127,8 +128,10 @@ final readonly class OrderBoardService
         )));
 
         // Alerty licza sie dla calej bazy, nie dla pokazanych wierszy:
-        // czerwony licznik przy zakladce ma mowic o calosci.
-        $alerts = $this->alerts->forOrders($day);
+        // czerwony licznik przy zakladce ma mowic o calosci. Ekran moze
+        // poprosic o nie osobno (`alerts()`), zeby wiersze nie czekaly
+        // na przebieg silnika.
+        $alerts = $withAlerts ? $this->alerts->forOrders($day) : [];
 
         // Postep hali dla calej strony jednym zapytaniem.
         $production = $this->progress->production($orders->modelKeys());
@@ -152,7 +155,7 @@ final readonly class OrderBoardService
                 $this->band('overdue', $bands['overdue']),
                 $this->band('later', $bands['later']),
             ],
-            'filters' => $this->filters($day, $ownerId),
+            'filters' => $this->filters($day, $ownerId, $withAlerts),
             // Kolejnosc i nazwy faz stoja w jednym miejscu — w kodzie,
             // obok przypisania statusow — a ekran tylko je rysuje.
             'phases' => array_map(
@@ -177,8 +180,41 @@ final readonly class OrderBoardService
                 // przelacznik „moje" moglby zostac wcisniety, a lista
                 // pokazywac calosc — i nikt by tego nie zauwazyl.
                 'mine' => $ownerId !== null,
+                // Bez alertow puste znaczniki znacza „jeszcze nie wiadomo",
+                // a nie „nic sie nie dzieje" — ekran musi to rozroznic.
+                'alerts_loaded' => $withAlerts,
                 'as_of' => $day->toDateString(),
             ],
+        ];
+    }
+
+    /**
+     * Alerty listy, dociągane osobno po wierszach.
+     *
+     * Silnik liczy się przy odczycie, więc lista czekała na niego, zanim
+     * pokazała choć jeden wiersz. Teraz wiersze idą pierwsze, a to
+     * zapytanie dokłada znaczniki pokazanych zleceń i czerwone liczby przy
+     * zakładkach — **te same**, które `board()` zwraca w jednym kawałku.
+     *
+     * Znaczniki tylko dla podanych zleceń (strona ekranu), liczniki dla
+     * całości — z filtrem „moje", tak jak liczniki zakładek.
+     *
+     * @param list<int> $orderIds
+     * @return array{marks: array<int, list<array<string, mixed>>>, counts: array<string, int>}
+     */
+    public function alerts(array $orderIds, ?Carbon $today = null, ?int $ownerId = null): array
+    {
+        $day = ($today ?? Carbon::today())->startOfDay();
+        $all = $this->alerts->forOrders($day);
+        $marks = [];
+
+        foreach ($orderIds as $id) {
+            $marks[$id] = $all[$id] ?? [];
+        }
+
+        return [
+            'marks' => $marks,
+            'counts' => $this->alerts->orderCounts($day, $ownerId),
         ];
     }
 
@@ -392,9 +428,9 @@ final readonly class OrderBoardService
      *
      * @return list<array<string, mixed>>
      */
-    private function filters(Carbon $day, ?int $ownerId = null): array
+    private function filters(Carbon $day, ?int $ownerId = null, bool $withAlerts = true): array
     {
-        $alerts = $this->alerts->orderCounts($day, $ownerId);
+        $alerts = $withAlerts ? $this->alerts->orderCounts($day, $ownerId) : [];
 
         /** @var array<int, int> $counts */
         $counts = Order::query()
@@ -436,7 +472,7 @@ final readonly class OrderBoardService
             'code' => null,
             'name' => 'W toku',
             'count' => $open,
-            'alerts' => $alerts[''] ?? 0,
+            'alerts' => $withAlerts ? ($alerts[''] ?? 0) : null,
             'is_final' => false,
             'phase' => null,
         ]];
@@ -454,7 +490,7 @@ final readonly class OrderBoardService
                 'code' => $status->code,
                 'name' => $status->name,
                 'count' => $count,
-                'alerts' => $alerts[$status->code] ?? 0,
+                'alerts' => $withAlerts ? ($alerts[$status->code] ?? 0) : null,
                 'is_final' => (bool) $status->is_final,
                 'phase' => OrderPhase::forStatus((string) $status->code, (bool) $status->is_final)->value,
             ];

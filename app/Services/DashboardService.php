@@ -61,12 +61,14 @@ final readonly class DashboardService
     /**
      * @return array<string, mixed>
      */
-    public function board(User $user, ?Carbon $today = null): array
+    public function board(User $user, ?Carbon $today = null, bool $withAlerts = true): array
     {
         $day = ($today ?? Carbon::today())->startOfDay();
 
         $seesOrders = $this->may($user, Permission::ORDERS, 'zlec');
-        $board = $seesOrders ? $this->orders->board(null, null, $day) : null;
+        // Sprawy, liczniki i blokady nie czytaja znacznikow alertow
+        // z wierszy — przebieg silnika jest tu potrzebny tylko pasmu.
+        $board = $seesOrders ? $this->orders->board(null, null, $day, withAlerts: false) : null;
         $rows = $board === null ? [] : $this->orderRows($board);
 
         $tasks = $this->tasks($rows, (int) $user->getKey());
@@ -88,7 +90,9 @@ final readonly class DashboardService
             // startu: „zacznij od #24004" zamiast „masz siedem spraw".
             'top' => $tasks[0] ?? null,
             'counters' => $counters,
-            'alerts' => $this->alerts($user, $day),
+            // `null` — pasmo dochodzi osobnym zapytaniem (`alerts()`),
+            // zeby pulpit nie czekal na przebieg silnika.
+            'alerts' => $withAlerts ? $this->alerts($user, $day) : null,
             'tasks' => $tasks,
             'blocked' => $seesOrders ? $this->blocked($rows) : [],
             'shortages' => $this->shortages($user),
@@ -115,8 +119,9 @@ final readonly class DashboardService
      *
      * @return list<array<string, mixed>>
      */
-    private function alerts(User $user, Carbon $day): array
+    public function alerts(User $user, ?Carbon $today = null): array
     {
+        $day = ($today ?? Carbon::today())->startOfDay();
         $rows = [];
 
         $me = (int) $user->getKey();

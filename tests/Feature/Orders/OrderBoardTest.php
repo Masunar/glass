@@ -316,4 +316,41 @@ class OrderBoardTest extends TestCase
             );
         }
     }
+
+    #[Test]
+    public function alerty_osobno_to_te_same_alerty_co_w_jednym_kawalku(): void
+    {
+        $late = $this->order('ZLECENIE', $this->today->copy()->subDays(5));
+        $this->order('ZLECENIE', $this->today->copy()->addDays(5));
+
+        $whole = (new OrderBoardService())->board(today: $this->today);
+        $rows = (new OrderBoardService())->board(today: $this->today, withAlerts: false);
+
+        $expected = [];
+        $ids = [];
+
+        foreach ($whole['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                $expected[$row['id']] = $row['alerts'];
+            }
+        }
+
+        foreach ($rows['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                $ids[] = $row['id'];
+                $this->assertSame([], $row['alerts']);
+            }
+        }
+
+        $alerts = (new OrderBoardService())->alerts($ids, $this->today);
+
+        // Bez alertow ekran ma wiedziec, ze ich jeszcze nie ma — zero
+        // przy zakladce znaczyloby „wszystko w porzadku".
+        $this->assertFalse($rows['summary']['alerts_loaded']);
+        $this->assertNull($rows['filters'][0]['alerts']);
+
+        $this->assertNotSame([], $expected[(int) $late->getKey()]);
+        $this->assertEquals($expected, $alerts['marks']);
+        $this->assertSame($whole['filters'][0]['alerts'], $alerts['counts']['']);
+    }
 }

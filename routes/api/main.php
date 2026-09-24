@@ -25,6 +25,7 @@ use App\Http\Controllers\GlobalParameterController;
 // Pulpit bez uprawnienia: strona jest dostepna kazdemu zalogowanemu,
 // a sekcje przycina usluga.
 Route::get('/dashboard', [DashboardController::class, 'board'])->name('dashboard');
+Route::get('/dashboard/alerts', [DashboardController::class, 'alerts'])->name('dashboard_alerts');
 Route::get('/search', [SearchController::class, 'search'])->name('search');
 // Wlasne ustawienia ekranu — bez uprawnienia, kazdy zmienia tylko swoje.
 Route::put('/preferences', [PreferenceController::class, 'update'])->name('preferences');
@@ -163,6 +164,7 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::post('/', [OrderController::class, 'create'])->name('create');
     // Przed trasa z parametrem, inaczej "form" zostanie wziete za numer.
     Route::get('/form', [OrderController::class, 'formOptions'])->name('form');
+    Route::get('/alerts', [OrderController::class, 'alerts'])->name('alerts');
     Route::get('/{order}', [OrderController::class, 'card'])->name('card');
     Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
     Route::get('/{order}/items', [OrderController::class, 'items'])->name('items');

@@ -38,7 +38,23 @@ class DashboardController extends ApiController
                 return $this->unauthorizedResponse();
             }
 
-            return $this->dataResponse($this->board->board($user));
+            // Pasmo alertow idzie osobnym zapytaniem: reszta pulpitu nie
+            // czeka na przebieg silnika.
+            return $this->dataResponse($this->board->board($user, withAlerts: false));
+        });
+    }
+
+    /** Pasmo alertów pulpitu — przycięte do modułów, które użytkownik widzi. */
+    public function alerts(Request $request): JsonResponse
+    {
+        return $this->secure(function () use ($request): JsonResponse {
+            $user = $request->user();
+
+            if (!$user instanceof User) {
+                return $this->unauthorizedResponse();
+            }
+
+            return $this->dataResponse(['alerts' => $this->board->alerts($user)]);
         });
     }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PiArrowRight } from 'react-icons/pi';
 import { Link, useNavigate } from 'react-router';
 
@@ -7,6 +7,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import { notifyError } from '@salvon/utils/notify';
 
 import type {
+  DashboardAlert,
   DashboardBoard,
   DashboardTask,
   TaskBand,
@@ -39,12 +40,46 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
   const [busy, setBusy] = useState<number | null>(null);
+  // `null` — jeszcze nie przyszly. Pusta lista znaczy co innego: nic
+  // sie nie pali. Tych dwoch stanow nie wolno pokazac tak samo.
+  const [alerts, setAlerts] = useState<DashboardAlert[] | null>(null);
+  const [alertsFailed, setAlertsFailed] = useState(false);
+  // Numer wczytania: odpowiedz z poprzedniego, spozniona, nie moze
+  // nadpisac nowszej.
+  const round = useRef(0);
 
+  /**
+   * Pulpit i pasmo alertów naraz, dwoma zapytaniami. Silnik alertów
+   * liczy się przy odczycie — gdyby szedł w tym samym zapytaniu, cały
+   * pulpit czekałby na niego, zanim pokazałby choć jedną sprawę.
+   */
   const load = async () => {
+    const ticket = ++round.current;
+
     setLoading(true);
+    setAlerts(null);
+    setAlertsFailed(false);
+
+    void DashboardApi.alerts().then(({ content }) => {
+      if (ticket !== round.current) {
+        return;
+      }
+
+      const data: { alerts: DashboardAlert[] } | undefined = content?.data;
+
+      if (data) {
+        setAlerts(data.alerts);
+      } else {
+        setAlertsFailed(true);
+      }
+    });
 
     const { content } = await DashboardApi.board();
     const data: DashboardBoard | undefined = content?.data;
+
+    if (ticket !== round.current) {
+      return;
+    }
 
     setLoading(false);
 
@@ -102,7 +137,7 @@ export default function Page() {
     await load();
   };
 
-  const { summary, counters, top, blocked, shortages, alerts } = board;
+  const { summary, counters, top, blocked, shortages } = board;
   // Bez przecinka miedzy dniem tygodnia a data: „sroda 23 wrzesnia"
   // czyta sie jak nadtytul, „sroda, 23 wrzesnia" jak zdanie.
   const day = new Date(board.as_of)
@@ -285,7 +320,24 @@ export default function Page() {
         </div>
 
         <aside className="ge-home__side">
-          {alerts.length > 0 && (
+          {/* Pasmo w drodze: naglowek i pasek pobierania w jego miejscu,
+              zeby nic nie przeskoczylo, gdy dojdzie. Bez tego brak pasma
+              wygladalby jak „brak alertow". */}
+          {alerts === null && (
+            <section className="ge-home__box" aria-busy="true">
+              <div className="ge-home__box-head">{t('page.home.alerts')}</div>
+              <ListWait on={!alertsFailed} />
+              <div className="ge-quiet">
+                {t(
+                  alertsFailed
+                    ? 'page.home.alerts_failed'
+                    : 'page.home.alerts_loading',
+                )}
+              </div>
+            </section>
+          )}
+
+          {alerts !== null && alerts.length > 0 && (
             <section className="ge-home__box">
               <div className="ge-home__box-head">
                 {t('page.home.alerts')}

@@ -1,5 +1,5 @@
 import OrderDrawer from './_components/OrderDrawer';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PiCaretDown, PiPlus, PiWarningCircle } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 
@@ -10,6 +10,7 @@ import { useTranslation } from '@salvon/hooks/useTranslation';
 import {
   type OrderBandKey,
   type OrderBoard,
+  type OrderBoardAlerts,
   type OrderRow,
   OrdersApi,
 } from '@app/api/OrdersApi';
@@ -68,6 +69,10 @@ export default function Page() {
   const [busy, setBusy] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [alertsFailed, setAlertsFailed] = useState(false);
+  // Numer wczytania: spozniona odpowiedz z poprzedniego filtra nie moze
+  // dolozyc znacznikow do wierszy nowego.
+  const round = useRef(0);
   const navigate = useNavigate();
 
   const load = async (
@@ -79,7 +84,10 @@ export default function Page() {
     nextPage: number = page,
     nextPhase: string | null = phase,
   ) => {
+    const ticket = ++round.current;
+
     setLoading(true);
+    setAlertsFailed(false);
     setPage(nextPage);
     setPhase(nextPhase);
 
@@ -91,6 +99,10 @@ export default function Page() {
       nextPhase,
     );
     const data: OrderBoard | undefined = content?.data;
+
+    if (ticket !== round.current) {
+      return;
+    }
 
     setLoading(false);
 
@@ -104,6 +116,29 @@ export default function Page() {
 
     setError(null);
     setBoard(data);
+
+    if (data.summary.alerts_loaded) {
+      return;
+    }
+
+    // Wiersze sa juz na ekranie; alerty dochodza drugim zapytaniem.
+    const ids = data.bands.flatMap((band) => band.rows.map((row) => row.id));
+    const { content: extra } = await OrdersApi.alerts(ids, nextMine);
+    const alerts: OrderBoardAlerts | undefined = extra?.data;
+
+    if (ticket !== round.current) {
+      return;
+    }
+
+    if (!alerts) {
+      setAlertsFailed(true);
+
+      return;
+    }
+
+    setBoard((current) =>
+      current === null ? current : withAlerts(current, alerts),
+    );
   };
 
   useEffect(() => {
@@ -192,7 +227,7 @@ export default function Page() {
         ...group,
         filters,
         count: filters.reduce((sum, filter) => sum + filter.count, 0),
-        alerts: filters.reduce((sum, filter) => sum + filter.alerts, 0),
+        alerts: filters.reduce((sum, filter) => sum + (filter.alerts ?? 0), 0),
       };
     })
     .filter((group) => group.filters.length > 0);
@@ -366,12 +401,12 @@ export default function Page() {
                   <span className="ge-seg__count">
                     {chosen?.count ?? group.count}
                   </span>
-                  {(chosen?.alerts ?? group.alerts) > 0 && (
+                  {(chosen ? (chosen.alerts ?? 0) : group.alerts) > 0 && (
                     <span
                       className="ge-seg__alerts"
                       title={t('page.orders.alerts_title')}
                     >
-                      {chosen?.alerts ?? group.alerts}
+                      {chosen ? chosen.alerts : group.alerts}
                     </span>
                   )}
                   <PiCaretDown />
@@ -426,7 +461,17 @@ export default function Page() {
           {t('page.orders.mine')}
         </label>
 
-        <span className="ge-segbar__end">{t('page.orders.sorted_by')}</span>
+        {/* Dopoki alerty nie doszly, koniec paska mowi o tym wprost:
+            brak czerwonych liczb ma nie wygladac jak „nic sie nie pali". */}
+        <span className="ge-segbar__end" aria-live="polite">
+          {board && !board.summary.alerts_loaded
+            ? t(
+                alertsFailed
+                  ? 'page.orders.alerts_failed'
+                  : 'page.orders.alerts_loading',
+              )
+            : t('page.orders.sorted_by')}
+        </span>
       </div>
 
       <OrderDrawer
@@ -666,7 +711,8 @@ function SegTab({
 }: {
   name: string;
   count: number;
-  alerts: number;
+  /** `null` — alerty jeszcze nie doszły; wtedy bez czerwonej liczby. */
+  alerts: number | null;
   active: boolean;
   alertsTitle: string;
   onClick: () => void;
@@ -686,11 +732,35 @@ function SegTab({
     >
       <span>{name}</span>
       {count > 0 && <span className="ge-seg__count">{count}</span>}
-      {alerts > 0 && (
+      {alerts !== null && alerts > 0 && (
         <span className="ge-seg__alerts" title={alertsTitle}>
           {alerts}
         </span>
       )}
     </button>
   );
+}
+
+/**
+ * Wkłada dociągnięte alerty w listę, która już jest na ekranie —
+ * znaczniki do wierszy, liczby do zakładek. Kształt listy zostaje ten
+ * sam co wtedy, gdy alerty przychodziły razem z wierszami, więc reszta
+ * ekranu nie wie, że szły osobno.
+ */
+function withAlerts(board: OrderBoard, alerts: OrderBoardAlerts): OrderBoard {
+  return {
+    ...board,
+    bands: board.bands.map((band) => ({
+      ...band,
+      rows: band.rows.map((row) => ({
+        ...row,
+        alerts: alerts.marks[String(row.id)] ?? [],
+      })),
+    })),
+    filters: board.filters.map((filter) => ({
+      ...filter,
+      alerts: alerts.counts[filter.code ?? ''] ?? 0,
+    })),
+    summary: { ...board.summary, alerts_loaded: true },
+  };
 }

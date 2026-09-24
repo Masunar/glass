@@ -64,8 +64,11 @@ export type OrderBoard = {
     code: string | null;
     name: string;
     count: number;
-    /** Zlecenia z alertem, nie liczba alertów: jedno zlecenie to jedna sprawa. */
-    alerts: number;
+    /**
+     * Zlecenia z alertem, nie liczba alertów: jedno zlecenie to jedna
+     * sprawa. `null` — alerty jeszcze nie doszły (`OrdersApi.alerts`).
+     */
+    alerts: number | null;
     /** Status zamknięty — ekran zbiera je w jedną grupę. */
     is_final: boolean;
     /** Faza procesu; `null` przy zakładce „W toku". */
@@ -84,8 +87,18 @@ export type OrderBoard = {
     page: number;
     pages: number;
     per_page: number;
+    /** `false` — znaczniki w wierszach są puste, bo jeszcze nie doszły. */
+    alerts_loaded: boolean;
     as_of: string;
   };
+};
+
+/** Alerty listy dociągane po wierszach: znaczniki strony i liczniki zakładek. */
+export type OrderBoardAlerts = {
+  /** id zlecenia => znaczniki; puste zlecenia też są, jako pusta lista. */
+  marks: Record<string, AlertMark[]>;
+  /** kod statusu => zlecenia z alertem; klucz `''` to „W toku". */
+  counts: Record<string, number>;
 };
 
 export type OrderPane = {
@@ -597,6 +610,19 @@ export class OrdersApi extends ApiRequest {
       mine: mine ? '1' : '',
       page: String(page),
       phase: phase ?? '',
+      // Wiersze bez alertow — ekran dociaga je osobno, zeby lista nie
+      // czekala na przebieg silnika.
+      alerts: '0',
+    });
+  }
+
+  public static async alerts(
+    ids: number[],
+    mine: boolean = false,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/alerts', {
+      ids: ids.join(','),
+      mine: mine ? '1' : '',
     });
   }
 

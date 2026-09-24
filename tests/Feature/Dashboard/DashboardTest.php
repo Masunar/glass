@@ -86,6 +86,35 @@ class DashboardTest extends TestCase
     }
 
     #[Test]
+    public function pasmo_osobno_to_to_samo_pasmo(): void
+    {
+        $user = $this->userWith(['zlec.access', 'orders.list']);
+
+        $this->order(90008, null, '2024-01-01');
+
+        $whole = $this->board->board($user)['alerts'];
+        $first = (new DashboardService())->board($user, withAlerts: false);
+        $band = (new DashboardService())->alerts($user);
+
+        // Pulpit bez pasma nie udaje, ze alertow nie ma — `null` to
+        // „jeszcze nie wiadomo". Pasmo dociagniete osobno ma byc tym
+        // samym pasmem, nie druga wersja z innymi regulami przyciecia.
+        $this->assertNull($first['alerts']);
+        $this->assertNotSame([], $band);
+        $this->assertEquals($whole, $band);
+    }
+
+    #[Test]
+    public function pasmo_osobno_przycina_tak_samo(): void
+    {
+        $this->order(90009, null, '2024-01-01');
+
+        // Konto bez dostepu do zlecen nie dostaje pasma takze drugim
+        // wejsciem — samo wejscie `/dashboard/alerts` jest otwarte.
+        $this->assertSame([], $this->board->alerts($this->user()));
+    }
+
+    #[Test]
     public function rola_nadrzedna_dostaje_wszystkie_liczby(): void
     {
         /** @var Role $admin */

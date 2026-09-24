@@ -63,7 +63,8 @@ export type DashboardBoard = {
     furnace: number | null;
     offers: number | null;
   };
-  alerts: DashboardAlert[];
+  /** `null` — pasmo dochodzi osobnym zapytaniem (`DashboardApi.alerts`). */
+  alerts: DashboardAlert[] | null;
   tasks: DashboardTask[];
   blocked: { reason: string; count: number }[];
   shortages: {
@@ -82,5 +83,10 @@ export class DashboardApi extends ApiRequest {
 
   public static async board(): Promise<ResponseProps<ResponseContent>> {
     return await this.get('');
+  }
+
+  /** Pasmo alertów — osobno, żeby reszta pulpitu nie czekała na silnik. */
+  public static async alerts(): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/alerts');
   }
 }

@@ -1097,7 +1097,9 @@
     "progress_note_one": "{{done}} z {{count}} etapu",
     "progress_note_few": "{{done}} z {{count}} etapów",
     "progress_note_many": "{{done}} z {{count}} etapów",
-    "progress_note_other": "{{done}} z {{count}} etapów"
+    "progress_note_other": "{{done}} z {{count}} etapów",
+    "alerts_loading": "Sprawdzam alerty…",
+    "alerts_failed": "Nie udało się pobrać alertów — znaczniki i liczby przy zakładkach mogą być niepełne."
   },
   "production": {
     "loading": "Wczytywanie kolejki…",
@@ -1415,7 +1417,9 @@
       "offers": "Oferty"
     },
     "menu": "Menu",
-    "alerts": "Alerty"
+    "alerts": "Alerty",
+    "alerts_loading": "Sprawdzam alerty…",
+    "alerts_failed": "Nie udało się pobrać alertów. Odśwież stronę."
   },
   "alerts": {
     "count_one": "{{count}} włączona reguła",

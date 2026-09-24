@@ -74,6 +74,24 @@ final class ScaleCheck
         $list = $this->probe->measure(static fn(): array => (new OrderBoardService())->board(today: $day));
         $timings[] = $this->timing('Lista zleceń', $list, sprintf('%d wierszy', $list['result']['summary']['shown']));
 
+        // Tak, jak liste widzi przegladarka: wiersze bez alertow, potem
+        // alerty pokazanych wierszy osobnym zapytaniem.
+        $rowsOnly = $this->probe->measure(
+            static fn(): array => (new OrderBoardService())->board(today: $day, limit: 50, withAlerts: false),
+        );
+        $timings[] = $this->timing('Lista zleceń — wiersze (50)', $rowsOnly, 'bez alertów, to widać pierwsze');
+
+        $pageIds = [];
+
+        foreach ($rowsOnly['result']['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                $pageIds[] = (int) $row['id'];
+            }
+        }
+
+        $listAlerts = $this->probe->measure(static fn(): array => (new OrderBoardService())->alerts($pageIds, $day));
+        $timings[] = $this->timing('Lista zleceń — alerty strony', $listAlerts, 'dochodzą po wierszach');
+
         if ($admin !== null) {
             $mine = $this->probe->measure(
                 static fn(): array => (new OrderBoardService())->board(today: $day, ownerId: (int) $admin->getKey()),
@@ -84,12 +102,19 @@ final class ScaleCheck
         $dashboard = null;
 
         if ($admin !== null) {
-            $dashboard = $this->probe->measure(static fn(): array => (new DashboardService())->board($admin, $day));
-            $timings[] = $this->timing('Pulpit — administrator', $dashboard, sprintf('%d spraw', $dashboard['result']['summary']['tasks']));
+            // Pulpit jak w przegladarce: najpierw bez pasma alertow, potem
+            // pasmo osobno. Rozjazdy porownuja zlozenie obu.
+            $first = $this->probe->measure(static fn(): array => (new DashboardService())->board($admin, $day, withAlerts: false));
+            $timings[] = $this->timing('Pulpit — administrator', $first, sprintf('%d spraw, bez alertów', $first['result']['summary']['tasks']));
+
+            $band = $this->probe->measure(static fn(): array => (new DashboardService())->alerts($admin, $day));
+            $timings[] = $this->timing('Pulpit — pasmo alertów', $band, sprintf('%d reguł', count($band['result'])));
+
+            $dashboard = ['result' => ['alerts' => $band['result']] + $first['result']];
         }
 
         if ($seller !== null) {
-            $sellerBoard = $this->probe->measure(static fn(): array => (new DashboardService())->board($seller, $day));
+            $sellerBoard = $this->probe->measure(static fn(): array => (new DashboardService())->board($seller, $day, withAlerts: false));
             $timings[] = $this->timing('Pulpit — handlowiec', $sellerBoard, sprintf('%d spraw', $sellerBoard['result']['summary']['tasks']));
         }
 

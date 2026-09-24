@@ -47,7 +47,7 @@ class OrderController extends ApiController
         private readonly UserPreferences $preferences,
     ) {
         $this->protect(
-            ['board', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
+            ['board', 'alerts', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
             Permission::ORDERS->value,
             SubPermission::LIST->value,
         );
@@ -103,6 +103,31 @@ class OrderController extends ApiController
                 ownerId: is_numeric($me) ? (int) $me : null,
                 page: max(1, $request->integer('page', 1)),
                 phase: is_string($phase) && $phase !== '' ? $phase : null,
+                // `alerts=0` — ekran dociaga alerty osobnym zapytaniem.
+                withAlerts: $request->query('alerts') !== '0',
+            ));
+        });
+    }
+
+    /** Znaczniki alertów pokazanych zleceń i liczniki przy zakładkach. */
+    public function alerts(Request $request): JsonResponse
+    {
+        return $this->secure(function () use ($request): JsonResponse {
+            $raw = $request->query('ids');
+            $ids = is_string($raw) ? explode(',', $raw) : (is_array($raw) ? $raw : []);
+
+            // Strona listy ma najwyzej dwiescie wierszy — wiecej to nie
+            // strona, tylko proba wyciagniecia calej bazy tym wejsciem.
+            $ids = array_slice(array_values(array_unique(array_map(
+                intval(...),
+                array_filter($ids, is_numeric(...)),
+            ))), 0, 200);
+
+            $me = $request->boolean('mine') ? $request->user()?->getKey() : null;
+
+            return $this->dataResponse($this->board->alerts(
+                $ids,
+                ownerId: is_numeric($me) ? (int) $me : null,
             ));
         });
     }
