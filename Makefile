@@ -144,6 +144,10 @@ simulate:
 # Sam pomiar na tym, co jest w bazie — po poprawce, bez zakladania od nowa.
 simulate-measure:
 	make art c="glass:simulate --measure-only"
+# Przeliczenie wartosci zapamietanych na zleceniach (po migracji albo po
+# zmianie reguly liczenia w OrderValue: `make order-values A=--all`).
+order-values:
+	make art c="glass:order-values $(A)"
 reverb:
 	make art c="reverb:start"
 

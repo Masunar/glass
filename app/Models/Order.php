@@ -47,6 +47,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $cancellation_reason
  * @property int|null $created_by
  * @property int|null $owner_id
+ * @property string|null $value_net
+ * @property string|null $value_gross
+ * @property bool $value_stale
  * @property int|null $drawings_complete_by
  * @property Carbon|null $drawings_complete_at
  * @property-read Collection<int, OrderList> $lists
@@ -62,6 +65,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Order extends Dateable
 {
+
+    /**
+     * Pola zlecenia, od których zależy jego wartość: typ faktury
+     * (stawka), inwestycja mieszkaniowa (podział stawki). Zmiana
+     * któregokolwiek oznacza zapamiętaną kwotę jako nieaktualną —
+     * w tym samym zapisie, więc nie ma chwili, w której byłaby stara
+     * i wyglądała na aktualną. Patrz `OrderValueStore`.
+     */
+    protected static function booted(): void
+    {
+        static::saving(static function (self $order): void {
+            if ($order->isDirty(['invoice_type_id', 'investment_type', 'investment_area_m2'])) {
+                $order->value_stale = true;
+            }
+        });
+    }
+
     protected $table = 'orders';
 
     protected $fillable = [
@@ -92,6 +112,9 @@ class Order extends Dateable
             'production_deadline' => 'date',
             'shifted_deadline' => 'date',
             'drawings_complete_at' => 'datetime',
+            'value_net' => 'decimal:2',
+            'value_gross' => 'decimal:2',
+            'value_stale' => 'boolean',
         ];
     }
 

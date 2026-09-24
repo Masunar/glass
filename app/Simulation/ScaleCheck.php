@@ -15,6 +15,7 @@ use Database\Seeders\Core\RoleSeeder;
 use App\Services\Alerts\AlertBoard;
 use App\Services\Alerts\AlertEngine;
 use App\Services\Orders\OrderCard;
+use App\Services\Orders\OrderValue;
 use App\Services\Orders\OrderItemService;
 use App\Services\Orders\OrderBoardService;
 use App\Services\Tempering\TemperingBoard;
@@ -218,7 +219,47 @@ final class ScaleCheck
             }
         }
 
+        $rows[] = $this->storedValues();
+
         return $rows;
+    }
+
+    /**
+     * Wartość zapamiętana na zleceniu a ta sama wartość policzona od nowa.
+     *
+     * Zapamiętana kwota, której nikt nie odświeżył, wygląda dokładnie
+     * tak samo jak prawdziwa — stąd porównanie na próbce, przy każdym
+     * pomiarze. „Ekran" to liczba zgodnych, „baza" to wielkość próbki.
+     *
+     * @return array{what: string, screen: int|null, truth: int, note: string}
+     */
+    private function storedValues(): array
+    {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Order> $sample */
+        $sample = Order::query()
+            ->with(['lists.items.processes', 'discounts', 'invoiceType'])
+            ->where('value_stale', false)
+            ->inRandomOrder()
+            ->limit(200)
+            ->get();
+
+        $value = new OrderValue();
+        $same = 0;
+
+        foreach ($sample as $order) {
+            $totals = $value->totals($order);
+
+            if ((string) $order->value_net === $totals->net && $order->value_gross === $totals->gross) {
+                $same++;
+            }
+        }
+
+        return [
+            'what' => sprintf('Wartość zapisana a OrderValue (próbka %d)', $sample->count()),
+            'screen' => $same,
+            'truth' => $sample->count(),
+            'note' => sprintf('%d zleceń czeka na przeliczenie', Order::query()->where('value_stale', true)->count()),
+        ];
     }
 
     /**

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enum\Section;
 use Salvon\Model\Dateable;
+use App\Services\Orders\OrderValueStore;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -19,6 +20,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OrderDiscount extends Dateable
 {
+
+    /**
+     * Rabat sekcji zmienia netto zlecenia. Patrz `OrderValueStore`.
+     */
+    protected static function booted(): void
+    {
+        $stale = static function (self $discount): void {
+            OrderValueStore::markStale((int) $discount->order_id);
+        };
+
+        static::saved($stale);
+        static::deleted($stale);
+    }
+
     protected $table = 'order_discounts';
 
     protected $fillable = ['order_id', 'section', 'percent', 'approved_by', 'approved_at'];

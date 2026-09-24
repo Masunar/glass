@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enum\ListRole;
 use Salvon\Model\Dateable;
+use App\Services\Orders\OrderValueStore;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OrderList extends Dateable
 {
+
+    /**
+     * Wliczenie listy, jej stawka VAT i jej usunięcie zmieniają wartość
+     * zlecenia. Patrz `OrderValueStore`.
+     */
+    protected static function booted(): void
+    {
+        $stale = static function (self $list): void {
+            OrderValueStore::markStale((int) $list->order_id);
+        };
+
+        static::saved($stale);
+        static::deleted($stale);
+    }
+
     protected $table = 'order_lists';
 
     protected $fillable = [

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enum\Section;
 use Salvon\Model\Dateable;
+use App\Services\Orders\OrderValueStore;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,6 +40,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OrderItem extends Dateable
 {
+
+    /**
+     * Pozycja zmienia wartość zlecenia — zapamiętana kwota przestaje
+     * być aktualna. Patrz `OrderValueStore`.
+     */
+    protected static function booted(): void
+    {
+        $stale = static function (self $item): void {
+            OrderValueStore::markStaleByList((int) $item->order_list_id);
+        };
+
+        static::saved($stale);
+        static::deleted($stale);
+    }
+
     protected $table = 'order_items';
 
     protected $fillable = [

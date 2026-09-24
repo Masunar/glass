@@ -40,6 +40,7 @@ final class ContractorBalance
 
     public function __construct(
         private readonly OrderValue $value = new OrderValue(),
+        private readonly OrderValueStore $store = new OrderValueStore(),
     ) {
     }
 
@@ -61,20 +62,29 @@ final class ContractorBalance
             $this->outstanding[$id] = 0.0;
         }
 
-        /** @var iterable<Order> $orders */
+        // Wartosc bierzemy zapamietana na zleceniu, a nieaktualne
+        // przeliczamy przed suma. Wczesniej ta metoda wczytywala wszystkie
+        // otwarte zlecenia kontrahentow z listami, pozycjami i procesami,
+        // zeby policzyc je od nowa — przy 10 000 zlecen siedem sekund na
+        // kazde otwarcie listy.
+        $this->store->refreshStale($missing, openOnly: true);
+
         $orders = Order::query()
-            ->with(['lists.items.processes', 'discounts', 'invoiceType'])
             ->whereIn('contractor_id', $missing)
             ->whereHas('status', static fn($query) => $query->where('is_final', false))
-            ->get();
+            ->toBase()
+            ->get(['orders.id', 'orders.contractor_id', 'orders.value_net', 'orders.value_gross']);
 
         $paid = $this->paidByOrder();
 
-
         foreach ($orders as $order) {
             $contractorId = (int) $order->contractor_id;
-            $gross = $this->grossOf($order);
-            $due = $gross - ($paid[(int) $order->getKey()] ?? 0.0);
+
+            // Bez typu faktury nie znamy stawki, wiec do dlugu bierzemy
+            // netto. Zanizone, ale nie zmyslone — a zlecenie bez typu
+            // faktury i tak nie przejdzie dalej.
+            $gross = (float) ($order->value_gross ?? $order->value_net ?? 0);
+            $due = $gross - ($paid[(int) $order->id] ?? 0.0);
 
             // Nadplata na jednym zleceniu nie zmniejsza dlugu z innych —
             // to dwie osobne sprawy i ksiegowa rozlicza je osobno.
@@ -141,16 +151,6 @@ final class ContractorBalance
         }
 
         return $this->paid = $paid;
-    }
-
-    private function grossOf(Order $order): float
-    {
-        $totals = $this->value->totals($order);
-
-        // Bez typu faktury nie znamy stawki, wiec do dlugu bierzemy
-        // netto. Zanizone, ale nie zmyslone — a zlecenie bez typu
-        // faktury i tak nie przejdzie dalej.
-        return (float) ($totals->gross ?? $totals->net);
     }
 
     private function money(float $value): string

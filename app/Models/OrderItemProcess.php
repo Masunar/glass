@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Salvon\Model\Dateable;
+use App\Services\Orders\OrderValueStore;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -28,6 +29,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OrderItemProcess extends Dateable
 {
+
+    /**
+     * Proces jest częścią kwoty pozycji, więc i wartości zlecenia.
+     * Patrz `OrderValueStore`.
+     */
+    protected static function booted(): void
+    {
+        $stale = static function (self $process): void {
+            OrderValueStore::markStaleByItem((int) $process->order_item_id);
+        };
+
+        static::saved($stale);
+        static::deleted($stale);
+    }
+
     protected $table = 'order_item_processes';
 
     protected $fillable = [
