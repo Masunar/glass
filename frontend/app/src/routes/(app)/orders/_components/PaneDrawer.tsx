@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useFieldArray } from 'react-hook-form';
 
 import { Button } from '@salvon/components/button';
 import { Form } from '@salvon/components/form';
@@ -40,7 +41,13 @@ const empty = {
   min_billable_m2: '',
   note: '',
   production_note: '',
+  sizes: [] as Size[],
 };
+
+/** Wiersz wyceny hurtem — tylko wymiary i ilość, reszta jest wspólna. */
+type Size = { width_mm: string; height_mm: string; quantity: string };
+
+const emptySize = (): Size => ({ width_mm: '', height_mm: '', quantity: '1' });
 
 /** Etap na formatce — wybrana pozycja cennikowa, dni, cena, uwaga. */
 type Step = {
@@ -102,6 +109,10 @@ export default function PaneDrawer({
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<PanePreview | null>(null);
   const [failed, setFailed] = useState(false);
+  // Nowa formatka to zawsze paczka wymiarow (jeden wiersz to jedna
+  // formatka). Edycja dotyczy jednej zapisanej formatki.
+  const batch = item === null;
+  const sizes = useFieldArray({ control: form.control, name: 'sizes' });
 
   useEffect(() => {
     if (!open) {
@@ -141,6 +152,7 @@ export default function PaneDrawer({
           : String(item.min_billable_m2),
       note: item?.note ?? '',
       production_note: item?.production_note ?? '',
+      sizes: item === null ? [emptySize()] : [],
     });
   }, [open, item?.id]);
 
@@ -229,6 +241,20 @@ export default function PaneDrawer({
    */
   const payload = (data: any) => ({
     ...data,
+    // Paczka niesie wymiary w `sizes`; pojedyncze pola zostaja puste,
+    // zeby nie udawaly pierwszego wiersza.
+    ...(batch
+      ? {
+          width_mm: undefined,
+          height_mm: undefined,
+          quantity: undefined,
+          sizes: (data.sizes ?? []).map((size: Size) => ({
+            width_mm: size.width_mm === '' ? null : Number(size.width_mm),
+            height_mm: size.height_mm === '' ? null : Number(size.height_mm),
+            quantity: size.quantity === '' ? 1 : Number(size.quantity),
+          })),
+        }
+      : { sizes: undefined }),
     min_billable_m2: data.min_billable_m2 === '' ? null : data.min_billable_m2,
     note: data.note === '' ? null : data.note,
     production_note: data.production_note === '' ? null : data.production_note,
@@ -284,11 +310,9 @@ export default function PaneDrawer({
   const submit = async (data: any) => {
     setSaving(true);
 
-    const { content, response } = await OrdersApi.savePane(
-      orderId,
-      payload(data),
-      item?.id,
-    );
+    const { content, response } = batch
+      ? await OrdersApi.savePanes(orderId, payload(data))
+      : await OrdersApi.savePane(orderId, payload(data), item?.id);
 
     setSaving(false);
 
@@ -328,9 +352,17 @@ export default function PaneDrawer({
                 komunikat nie daja sie odroznic. */}
             {failed
               ? t('page.orders.panes.foot_failed')
-              : preview?.ready && preview.total !== null
-                ? t('page.orders.panes.foot_total', { amount: preview.total })
-                : t('page.orders.panes.foot_waiting')}
+              : batch && preview?.batch && preview.batch.total !== null
+                ? t('page.orders.panes.foot_batch', {
+                    count: preview.batch.count,
+                    pieces: preview.batch.pieces,
+                    amount: preview.batch.total,
+                  })
+                : preview?.ready && preview.total !== null
+                  ? t('page.orders.panes.foot_total', {
+                      amount: preview.total,
+                    })
+                  : t('page.orders.panes.foot_waiting')}
           </span>
           <div className="ge-drawer__foot-end">
             <Button variant="text" onClick={onClose}>
@@ -381,28 +413,83 @@ export default function PaneDrawer({
           </Fieldset>
 
           <Fieldset tone="addr" label={t('page.orders.panes.section.size')}>
-            <FieldRow columns="1fr 1fr 1fr">
-              <Field
-                name="width_mm"
-                label={t('page.orders.panes.width')}
-                required
-                emphasis="num"
-                type="number"
-              />
-              <Field
-                name="height_mm"
-                label={t('page.orders.panes.height')}
-                required
-                emphasis="num"
-                type="number"
-              />
-              <Field
-                name="quantity"
-                label={t('page.orders.panes.quantity')}
-                emphasis="num"
-                type="number"
-              />
-            </FieldRow>
+            {batch ? (
+              <>
+                {/* Wycena hurtem: wiersz to jedna formatka. Material,
+                    etapy, ksztalt i flagi sa wspolne — pojedyncza
+                    formatke poprawia sie potem zwykla edycja. */}
+                {sizes.fields.map((field, index) => (
+                  <FieldRow columns="1fr 1fr 1fr 118px" key={field.id}>
+                    <Field
+                      name={`sizes.${index}.width_mm`}
+                      label={index === 0 ? t('page.orders.panes.width') : ''}
+                      required={index === 0}
+                      emphasis="num"
+                      type="number"
+                    />
+                    <Field
+                      name={`sizes.${index}.height_mm`}
+                      label={index === 0 ? t('page.orders.panes.height') : ''}
+                      required={index === 0}
+                      emphasis="num"
+                      type="number"
+                    />
+                    <Field
+                      name={`sizes.${index}.quantity`}
+                      label={index === 0 ? t('page.orders.panes.quantity') : ''}
+                      emphasis="num"
+                      type="number"
+                    />
+                    <span className="ge-sizes__end">
+                      <span className="ge-sizes__amount">
+                        {preview?.batch?.rows[index] ?? '—'}
+                      </span>
+                      {sizes.fields.length > 1 && (
+                        <button
+                          type="button"
+                          className="ge-proc__drop"
+                          title={t('delete')}
+                          onClick={() => sizes.remove(index)}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  </FieldRow>
+                ))}
+                <button
+                  type="button"
+                  className="ge-sizes__add"
+                  onClick={() => sizes.append(emptySize())}
+                >
+                  {t('page.orders.panes.size_add')}
+                </button>
+                <FieldNote>{t('page.orders.panes.batch_note')}</FieldNote>
+              </>
+            ) : (
+              <FieldRow columns="1fr 1fr 1fr">
+                <Field
+                  name="width_mm"
+                  label={t('page.orders.panes.width')}
+                  required
+                  emphasis="num"
+                  type="number"
+                />
+                <Field
+                  name="height_mm"
+                  label={t('page.orders.panes.height')}
+                  required
+                  emphasis="num"
+                  type="number"
+                />
+                <Field
+                  name="quantity"
+                  label={t('page.orders.panes.quantity')}
+                  emphasis="num"
+                  type="number"
+                />
+              </FieldRow>
+            )}
 
             {/* Rodzaj zamiast przelacznika: owal to nie prostokat i nie
                 „jakis ksztalt". Ksztalt i owal wchodza z doplata i wymagaja

@@ -611,6 +611,32 @@ export type PanePreview = {
     detail: string | null;
   }[];
   unavailable?: string | null;
+  /** Wycena hurtem: kwota każdego wiersza (`null` = niekompletny) i suma. */
+  batch?: {
+    rows: (string | null)[];
+    count: number;
+    pieces: number;
+    total: string | null;
+  };
+};
+
+/** Podgląd zamiany materiału w zaznaczonych formatkach. */
+export type SwapPreview = {
+  product: string;
+  rows: {
+    id: number;
+    name: string;
+    before: string;
+    after: string;
+    /** Etapy, dla których przy nowej grubości trzeba wybrać pozycję. */
+    pending: number;
+    /** Formatka już jest z tego materiału — zostaje bez zmian. */
+    unchanged: boolean;
+  }[];
+  before: string;
+  after: string;
+  pending: number;
+  glass_missing: boolean;
 };
 
 export class OrdersApi extends ApiRequest {
@@ -708,6 +734,29 @@ export class OrdersApi extends ApiRequest {
     return itemId
       ? await this.put(`/${id}/panes/${itemId}`, data)
       : await this.post(`/${id}/panes`, data);
+  }
+
+  /** Kilka formatek z jednego materiału — wspólne pola i `sizes`. */
+  public static async savePanes(
+    id: number,
+    data: Record<string, unknown>,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/panes/batch`, data);
+  }
+
+  public static async previewSwap(
+    id: number,
+    data: { product_id: number | string; item_ids: number[] },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/panes/swap/preview`, data);
+  }
+
+  /** „Zamień wszystko": inny materiał w zaznaczonych formatkach. */
+  public static async swapMaterial(
+    id: number,
+    data: { product_id: number | string; item_ids: number[] },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/panes/swap`, data);
   }
 
   public static async saveService(

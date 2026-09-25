@@ -160,8 +160,18 @@
      poza siatke — a `justify-content: flex-end` wypycha nadmiar
      w LEWO, czyli prosto na kwote. */
   --act: 84px;
-  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px var(--act);
+  --cols: 52px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px var(--act);
 }
+/* Pole wyboru przy numerze — zaznaczenie pod „Zamien material". Wspolna
+   komorka zamiast osobnej kolumny: wiersze okuc i uslug maja wlasne
+   siatki i nie musza sie przesuwac. */
+.ge-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.ge-pick input { margin: 0; accent-color: var(--ge-mod); }
 /* Ostatnia kolumna ma stala szerokosc, a nie `auto`: kazdy wiersz to
    osobna siatka, wiec `auto` dawalo naglowkowi (pusta komorka) inna
    szerokosc niz wierszom (przyciski) — elastyczna kolumna materialu

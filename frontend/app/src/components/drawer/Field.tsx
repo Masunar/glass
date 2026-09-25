@@ -1,4 +1,5 @@
 import type { HTMLInputTypeAttribute, ReactNode } from 'react';
+import { get } from 'react-hook-form';
 
 import { useCurrentForm } from '@salvon/hooks/useForm';
 
@@ -30,7 +31,9 @@ export default function Field({
   style,
 }: Props) {
   const { register, formState } = useCurrentForm();
-  const error = formState.errors[name];
+  // `get`, nie `errors[name]`: pole z tablicy (`sizes.2.width_mm`) ma
+  // blad zagniezdzony, a nie pod kluczem z kropkami.
+  const error = get(formState.errors, name);
   const message = typeof error?.message === 'string' ? error.message : null;
 
   return (
@@ -91,7 +94,9 @@ export function Choice({
   onChange?: (value: string) => void;
 }) {
   const { register, formState } = useCurrentForm();
-  const error = formState.errors[name];
+  // `get`, nie `errors[name]`: pole z tablicy (`sizes.2.width_mm`) ma
+  // blad zagniezdzony, a nie pod kluczem z kropkami.
+  const error = get(formState.errors, name);
   const message = typeof error?.message === 'string' ? error.message : null;
   const field = register(name);
 
