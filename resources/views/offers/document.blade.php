@@ -253,7 +253,9 @@
 @endif
 
 @if ($order['offer_comment'])
-    <div class="note">{{ $order['offer_comment'] }}</div>
+    {{-- Komentarz moze miec pogrubienia (**tekst**); RichNote zabezpiecza
+         tekst przed wstawieniem znacznikow, wiec {!! !!} jest tu bezpieczne. --}}
+    <div class="note">{!! \App\Support\RichNote::html($order['offer_comment']) !!}</div>
 @endif
 
 <div class="terms">

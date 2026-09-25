@@ -201,7 +201,7 @@ final readonly class OrderService
             'location_id' => ['nullable', 'integer'],
             'invoice_type_id' => ['nullable', 'integer'],
             'client_deadline' => ['nullable', 'date'],
-            'short_note' => ['nullable', 'string', 'max:200'],
+            'short_note' => ['nullable', 'string', 'max:1000'],
             'delivery_address' => ['nullable', 'string', 'max:200'],
             'delivery_contact' => ['nullable', 'string', 'max:120'],
         ];

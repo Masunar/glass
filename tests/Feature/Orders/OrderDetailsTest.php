@@ -141,10 +141,23 @@ class OrderDetailsTest extends TestCase
     {
         $order = $this->order();
 
-        $result = $this->service->comment((int) $order->getKey(), 'short', str_repeat('a', 201));
+        $result = $this->service->comment((int) $order->getKey(), 'short', str_repeat('a', 1001));
 
         $this->assertArrayHasKey('text', $result['errors']);
         $this->assertNull($this->fresh($order)->short_note);
+    }
+
+    #[Test]
+    public function krotka_uwaga_miesci_tysiac_znakow_z_pogrubieniem(): void
+    {
+        $order = $this->order();
+        // Gwiazdki od pogrubienia licza sie do limitu — sa w kolumnie.
+        $text = '**pilne** ' . str_repeat('ą', 990);
+
+        $result = $this->service->comment((int) $order->getKey(), 'short', $text);
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame($text, $this->fresh($order)->short_note);
     }
 
     #[Test]

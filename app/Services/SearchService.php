@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Location;
 use App\Enum\Permission;
+use App\Support\RichNote;
 use App\Models\Contractor;
 use App\Support\PhoneSearch;
 use Illuminate\Support\Facades\Auth;
@@ -342,14 +343,22 @@ final readonly class SearchService
     private function matchedText(Order $order, string $needle): ?string
     {
         foreach (self::ORDER_TEXT as $column => $label) {
-            /** @var string|null $value */
-            $value = $order->{$column};
+            /** @var string|null $raw */
+            $raw = $order->{$column};
 
-            if ($value === null || $value === '') {
+            if ($raw === null || $raw === '') {
                 continue;
             }
 
+            // Wycinek bez gwiazdek od pogrubienia — w podpowiedzi byly
+            // szumem. Gdy ktos szukal wlasnie gwiazdek, zostaje surowy tekst.
+            $value = RichNote::plain($raw);
             $at = mb_stripos($value, $needle);
+
+            if ($at === false) {
+                $value = $raw;
+                $at = mb_stripos($value, $needle);
+            }
 
             if ($at === false) {
                 continue;

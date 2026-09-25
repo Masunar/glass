@@ -24,7 +24,7 @@ final readonly class OrderDetailsService
 {
     /** Pole API => kolumna i najdłuższy dopuszczalny tekst. */
     public const COMMENTS = [
-        'short' => ['column' => 'short_note', 'label' => 'krótka uwaga', 'max' => 200],
+        'short' => ['column' => 'short_note', 'label' => 'krótka uwaga', 'max' => 1000],
         'production' => ['column' => 'production_comment', 'label' => 'komentarz dla produkcji', 'max' => 2000],
         'installer' => ['column' => 'installer_comment', 'label' => 'komentarz dla montażysty', 'max' => 2000],
         'offer' => ['column' => 'offer_comment', 'label' => 'komentarz na ofertę', 'max' => 2000],

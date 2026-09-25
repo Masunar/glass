@@ -99,6 +99,18 @@
   white-space: nowrap;
 }
 .ge-note--warn { color: var(--m-alert); }
+/* Uwaga zlecenia w wierszu: dwie linie zamiast jednej ucietej, bo to
+   tu biuro czyta ustalenia z telefonu. Pelna tresc jest w `title`. */
+.ge-note--rich {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ge-note--rich strong { font-weight: 600; color: var(--ge-neutral-900); }
+/* Komentarz z pogrubieniami poza karta — zachowuje podzial na linie. */
+.ge-rich { white-space: pre-line; overflow-wrap: anywhere; }
 
 /* ---------- etap: kropka i slowo, nie pigulka ---------- */
 

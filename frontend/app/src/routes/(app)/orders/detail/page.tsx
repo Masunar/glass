@@ -21,6 +21,7 @@ import {
   OrdersApi,
 } from '@app/api/OrdersApi';
 import HasPermission from '@app/components/HasPermission';
+import RichNote, { toggleBold } from '@app/components/RichNote';
 import { Strip, Strips } from '@app/components/list';
 import { Permission, SubPermission } from '@app/config/permission';
 import { useHasPermission } from '@app/hook/use-permissions';
@@ -875,6 +876,30 @@ function Comment({
   // spelnic.
   const textRef = useRef<HTMLDivElement | null>(null);
   const [overflows, setOverflows] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const max = field === 'short' ? 1000 : 2000;
+
+  // Pogrubienie to gwiazdki w tekscie, nie formatowanie pola — przycisk
+  // tylko je wstawia, zeby nikt nie musial pamietac skladni.
+  const bold = () => {
+    const input = inputRef.current;
+
+    if (input === null) {
+      return;
+    }
+
+    const next = toggleBold(draft, input.selectionStart, input.selectionEnd);
+
+    if (next.value.length > max) {
+      return;
+    }
+
+    setDraft(next.value);
+    requestAnimationFrame(() => {
+      input.focus();
+      input.setSelectionRange(next.start, next.end);
+    });
+  };
 
   useEffect(() => {
     const element = textRef.current;
@@ -935,16 +960,41 @@ function Comment({
 
       {editing ? (
         <>
+          <div className="ge-note-col__tools">
+            <button
+              type="button"
+              className="ge-note-col__tool"
+              title={t('page.orders.card.comment_bold')}
+              aria-label={t('page.orders.card.comment_bold')}
+              // Klik nie moze zabrac fokusu z pola — zaznaczenie by znikło.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={bold}
+            >
+              B
+            </button>
+            <span className="ge-note-col__hint">
+              {t('page.orders.card.comment_bold_hint')}
+            </span>
+          </div>
           <textarea
+            ref={inputRef}
             className="ge-uf__input ge-note-col__input"
             value={draft}
-            rows={field === 'short' ? 3 : 6}
-            maxLength={field === 'short' ? 200 : 2000}
+            rows={field === 'short' ? 4 : 6}
+            maxLength={max}
             autoFocus
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 setEditing(false);
+              }
+
+              if (
+                (event.ctrlKey || event.metaKey) &&
+                event.key.toLowerCase() === 'b'
+              ) {
+                event.preventDefault();
+                bold();
               }
             }}
           />
@@ -979,7 +1029,7 @@ function Comment({
               expanded ? 'ge-note-col__text' : 'ge-note-col__text is-clamped'
             }
           >
-            {value}
+            <RichNote text={value} />
           </div>
           {(overflows || expanded) && (
             <button

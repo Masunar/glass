@@ -471,6 +471,21 @@ button.ge-from__link {
 }
 .ge-note-col__edit:hover { text-decoration: underline; }
 .ge-note-col__input { width: 100%; resize: vertical; font: inherit; }
+.ge-note-col__text strong { font-weight: 600; color: var(--ge-neutral-900); }
+.ge-note-col__tools { display: flex; align-items: center; gap: 8px; padding-bottom: 4px; }
+.ge-note-col__tool {
+  min-width: 26px;
+  height: 24px;
+  border: 1px solid var(--ge-neutral-300);
+  border-radius: 4px;
+  background: var(--ge-surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ge-note-col__tool:hover { border-color: var(--ge-neutral-500); }
+.ge-note-col__hint { font-size: 11.5px; color: var(--ge-neutral-600); }
 .ge-note-col__actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
 
 /* ---------- menu "Wiecej" ---------- */
