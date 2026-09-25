@@ -592,7 +592,7 @@
   },
   "orders": {
     "title": "Zlecenia",
-    "search": "Szukaj: numer, kontrahent",
+    "search": "Szukaj: numer, klient, NIP, telefon, ulica, osoba",
     "add": "Nowe zlecenie",
     "filters": "Statusy",
     "sorted_by": "Sortowanie: pilność",
@@ -619,7 +619,8 @@
       "handover": "Wydanie",
       "amount": "Kwota",
       "next": "Co dalej",
-      "progress": "Wykonanie"
+      "progress": "Wykonanie",
+      "fittings": "Okucia"
     },
     "band": {
       "today": "Dziś",
@@ -1151,7 +1152,12 @@
       "open": "Zezwól mimo limitu →",
       "revoke": "Cofnij zgodę",
       "granted": "zgoda mimo limitu: {{who}}, {{when}} — {{reason}}"
-    }
+    },
+    "fittings_none": "bez okuć",
+    "fittings_short_one": "brak {{count}} poz.",
+    "fittings_short_few": "brak {{count}} poz.",
+    "fittings_short_many": "brak {{count}} poz.",
+    "fittings_short_other": "brak {{count}} poz."
   },
   "production": {
     "loading": "Wczytywanie kolejki…",

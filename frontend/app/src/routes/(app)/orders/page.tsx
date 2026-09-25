@@ -40,6 +40,7 @@ const columns: Column[] = [
   { labelKey: 'page.orders.column.handover', width: '140px' },
   { labelKey: 'page.orders.column.amount', width: '132px', align: 'right' },
   { labelKey: 'page.orders.column.progress', width: '112px' },
+  { labelKey: 'page.orders.column.fittings', width: '96px' },
   { labelKey: 'page.orders.column.next', width: '230px' },
 ];
 
@@ -589,6 +590,31 @@ export default function Page() {
                             count: row.production.total,
                           })
                         : t('page.orders.progress_none')
+                    }
+                  />
+
+                  {/* Okucia: zielony komplet, zolty czesc, czerwony nic
+                      (uwagi klienta, 25.09). Ta sama regula co blokada
+                      przejscia do produkcji. */}
+                  <Progress
+                    percent={row.fittings?.percent ?? null}
+                    tone={
+                      row.fittings === null
+                        ? 'done'
+                        : row.fittings.percent >= 100
+                          ? 'done'
+                          : row.fittings.percent > 0
+                            ? 'warn'
+                            : 'alert'
+                    }
+                    note={
+                      row.fittings === null
+                        ? t('page.orders.fittings_none')
+                        : row.fittings.short > 0
+                          ? t('page.orders.fittings_short', {
+                              count: row.fittings.short,
+                            })
+                          : undefined
                     }
                   />
 

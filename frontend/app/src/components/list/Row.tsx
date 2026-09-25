@@ -111,7 +111,7 @@ export function Money({
   paidPercent: number | null;
   /** Podpis pod paskiem; domyślnie „N % zapłacone". */
   note?: string;
-  tone?: 'module' | 'prod' | 'done' | 'alert';
+  tone?: 'module' | 'prod' | 'done' | 'alert' | 'warn';
 }) {
   const clamped =
     paidPercent === null ? 0 : Math.max(0, Math.min(100, paidPercent));
@@ -141,7 +141,7 @@ export function Progress({
   percent: number | null;
   label?: string;
   note?: string;
-  tone?: 'module' | 'prod' | 'done' | 'alert';
+  tone?: 'module' | 'prod' | 'done' | 'alert' | 'warn';
 }) {
   return (
     <div className="ge-progress">
@@ -164,7 +164,7 @@ function Bar({
   tone,
 }: {
   percent: number;
-  tone: 'module' | 'prod' | 'done' | 'alert';
+  tone: 'module' | 'prod' | 'done' | 'alert' | 'warn';
 }) {
   return (
     <div className="ge-bar">

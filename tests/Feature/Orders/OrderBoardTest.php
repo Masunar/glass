@@ -353,4 +353,56 @@ class OrderBoardTest extends TestCase
         $this->assertEquals($expected, $alerts['marks']);
         $this->assertSame($whole['filters'][0]['alerts'], $alerts['counts']['']);
     }
+
+    /**
+     * @return list<int>
+     */
+    private function found(string $query): array
+    {
+        $ids = [];
+
+        foreach ($this->board->board($query, null, $this->today)['bands'] as $band) {
+            foreach ($band['rows'] as $row) {
+                $ids[] = (int) $row['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    #[Test]
+    public function szukanie_po_telefonie_niezaleznie_od_spacji(): void
+    {
+        $order = $this->order('ZLECENIE', $this->today->copy()->addDays(3));
+        $order->contractor?->update(['phone' => '693 118 442', 'tax_id' => '752-210-12-64']);
+        $this->order('ZLECENIE', $this->today->copy()->addDays(3));
+
+        // Klient dyktuje numer zawsze inaczej, niz zostal wpisany.
+        $this->assertSame([(int) $order->getKey()], $this->found('693118442'));
+        $this->assertSame([(int) $order->getKey()], $this->found('693-118'));
+        $this->assertSame([(int) $order->getKey()], $this->found('7522101264'));
+    }
+
+    #[Test]
+    public function szukanie_po_ulicy_i_osobie_kontaktowej(): void
+    {
+        $order = $this->order('ZLECENIE', $this->today->copy()->addDays(3));
+        $contractorId = (int) $order->contractor_id;
+
+        \App\Models\ContractorAddress::query()->create([
+            'contractor_id' => $contractorId,
+            'kind' => 'registered',
+            'city' => 'Stargard',
+            'street' => 'Kościuszki',
+        ]);
+        \App\Models\ContractorContact::query()->create([
+            'contractor_id' => $contractorId,
+            'first_name' => 'Malwina',
+            'last_name' => 'Zawadzka',
+        ]);
+        $this->order('ZLECENIE', $this->today->copy()->addDays(3));
+
+        $this->assertSame([(int) $order->getKey()], $this->found('Kościuszki'));
+        $this->assertSame([(int) $order->getKey()], $this->found('Malwina'));
+    }
 }

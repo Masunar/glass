@@ -127,6 +127,7 @@
 .ge-bar__fill--prod { background: var(--m-prod); }
 .ge-bar__fill--done { background: var(--m-mag); }
 .ge-bar__fill--alert { background: var(--m-alert); }
+.ge-bar__fill--warn { background: color-mix(in oklab, var(--m-ksie) 85%, #d9a400); }
 
 /* Postep hali: procent nad paskiem, ten sam pasek co przy kwocie. */
 .ge-progress { min-width: 0; }
