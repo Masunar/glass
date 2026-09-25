@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $number
  * @property int|null $contractor_id
  * @property int $status_id
+ * @property Carbon|null $status_changed_at
  * @property int|null $location_id
  * @property int|null $parent_order_id
  * @property OrderRelationType|null $relation_type
@@ -83,6 +84,13 @@ class Order extends Dateable
             if ($order->isDirty(['invoice_type_id', 'investment_type', 'investment_area_m2'])) {
                 $order->value_stale = true;
             }
+
+            // Od kiedy stoi w statusie — w modelu, nie w przejsciu: status
+            // zmienia i przejscie, i zakladanie, i symulacja, i zasiew.
+            // Data wpisywana w jednym z tych miejsc klamalaby w pozostalych.
+            if (!$order->exists || $order->isDirty('status_id')) {
+                $order->status_changed_at = Carbon::now();
+            }
         });
     }
 
@@ -118,6 +126,7 @@ class Order extends Dateable
             'shifted_deadline' => 'date',
             'drawings_complete_at' => 'datetime',
             'credit_override_at' => 'datetime',
+            'status_changed_at' => 'datetime',
             'value_net' => 'decimal:2',
             'value_gross' => 'decimal:2',
             'value_stale' => 'boolean',

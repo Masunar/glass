@@ -25,6 +25,9 @@ enum AlertConditionType: string
     case ORDER_NO_PAYMENT = 'order_no_payment';
     case ORDER_ON_HOLD = 'order_on_hold';
     case ORDER_OPEN_CLAIM = 'order_open_claim';
+    case ORDER_STUCK = 'order_stuck';
+    case ORDER_UNPRICED = 'order_unpriced';
+    case ORDER_OVER_CREDIT_LIMIT = 'order_over_credit_limit';
 
     case STOCK_BELOW_MINIMUM = 'stock_below_minimum';
     case TEMPERING_BATCH_LATE = 'tempering_batch_late';

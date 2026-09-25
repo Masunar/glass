@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Alerts;
 
 use App\Alerts\Conditions\OrderOnHold;
+use App\Alerts\Conditions\OrderUnpriced;
+use App\Alerts\Conditions\OrderStuckInStatus;
+use App\Alerts\Conditions\OrderOverCreditLimit;
 use App\Alerts\Conditions\OrderOverdue;
 use App\Alerts\Conditions\OrderNoPayment;
 use App\Alerts\Conditions\OrderOpenClaim;
@@ -34,6 +37,9 @@ final readonly class ConditionCatalog
             new OrderNoPayment(),
             new OrderOnHold(),
             new OrderOpenClaim(),
+            new OrderStuckInStatus(),
+            new OrderUnpriced(),
+            new OrderOverCreditLimit(),
             new StockBelowMinimum(),
             new TemperingBatchLate(),
         ];

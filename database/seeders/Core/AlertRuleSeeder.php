@@ -77,6 +77,29 @@ class AlertRuleSeeder extends Seeder
             'label' => 'reklamacja',
             'params' => [],
         ],
+        // Trzy reguly dopisane 25.09 na prosbe Marcina. Progi to propozycja
+        // do przejrzenia na `/alerts`, nie ustalenie.
+        [
+            'type' => AlertConditionType::ORDER_OVER_CREDIT_LIMIT,
+            'code' => 'order_over_credit_limit',
+            'name' => 'Kontrahent ponad limitem kupieckim',
+            'label' => 'ponad limitem',
+            'params' => ['statuses' => ['ZLECENIE', 'PRODUKCJA']],
+        ],
+        [
+            'type' => AlertConditionType::ORDER_STUCK,
+            'code' => 'order_stuck',
+            'name' => 'Zlecenie za długo w statusie',
+            'label' => 'stoi',
+            'params' => ['statuses' => ['ZLECENIE'], 'days' => 7],
+        ],
+        [
+            'type' => AlertConditionType::ORDER_UNPRICED,
+            'code' => 'order_unpriced',
+            'name' => 'Wycena bez cen',
+            'label' => 'bez wyceny',
+            'params' => ['statuses' => ['DO_WYCENY']],
+        ],
         [
             'type' => AlertConditionType::STOCK_BELOW_MINIMUM,
             'code' => 'stock_below_minimum',
