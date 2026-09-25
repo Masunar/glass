@@ -21,9 +21,10 @@ use App\Models\OrderItem;
  * najdłuższa z nich, a nie tyle, ile wszystkie po kolei. Pięćdziesiąt
  * formatek po pięć dni to pięć dni, nie dwieście pięćdziesiąt.
  *
- * Daty wykonania z tego nie wyprowadzamy. Dni mówią, ile pracy jest
- * w środku, ale nie mówią, kiedy hala ją zacznie — a bez tego data
- * byłaby obietnicą bez pokrycia. Stary system też ją zostawiał pustą.
+ * Z tej liczby `OrderDeadline` wylicza termin klienta (dziś + dni
+ * robocze) — na prośbę klienta z 25.09, jako propozycję, którą człowiek
+ * może nadpisać. To wciąż ilość pracy w środku, nie plan hali: kiedy
+ * hala ją zacznie, ta liczba nie mówi.
  */
 final readonly class OrderSchedule
 {

@@ -3,7 +3,7 @@ import { ApiRequest } from './ApiRequest';
 import type { ResponseContent, ResponseProps } from '@salvon/request';
 
 export type DictionaryFieldType =
-  'text' | 'integer' | 'decimal' | 'boolean' | 'select' | 'reference';
+  'text' | 'integer' | 'decimal' | 'boolean' | 'select' | 'reference' | 'date';
 
 export type DictionaryOption = { value: string; label: string };
 

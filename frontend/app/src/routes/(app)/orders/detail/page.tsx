@@ -314,6 +314,13 @@ export default function Page() {
                   ? t('page.orders.card.estimated_unknown')
                   : t('page.orders.card.estimated_note')}
               </span>
+              <span className="ge-from__note">
+                {deadlineSource(
+                  order.deadline.source,
+                  order.deadline.computed_days,
+                  t,
+                )}
+              </span>
               {canEdit && (
                 <button
                   type="button"
@@ -1048,6 +1055,27 @@ function Comment({
       )}
     </div>
   );
+}
+
+/** Skąd wziął się termin klienta — żeby nikt nie brał wyliczenia za ustalenie. */
+function deadlineSource(
+  source: 'manual' | 'auto' | 'frozen',
+  days: number | null,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (source === 'manual') {
+    return t('page.orders.card.deadline_manual');
+  }
+
+  // Zlecenie przekazane na produkcje, zanim termin w ogole policzono
+  // (sprzed tej zmiany) — nie ma czego objasniac.
+  if (source === 'frozen') {
+    return days === null ? '' : t('page.orders.card.deadline_frozen');
+  }
+
+  return days === null
+    ? t('page.orders.card.deadline_auto_empty')
+    : t('page.orders.card.deadline_auto', { count: days });
 }
 
 /**

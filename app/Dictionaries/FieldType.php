@@ -19,4 +19,6 @@ enum FieldType: string
     case SELECT = 'select';
     /** Wybór wiersza innego słownika — lista budowana w locie. */
     case REFERENCE = 'reference';
+    /** Data kalendarzowa RRRR-MM-DD (dni wolne zakładu). */
+    case DATE = 'date';
 }

@@ -222,6 +222,10 @@ export type OrderCard = {
       production: string | null;
       shifted: string | null;
       shift_reason: string | null;
+      /** Skąd termin klienta: ręcznie, z pozycji, z pozycji i zamknięty. */
+      source: 'manual' | 'auto' | 'frozen';
+      /** Z ilu dni roboczych policzono termin; `null` przy ręcznym. */
+      computed_days: number | null;
       effective: string | null;
       days_left: number | null;
     };

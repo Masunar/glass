@@ -147,7 +147,9 @@ final readonly class DictionaryService
 
         $record->fill($this->attributes($definition, $input, $record));
 
-        if ($id === null) {
+        // Kolumna porzadku bedaca polem formularza (data dnia wolnego)
+        // porzadkuje sama — numer pozycji nadpisalby wpisana wartosc.
+        if ($id === null && $definition->field($definition->orderColumn) === null) {
             $record->setAttribute(
                 $definition->orderColumn,
                 (int) $model::query()->max($definition->orderColumn) + 10,
@@ -253,6 +255,9 @@ final readonly class DictionaryService
                 FieldType::INTEGER => $value === null ? null : (int) $value,
                 FieldType::SELECT => $value instanceof \BackedEnum ? (string) $value->value : Normalize::text($value),
                 FieldType::REFERENCE => $value === null ? null : (int) $value,
+                FieldType::DATE => $value instanceof \DateTimeInterface
+                    ? $value->format('Y-m-d')
+                    : Normalize::text($value),
                 default => Normalize::text($value),
             };
 

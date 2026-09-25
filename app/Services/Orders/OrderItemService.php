@@ -49,6 +49,7 @@ final readonly class OrderItemService
         private AuditTrail $audit = new AuditTrail(),
         private OrderFittingService $fittings = new OrderFittingService(),
         private OrderStock $stock = new OrderStock(),
+        private OrderDeadline $deadline = new OrderDeadline(),
     ) {
     }
 
@@ -424,6 +425,8 @@ final readonly class OrderItemService
             $itemId === null ? 'item_added' : 'item_updated',
         );
 
+        $this->deadline->refresh((int) $order->getKey());
+
         return ['errors' => [], 'id' => (int) $item->getKey()];
     }
 
@@ -494,6 +497,8 @@ final readonly class OrderItemService
             $itemId === null ? 'item_added' : 'item_updated',
         );
 
+        $this->deadline->refresh((int) $order->getKey());
+
         return ['errors' => [], 'id' => (int) $item->getKey()];
     }
 
@@ -523,6 +528,8 @@ final readonly class OrderItemService
             [['field' => 'pozycja #' . $itemId, 'before' => $label, 'after' => null]],
             'item_removed',
         );
+
+        $this->deadline->refresh((int) $order->getKey());
 
         return ['errors' => []];
     }

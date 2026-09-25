@@ -32,6 +32,7 @@ final readonly class OrderDetailsService
 
     public function __construct(
         private AuditTrail $audit = new AuditTrail(),
+        private OrderDeadline $deadline = new OrderDeadline(),
     ) {
     }
 
@@ -91,6 +92,15 @@ final readonly class OrderDetailsService
             }
         }
 
+        // Termin klienta wpisany z karty jest reczny i system go juz nie
+        // rusza. Wyczyszczony wraca do automatu i od razu sie przelicza.
+        $clientChanged = in_array('termin klienta', array_column($changes, 'field'), true);
+
+        if ($clientChanged) {
+            $order->deadline_manual = $client !== null;
+            $order->deadline_days = null;
+        }
+
         if ($order->shift_reason !== $reason) {
             $changes[] = ['field' => 'powód przesunięcia', 'before' => $order->shift_reason, 'after' => $reason];
             $order->shift_reason = $reason;
@@ -102,6 +112,10 @@ final readonly class OrderDetailsService
 
         $order->save();
         $this->audit->write(Order::class, (int) $order->getKey(), $changes, 'deadline_changed');
+
+        if ($clientChanged && $client === null) {
+            $this->deadline->refresh((int) $order->getKey());
+        }
 
         return ['errors' => []];
     }

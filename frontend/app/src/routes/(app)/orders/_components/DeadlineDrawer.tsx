@@ -122,6 +122,7 @@ export default function DeadlineDrawer({
               placeholder={t('page.orders.deadline.reason_hint')}
             />
             <FieldNote>{t('page.orders.deadline.note')}</FieldNote>
+            <FieldNote>{t('page.orders.deadline.note_auto')}</FieldNote>
           </Fieldset>
         </DrawerColumn>
       </Form>

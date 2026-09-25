@@ -33,6 +33,10 @@ function widthFor(field: DictionaryField): string {
     return '130px';
   }
 
+  if (field.type === 'date') {
+    return '140px';
+  }
+
   if (field.type === 'select' || field.type === 'reference') {
     return '160px';
   }
@@ -189,7 +193,10 @@ export default function Page() {
       </header>
 
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--filter" aria-label={t('page.dictionaries.tabs')}>
+        <nav
+          className="ge-seg ge-seg--filter"
+          aria-label={t('page.dictionaries.tabs')}
+        >
           {dictionaries.map((item) => (
             <button
               key={item.slug}
