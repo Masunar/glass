@@ -35,6 +35,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $installer_comment
  * @property string|null $offer_comment
  * @property Carbon|null $client_deadline
+ * @property bool $deadline_manual
+ * @property int|null $deadline_days
  * @property Carbon|null $production_deadline
  * @property Carbon|null $shifted_deadline
  * @property int|null $invoice_type_id
@@ -104,7 +106,8 @@ class Order extends Dateable
         'investment_type', 'investment_area_m2',
         'is_on_hold', 'hold_reason', 'has_open_claim', 'agreed_contact_on',
         'short_note', 'production_comment', 'installer_comment', 'offer_comment',
-        'client_deadline', 'production_deadline', 'shifted_deadline',
+        'client_deadline', 'deadline_manual', 'deadline_days',
+        'production_deadline', 'shifted_deadline',
         'shift_reason', 'shift_approved_by', 'cancellation_reason',
         'created_by', 'owner_id', 'measurement_id',
         'drawings_complete_by', 'drawings_complete_at',
@@ -122,6 +125,8 @@ class Order extends Dateable
             'has_open_claim' => 'boolean',
             'agreed_contact_on' => 'date',
             'client_deadline' => 'date',
+            'deadline_manual' => 'boolean',
+            'deadline_days' => 'integer',
             'production_deadline' => 'date',
             'shifted_deadline' => 'date',
             'drawings_complete_at' => 'datetime',

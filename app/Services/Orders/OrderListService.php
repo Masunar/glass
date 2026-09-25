@@ -39,6 +39,7 @@ final readonly class OrderListService
 
     public function __construct(
         private AuditTrail $audit = new AuditTrail(),
+        private OrderDeadline $deadline = new OrderDeadline(),
     ) {
     }
 
@@ -129,6 +130,10 @@ final readonly class OrderListService
             ]],
             $listId === null ? 'list_added' : 'list_changed',
         );
+
+        // Wlaczenie albo wylaczenie listy zmienia, ktore formatki licza
+        // sie do terminu.
+        $this->deadline->refresh((int) $order->getKey());
 
         return ['errors' => [], 'id' => (int) $list->getKey()];
     }
@@ -227,6 +232,9 @@ final readonly class OrderListService
             ]],
             'item_moved',
         );
+
+        // Przeniesienie na liste niewliczona zabiera formatke z terminu.
+        $this->deadline->refresh((int) $order->getKey());
 
         return ['errors' => []];
     }

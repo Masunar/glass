@@ -43,6 +43,7 @@ final readonly class OrderCard
         private ContractorBalance $balance = new ContractorBalance(),
         private ProductionQueue $production = new ProductionQueue(),
         private OrderSchedule $schedule = new OrderSchedule(),
+        private OrderDeadline $deadlineRule = new OrderDeadline(),
         private TemperingBoard $tempering = new TemperingBoard(),
         private OfferBoard $offers = new OfferBoard(),
         private OrderOwnerService $owners = new OrderOwnerService(),
@@ -164,14 +165,19 @@ final readonly class OrderCard
             // jest na liscie. Kwoty tylko z niej korzystaja.
             'investment' => $this->value->investmentVat($order)?->toArray(),
             // Szacowana liczba dni bierze sie wylacznie z dni wpisanych
-            // przy etapach. Daty z niej nie wyprowadzamy: dni mowia, ile
-            // pracy jest w srodku, a nie kiedy hala ja zacznie.
+            // przy etapach. Z niej `OrderDeadline` wylicza termin klienta.
             'estimated_days' => $this->schedule->days($order),
             'deadline' => [
                 'client' => $order->client_deadline?->toDateString(),
                 'production' => $order->production_deadline?->toDateString(),
                 'shifted' => $order->shifted_deadline?->toDateString(),
                 'shift_reason' => $order->shift_reason,
+                // Skad termin klienta: wpisany recznie, liczony z pozycji
+                // albo liczony, ale zamkniety po przekazaniu na produkcje.
+                'source' => $order->deadline_manual
+                    ? 'manual'
+                    : ($this->deadlineRule->follows($order) ? 'auto' : 'frozen'),
+                'computed_days' => $order->deadline_days,
                 'effective' => $deadline?->toDateString(),
                 'days_left' => $deadline === null ? null : (int) $day->diffInDays($deadline, false),
             ],

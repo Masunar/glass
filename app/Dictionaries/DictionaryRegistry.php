@@ -6,6 +6,7 @@ namespace App\Dictionaries;
 
 use App\Enum\Unit;
 use App\Enum\Section;
+use App\Models\DayOff;
 use App\Models\Vehicle;
 use App\Models\Supplier;
 use App\Models\Process;
@@ -48,6 +49,7 @@ final readonly class DictionaryRegistry
             $this->workstations(),
             $this->processes(),
             $this->suppliers(),
+            $this->daysOff(),
         ];
     }
 
@@ -184,6 +186,27 @@ final readonly class DictionaryRegistry
                 . 'bo limit kupiecki, sekcja cenowa i limity rabatowe przy '
                 . 'dostawcy nic nie znaczą. Firma będąca i klientem, '
                 . 'i dostawcą wystąpi w obu miejscach.',
+        );
+    }
+
+    private function daysOff(): DictionaryDefinition
+    {
+        return new DictionaryDefinition(
+            slug: 'days-off',
+            label: 'Dni wolne',
+            model: DayOff::class,
+            fields: [
+                new Field('date', 'Data', FieldType::DATE, required: true),
+                new Field('name', 'Nazwa', required: true, max: 100),
+                new Field('is_active', 'Aktywny', FieldType::BOOLEAN),
+            ],
+            // Ta sama nazwa wraca co roku (inwentaryzacja) — unikalna
+            // jest dopiero w obrebie dnia.
+            uniqueWithin: ['date'],
+            orderColumn: 'date',
+            note: 'Dni, w które zakład nie pracuje, poza świętami ustawowymi — '
+                . 'te system liczy sam. Termin zlecenia wyliczany z pozycji '
+                . 'omija soboty, niedziele, święta i dni z tej listy.',
         );
     }
 

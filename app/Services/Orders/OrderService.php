@@ -155,6 +155,9 @@ final readonly class OrderService
                 : Normalize::text($input['delivery_contact'] ?? null),
             'invoice_type_id' => $this->id($input['invoice_type_id'] ?? null),
             'client_deadline' => Normalize::text($input['client_deadline'] ?? null),
+            // Termin wpisany przy zakladaniu (np. z oferty) jest reczny —
+            // pusty system wyliczy z pozycji, gdy te sie pojawia.
+            'deadline_manual' => Normalize::text($input['client_deadline'] ?? null) !== null,
             'short_note' => Normalize::text($input['short_note'] ?? null),
             'created_by' => Auth::id(),
             // Prowadzacy to osobne pole od zakladajacego, bo zlecenie

@@ -47,6 +47,7 @@ final readonly class Field
             FieldType::BOOLEAN => [...$rules, 'boolean'],
             FieldType::SELECT => [...$rules, 'string', 'in:' . implode(',', array_column($this->options, 'value'))],
             FieldType::REFERENCE => [...$rules, 'integer'],
+            FieldType::DATE => [...$rules, 'date_format:Y-m-d'],
         };
 
         return [...$rules, ...$this->extraRules];

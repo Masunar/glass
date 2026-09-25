@@ -141,5 +141,18 @@ function Control({ field }: { field: DictionaryField }) {
     return <FormControl variant="number" {...common} />;
   }
 
+  // Natywny wybor daty zwraca RRRR-MM-DD — dokladnie to, czego chce
+  // backend, bez przeliczania stref czasowych po drodze.
+  if (field.type === 'date') {
+    return (
+      <FormControl
+        variant="text"
+        type="date"
+        slotProps={{ inputLabel: { shrink: true } }}
+        {...common}
+      />
+    );
+  }
+
   return <FormControl variant="text" {...common} />;
 }

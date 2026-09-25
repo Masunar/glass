@@ -249,6 +249,7 @@ export default function OrderDrawer({ open, onClose, onCreated }: Props) {
                   label: branch.name,
                 }))}
               />
+              <FieldNote>{t('page.orders.form.deadline_note')}</FieldNote>
             </Fieldset>
 
             <Fieldset tone="contact" label={t('page.orders.form.section.note')}>
