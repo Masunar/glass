@@ -731,7 +731,9 @@
       "created_by": "założył {{name}}",
       "comment_edit": "edytuj",
       "shifted_note_plain": "przesunięty na {{date}}",
-      "comment_add": "+ dodaj"
+      "comment_add": "+ dodaj",
+      "comment_more": "pokaż całość",
+      "comment_less": "zwiń"
     },
     "form": {
       "add": "Nowe zlecenie",

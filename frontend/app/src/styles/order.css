@@ -431,18 +431,36 @@ button.ge-from__link {
   text-align: left;
 }
 
-/* Komentarz na karcie: tresc i obok niej wprost „edytuj" / „+ dodaj".
-   Sam hover nie wystarczal — nikt nie zgadl, ze „brak" jest klikalny. */
-.ge-comment__value {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  max-width: 62%;
-  text-align: right;
+/* Pas komentarzy nad sciezka produkcji: cztery kolumny, kazda dla
+   innego odbiorcy. Na wezszym ekranie dwie na dwie. */
+.ge-notes__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 24px;
 }
-.ge-comment__text { white-space: pre-line; }
-.ge-comment__add {
+@media (max-width: 1400px) {
+  .ge-notes__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+}
+.ge-note-col { min-width: 0; font-size: 14px; }
+.ge-note-col__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+  font-size: 12.5px;
+  color: var(--ge-neutral-700);
+}
+.ge-note-col__text { white-space: pre-line; overflow-wrap: anywhere; }
+/* Zwiniety do szesciu linii — akapit dla produkcji nie spycha list
+   o ekran w dol, a „pokaz calosc" oddaje reszte na zadanie. */
+.ge-note-col__text.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ge-note-col__edit {
   background: none;
   border: 0;
   padding: 0;
@@ -451,15 +469,9 @@ button.ge-from__link {
   color: color-mix(in oklab, var(--ge-mod) 75%, black);
   cursor: pointer;
 }
-.ge-comment__add:hover { text-decoration: underline; }
-.ge-comment--edit {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px 0;
-}
-.ge-comment__input { width: 100%; resize: vertical; font: inherit; }
-.ge-comment__actions { display: flex; justify-content: flex-end; gap: 8px; }
+.ge-note-col__edit:hover { text-decoration: underline; }
+.ge-note-col__input { width: 100%; resize: vertical; font: inherit; }
+.ge-note-col__actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
 
 /* ---------- menu "Wiecej" ---------- */
 

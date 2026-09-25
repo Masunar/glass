@@ -540,48 +540,6 @@ export default function Page() {
             </div>
           </section>
 
-          <section className="ge-section">
-            <div className="ge-section__head">
-              {t('page.orders.card.comments')}
-            </div>
-            <Comment
-              label={t('page.orders.card.comment_short')}
-              value={order.comments.short}
-              field="short"
-              orderId={id}
-              canEdit={canEdit}
-              onSaved={() => void load()}
-              t={t}
-            />
-            <Comment
-              label={t('page.orders.card.comment_production')}
-              value={order.comments.production}
-              field="production"
-              orderId={id}
-              canEdit={canEdit}
-              onSaved={() => void load()}
-              t={t}
-            />
-            <Comment
-              label={t('page.orders.card.comment_installer')}
-              value={order.comments.installer}
-              field="installer"
-              orderId={id}
-              canEdit={canEdit}
-              onSaved={() => void load()}
-              t={t}
-            />
-            <Comment
-              label={t('page.orders.card.comment_offer')}
-              value={order.comments.offer}
-              field="offer"
-              orderId={id}
-              canEdit={canEdit}
-              onSaved={() => void load()}
-              t={t}
-            />
-          </section>
-
           <VatLines totals={card.money} t={t} />
 
           {/* Ostatnia oferta w karcie, a nie tylko w zakladce: pytanie
@@ -634,6 +592,54 @@ export default function Page() {
         </aside>
 
         <div className="ge-card__main">
+          {/* Komentarze w szerokiej kolumnie, nie w bocznej: komentarz dla
+              produkcji bywa akapitem, a w polowie waskiego wiersza
+              „etykieta — wartosc" lamal sie co dwa slowa. Cztery obok
+              siebie, bo kazdy ma innego odbiorce i czyta sie je osobno. */}
+          <section className="ge-section ge-notes">
+            <div className="ge-section__head">
+              {t('page.orders.card.comments')}
+            </div>
+            <div className="ge-notes__grid">
+              <Comment
+                label={t('page.orders.card.comment_short')}
+                value={order.comments.short}
+                field="short"
+                orderId={id}
+                canEdit={canEdit}
+                onSaved={() => void load()}
+                t={t}
+              />
+              <Comment
+                label={t('page.orders.card.comment_production')}
+                value={order.comments.production}
+                field="production"
+                orderId={id}
+                canEdit={canEdit}
+                onSaved={() => void load()}
+                t={t}
+              />
+              <Comment
+                label={t('page.orders.card.comment_installer')}
+                value={order.comments.installer}
+                field="installer"
+                orderId={id}
+                canEdit={canEdit}
+                onSaved={() => void load()}
+                t={t}
+              />
+              <Comment
+                label={t('page.orders.card.comment_offer')}
+                value={order.comments.offer}
+                field="offer"
+                orderId={id}
+                canEdit={canEdit}
+                onSaved={() => void load()}
+                t={t}
+              />
+            </div>
+          </section>
+
           <section className="ge-section">
             <div className="ge-section__head ge-section__head--strong">
               {t('page.orders.card.path')}
@@ -752,11 +758,13 @@ function deadlineValue(
 }
 
 /**
- * Komentarz zlecenia — do podglądu i do poprawienia na miejscu.
+ * Komentarz zlecenia — kolumna w pasie komentarzy.
  *
- * Klik w treść albo w „brak" otwiera pole. Zapis dotyczy tylko tego
- * jednego komentarza, więc dwie osoby poprawiające różne pola nie
- * nadpisują sobie nawzajem pracy.
+ * Etykieta z „edytuj" w jednej linii, tekst pod nią na całą szerokość
+ * kolumny. Długi tekst zwija się do kilku linii z „pokaż całość", żeby
+ * jeden akapit dla produkcji nie spychał list pozycji o ekran w dół.
+ * Zapis dotyczy tylko tego komentarza — dwie osoby przy różnych polach
+ * nie nadpisują sobie pracy.
  */
 function Comment({
   label,
@@ -779,6 +787,20 @@ function Comment({
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  // Przycisk „pokaz calosc" tylko wtedy, gdy tekst naprawde sie nie
+  // miesci — przy dwoch linijkach bylby obietnica, ktorej nie ma czym
+  // spelnic.
+  const textRef = useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const element = textRef.current;
+
+    setOverflows(
+      element !== null && element.scrollHeight > element.clientHeight + 1,
+    );
+  }, [value, editing]);
 
   const open = () => {
     setDraft(value ?? '');
@@ -814,72 +836,83 @@ function Comment({
     onSaved();
   };
 
-  if (editing) {
-    return (
-      <div className="ge-comment ge-comment--edit">
-        <span className="ge-kv__k">{label}</span>
-        <textarea
-          className="ge-uf__input ge-comment__input"
-          value={draft}
-          rows={field === 'short' ? 2 : 4}
-          maxLength={field === 'short' ? 200 : 2000}
-          autoFocus
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              setEditing(false);
-            }
-          }}
-        />
-        {problem !== null && (
-          <div className="ge-note ge-note--warn">{problem}</div>
-        )}
-        <div className="ge-comment__actions">
-          <Button variant="text" size="small" onClick={() => setEditing(false)}>
-            {t('cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            loading={saving}
-            onClick={() => void save()}
-          >
-            {t('save')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Edycja ma byc widac bez najezdzania: „brak" z przerywanym
-  // podkresleniem na hover nikomu nie mowil, ze da sie tu cos wpisac.
-  if (!canEdit) {
-    return (
-      <div className="ge-kv" style={{ alignItems: 'flex-start' }}>
-        <span className="ge-kv__k">{label}</span>
-        <span style={{ textAlign: 'right', maxWidth: '62%' }}>
-          {value ?? (
-            <span className="ge-muted">{t('page.orders.card.none')}</span>
-          )}
-        </span>
-      </div>
-    );
-  }
-
   return (
-    <div className="ge-kv" style={{ alignItems: 'flex-start' }}>
-      <span className="ge-kv__k">{label}</span>
-      {value === null ? (
-        <button type="button" className="ge-comment__add" onClick={open}>
-          {t('page.orders.card.comment_add')}
-        </button>
-      ) : (
-        <span className="ge-comment__value">
-          <span className="ge-comment__text">{value}</span>
-          <button type="button" className="ge-comment__add" onClick={open}>
-            {t('page.orders.card.comment_edit')}
+    <div className="ge-note-col">
+      <div className="ge-note-col__head">
+        <span>{label}</span>
+        {canEdit && !editing && (
+          <button type="button" className="ge-note-col__edit" onClick={open}>
+            {t(
+              value === null
+                ? 'page.orders.card.comment_add'
+                : 'page.orders.card.comment_edit',
+            )}
           </button>
-        </span>
+        )}
+      </div>
+
+      {editing ? (
+        <>
+          <textarea
+            className="ge-uf__input ge-note-col__input"
+            value={draft}
+            rows={field === 'short' ? 3 : 6}
+            maxLength={field === 'short' ? 200 : 2000}
+            autoFocus
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setEditing(false);
+              }
+            }}
+          />
+          {problem !== null && (
+            <div className="ge-note ge-note--warn">{problem}</div>
+          )}
+          <div className="ge-note-col__actions">
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setEditing(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              loading={saving}
+              onClick={() => void save()}
+            >
+              {t('save')}
+            </Button>
+          </div>
+        </>
+      ) : value === null ? (
+        <div className="ge-muted">{t('page.orders.card.none')}</div>
+      ) : (
+        <>
+          <div
+            ref={textRef}
+            className={
+              expanded ? 'ge-note-col__text' : 'ge-note-col__text is-clamped'
+            }
+          >
+            {value}
+          </div>
+          {(overflows || expanded) && (
+            <button
+              type="button"
+              className="ge-note-col__edit"
+              onClick={() => setExpanded((current) => !current)}
+            >
+              {t(
+                expanded
+                  ? 'page.orders.card.comment_less'
+                  : 'page.orders.card.comment_more',
+              )}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
