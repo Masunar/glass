@@ -71,6 +71,13 @@ final class ScaleCheck
         $warm = $this->probe->measure(static fn(): array => (new AlertEngine())->run($day));
         $timings[] = $this->timing('Alerty — kolejny przebieg', $warm, 'uzgodnienie bez zmian');
 
+        // Same liczniki przy zakladkach, po rozgrzanym silniku — zeby
+        // bylo widac koszt liczenia, a nie przebiegu regul.
+        $engine = new AlertEngine();
+        $engine->run($day);
+        $counts = $this->probe->measure(static fn(): array => (new AlertBoard($engine))->orderCounts($day));
+        $timings[] = $this->timing('Liczniki alertów przy zakładkach', $counts, sprintf('%d zleceń z alertem', $counts['result']['']));
+
         $list = $this->probe->measure(static fn(): array => (new OrderBoardService())->board(today: $day));
         $timings[] = $this->timing('Lista zleceń', $list, sprintf('%d wierszy', $list['result']['summary']['shown']));
 
