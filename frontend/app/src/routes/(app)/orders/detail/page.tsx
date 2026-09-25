@@ -263,10 +263,17 @@ export default function Page() {
           value={deadlineValue(due.days_left, t)}
           note={
             order.deadline.shifted
-              ? t('page.orders.card.shifted_note', {
-                  date: order.deadline.shifted,
-                  reason: order.deadline.shift_reason ?? '—',
-                })
+              ? // Bez powodu samo przesuniecie — „— —" w miejscu pustego
+                // powodu wygladalo jak blad, a nie jak brak.
+                t(
+                  order.deadline.shift_reason
+                    ? 'page.orders.card.shifted_note'
+                    : 'page.orders.card.shifted_note_plain',
+                  {
+                    date: order.deadline.shifted,
+                    reason: order.deadline.shift_reason,
+                  },
+                )
               : (order.deadline.client ?? t('page.orders.no_deadline'))
           }
           // Szacowany czas to suma dni wpisanych przy etapach
@@ -844,24 +851,35 @@ function Comment({
     );
   }
 
-  const text = value ?? (
-    <span className="ge-muted">{t('page.orders.card.none')}</span>
-  );
+  // Edycja ma byc widac bez najezdzania: „brak" z przerywanym
+  // podkresleniem na hover nikomu nie mowil, ze da sie tu cos wpisac.
+  if (!canEdit) {
+    return (
+      <div className="ge-kv" style={{ alignItems: 'flex-start' }}>
+        <span className="ge-kv__k">{label}</span>
+        <span style={{ textAlign: 'right', maxWidth: '62%' }}>
+          {value ?? (
+            <span className="ge-muted">{t('page.orders.card.none')}</span>
+          )}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="ge-kv" style={{ alignItems: 'flex-start' }}>
       <span className="ge-kv__k">{label}</span>
-      {canEdit ? (
-        <button
-          type="button"
-          className="ge-comment__value"
-          title={t('page.orders.card.comment_edit')}
-          onClick={open}
-        >
-          {text}
+      {value === null ? (
+        <button type="button" className="ge-comment__add" onClick={open}>
+          {t('page.orders.card.comment_add')}
         </button>
       ) : (
-        <span style={{ textAlign: 'right', maxWidth: '62%' }}>{text}</span>
+        <span className="ge-comment__value">
+          <span className="ge-comment__text">{value}</span>
+          <button type="button" className="ge-comment__add" onClick={open}>
+            {t('page.orders.card.comment_edit')}
+          </button>
+        </span>
       )}
     </div>
   );

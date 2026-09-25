@@ -423,27 +423,35 @@
 button.ge-from__link {
   background: none;
   border: 0;
-  padding: 0;
-  font: inherit;
+  padding: 3px 0 0;
+  /* Tylko krój, nie cały skrót `font` — ten nadpisywał rozmiar 12px
+     z `.ge-from__link` i przycisk wychodził większy niż link obok. */
+  font-family: inherit;
   cursor: pointer;
   text-align: left;
 }
 
-/* Komentarz na karcie: tresc jest przyciskiem, zeby dalo sie ja
-   poprawic tam, gdzie sie ja czyta — bez szukania ekranu edycji. */
+/* Komentarz na karcie: tresc i obok niej wprost „edytuj" / „+ dodaj".
+   Sam hover nie wystarczal — nikt nie zgadl, ze „brak" jest klikalny. */
 .ge-comment__value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   max-width: 62%;
+  text-align: right;
+}
+.ge-comment__text { white-space: pre-line; }
+.ge-comment__add {
   background: none;
   border: 0;
-  padding: 0 0 1px;
-  font: inherit;
-  color: inherit;
-  text-align: right;
-  white-space: pre-line;
-  cursor: text;
-  border-bottom: 1px dashed transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  cursor: pointer;
 }
-.ge-comment__value:hover { border-bottom-color: var(--ge-neutral-400); }
+.ge-comment__add:hover { text-decoration: underline; }
 .ge-comment--edit {
   display: flex;
   flex-direction: column;

@@ -729,7 +729,9 @@
       "vat_mixed": "brutto {{gross}} zł — stawki {{rates}}",
       "vat_unknown": "{{amount}} zł bez znanej stawki — brutto nie do policzenia",
       "created_by": "założył {{name}}",
-      "comment_edit": "Kliknij, żeby poprawić"
+      "comment_edit": "edytuj",
+      "shifted_note_plain": "przesunięty na {{date}}",
+      "comment_add": "+ dodaj"
     },
     "form": {
       "add": "Nowe zlecenie",
