@@ -325,7 +325,7 @@ final readonly class ExtraDeliveryService
             'number' => $delivery->number,
             'order_id' => $delivery->order_id,
             'order_number' => $order?->number,
-            'contractor' => $order?->contractor?->short_name ?? $order?->contractor?->name,
+            'contractor' => $order?->contractor->short_name ?? $order?->contractor?->name,
             'supplier' => $delivery->supplier?->name,
             'reason' => $delivery->reason->value,
             'reason_label' => $delivery->reason->label(),

@@ -54,7 +54,7 @@ final readonly class WarehouseDocuments
             'status' => $order->status->label(),
             'ordered_at' => $order->ordered_at?->format('d.m.Y'),
             'expected_at' => $order->expected_at?->format('d.m.Y'),
-            'created_at' => $order->created_at->format('d.m.Y'),
+            'created_at' => Carbon::parse($order->created_at)->format('d.m.Y'),
             'note' => $order->note,
             'supplier' => [
                 'name' => $order->supplier?->name,

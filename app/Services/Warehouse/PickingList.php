@@ -111,7 +111,7 @@ final readonly class PickingList
             $rows[] = [
                 'id' => $id,
                 'number' => $order->number,
-                'contractor' => $order->contractor?->short_name ?? $order->contractor?->name,
+                'contractor' => $order->contractor->short_name ?? $order->contractor?->name,
                 'status' => $order->status?->name,
                 'delivery_method' => $order->delivery_method->value,
                 'deadline' => $due,
