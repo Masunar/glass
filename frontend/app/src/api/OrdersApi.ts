@@ -796,6 +796,26 @@ export class OrdersApi extends ApiRequest {
     return await this.put(`/${id}/owner`, { owner_id: ownerId });
   }
 
+  public static async saveDeadline(
+    id: number,
+    data: {
+      client_deadline: string;
+      shifted_deadline: string;
+      shift_reason: string;
+    },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/deadline`, data);
+  }
+
+  /** Jeden z czterech komentarzy — karta zapisuje pole, które poprawiono. */
+  public static async saveComment(
+    id: number,
+    field: 'short' | 'production' | 'installer' | 'offer',
+    text: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/comments/${field}`, { text });
+  }
+
   public static async declareDrawings(
     id: number,
     complete: boolean,

@@ -1,11 +1,11 @@
 import DiscountPanel from '../_components/DiscountPanel';
+import FittingDrawer from '../_components/FittingDrawer';
 import ListDrawer from '../_components/ListDrawer';
-import VatLines from '../_components/VatLines';
-import { vatNote } from '../_components/vat';
 import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
-import FittingDrawer from '../_components/FittingDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
+import VatLines from '../_components/VatLines';
+import { vatNote } from '../_components/vat';
 import { useEffect, useState } from 'react';
 import { PiPlus, PiTrash } from 'react-icons/pi';
 import { useParams } from 'react-router';
@@ -347,6 +347,34 @@ function ListBlock({
   const title =
     list.name ?? t('page.orders.card.list', { number: list.number });
   const [shown, setShown] = useState<number | null>(null);
+  // Zwiniecie pamieta przegladarka, per lista: przy kilkunastu listach
+  // czlowiek zwija gotowe i pracuje na jednej — po odswiezeniu ma zastac
+  // ten sam widok. Pamiec moze byc niedostepna (tryb prywatny) — wtedy
+  // lista jest po prostu rozwinieta.
+  const storageKey = `ge.list.collapsed.${list.id}`;
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(storageKey) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggle = () => {
+    setCollapsed((value) => {
+      try {
+        if (value) {
+          window.localStorage.removeItem(storageKey);
+        } else {
+          window.localStorage.setItem(storageKey, '1');
+        }
+      } catch {
+        // Bez pamieci zwiniecie trwa do odswiezenia strony.
+      }
+
+      return !value;
+    });
+  };
 
   return (
     <div className={list.is_included ? undefined : 'ge-list--off'}>
@@ -359,7 +387,21 @@ function ListBlock({
             ? `${title} · ${t('page.orders.card.role_alternative')}`
             : title
         }
-        meta={`${money(list.net)} zł`}
+        meta={
+          collapsed
+            ? `${money(list.net)} zł · ${t(
+                'page.orders.lists.collapsed_count',
+                {
+                  count:
+                    list.glass.length +
+                    list.fittings.length +
+                    list.services.length,
+                },
+              )}`
+            : `${money(list.net)} zł`
+        }
+        collapsed={collapsed}
+        onToggle={toggle}
         // Trzy rozne stany, kazdy znaczy co innego: wstrzymana nie
         // pojdzie na produkcje, wylaczona nie nalezy do zlecenia.
         end={
@@ -385,246 +427,259 @@ function ListBlock({
         }
       />
 
-      {list.comment !== null && (
+      {!collapsed && list.comment !== null && (
         <div className="ge-list__comment">{list.comment}</div>
       )}
 
-      <div className="ge-panes">
-        <div className="ge-panes__head">
-          <span>{t('page.orders.card.column.no')}</span>
-          <span>{t('page.orders.panes.column.kind')}</span>
-          <span>{t('page.orders.panes.column.material')}</span>
-          <span className="r">{t('page.orders.panes.column.width')}</span>
-          <span className="r">{t('page.orders.panes.column.height')}</span>
-          <span className="r">{t('page.orders.panes.column.count')}</span>
-          <span>{t('page.orders.panes.column.processes')}</span>
-          <span className="r">{t('page.orders.panes.column.area')}</span>
-          <span className="r">{t('page.orders.panes.column.unit_price')}</span>
-          <span className="r">{t('page.orders.card.column.amount')}</span>
-          <span />
-        </div>
+      {!collapsed && (
+        <div
+          className={
+            lists.length > 1 ? 'ge-panes ge-panes--movable' : 'ge-panes'
+          }
+        >
+          <div className="ge-panes__head">
+            <span>{t('page.orders.card.column.no')}</span>
+            <span>{t('page.orders.panes.column.kind')}</span>
+            <span>{t('page.orders.panes.column.material')}</span>
+            <span className="r">{t('page.orders.panes.column.width')}</span>
+            <span className="r">{t('page.orders.panes.column.height')}</span>
+            <span className="r">{t('page.orders.panes.column.count')}</span>
+            <span>{t('page.orders.panes.column.processes')}</span>
+            <span className="r">{t('page.orders.panes.column.area')}</span>
+            <span className="r">
+              {t('page.orders.panes.column.unit_price')}
+            </span>
+            <span className="r">{t('page.orders.card.column.amount')}</span>
+            <span />
+          </div>
 
-        {list.glass.length === 0 && (
-          <div className="ge-empty">{t('page.orders.panes.no_glass')}</div>
-        )}
+          {list.glass.length === 0 && (
+            <div className="ge-empty">{t('page.orders.panes.no_glass')}</div>
+          )}
 
-        {list.glass.map((row, index) => (
-          <div
-            className={
-              row.is_urgent ? 'ge-panes__row ge-panes__row--urgent' : 'ge-panes__row'
-            }
-            key={row.id}
-          >
-            <span>{index + 1}</span>
-            <span>{row.group ?? '—'}</span>
-            {/* Pilna formatka ma byc widoczna z listy, a nie dopiero po
+          {list.glass.map((row, index) => (
+            <div
+              className={
+                row.is_urgent
+                  ? 'ge-panes__row ge-panes__row--urgent'
+                  : 'ge-panes__row'
+              }
+              key={row.id}
+            >
+              <span>{index + 1}</span>
+              <span>{row.group ?? '—'}</span>
+              {/* Pilna formatka ma byc widoczna z listy, a nie dopiero po
                 otwarciu panelu — to ona ustawia kolejnosc na hali. */}
-            <span className="ge-cell--wrap">
-              {row.is_urgent && (
-                <span className="ge-tag ge-tag--urgent">
-                  {t('page.orders.panes.urgent')}
-                </span>
-              )}
-              {row.name}
-            </span>
-            <span className="r ge-dim">{row.width_mm}</span>
-            <span className="r ge-dim">{row.height_mm}</span>
-            <span className="r">{Number(row.quantity)}</span>
-            <span className="ge-procs">
-              {row.processes.length === 0
-                ? '—'
-                : row.processes.map((entry) => entry.code).join(' ')}
-            </span>
-            <span className="r ge-quiet">
-              {decimal(row.m2, 2)} / {decimal(row.mb, 2)}
-            </span>
-            {/* Cena materialu za m2 stoi obok kwoty, bo to z niej ta
+              <span className="ge-cell--wrap">
+                {row.is_urgent && (
+                  <span className="ge-tag ge-tag--urgent">
+                    {t('page.orders.panes.urgent')}
+                  </span>
+                )}
+                {row.name}
+              </span>
+              <span className="r ge-dim">{row.width_mm}</span>
+              <span className="r ge-dim">{row.height_mm}</span>
+              <span className="r">{Number(row.quantity)}</span>
+              <span className="ge-procs">
+                {row.processes.length === 0
+                  ? '—'
+                  : row.processes.map((entry) => entry.code).join(' ')}
+              </span>
+              <span className="r ge-quiet">
+                {decimal(row.m2, 2)} / {decimal(row.mb, 2)}
+              </span>
+              {/* Cena materialu za m2 stoi obok kwoty, bo to z niej ta
                 kwota wyrasta. Brak pozycji w cenniku widac tutaj, a nie
                 dopiero po tym, ze suma wyszla mniejsza, niz powinna. */}
-            <span className="r ge-quiet">
-              {money(row.unit_net_price)}
-            </span>
-            <span className="r ge-dim">
-              {/* Kwota bez sladu to liczba bez pochodzenia — a tu naklada
+              <span className="r ge-quiet">{money(row.unit_net_price)}</span>
+              <span className="r ge-dim">
+                {/* Kwota bez sladu to liczba bez pochodzenia — a tu naklada
                   sie cennik, minimalna powierzchnia, doplaty i procesy. */}
-              <button
-                type="button"
-                className="ge-amount"
-                aria-expanded={shown === row.id}
-                onClick={() => setShown(shown === row.id ? null : row.id)}
-              >
-                {money(row.total)}
-              </button>
-              {row.unit_net_price === null && (
-                <div className="ge-note ge-note--warn">
-                  {t('page.orders.panes.glass_missing')}
-                </div>
-              )}
-            </span>
-            <span className="ge-panes__actions">
-              {/* Przeniesienie bez otwierania panelu: przy dzieleniu
+                <button
+                  type="button"
+                  className="ge-amount"
+                  aria-expanded={shown === row.id}
+                  onClick={() => setShown(shown === row.id ? null : row.id)}
+                >
+                  {money(row.total)}
+                </button>
+                {row.unit_net_price === null && (
+                  <div className="ge-note ge-note--warn">
+                    {t('page.orders.panes.glass_missing')}
+                  </div>
+                )}
+              </span>
+              <span className="ge-panes__actions">
+                {/* Przeniesienie bez otwierania panelu: przy dzieleniu
                   wyceny na pomieszczenia robi sie to kilkanascie razy
                   z rzedu. */}
-              {lists.length > 1 && (
-                <select
-                  className="ge-panes__move"
-                  value={list.id}
-                  aria-label={t('page.orders.lists.move')}
-                  onChange={(event) => onMove(row, Number(event.target.value))}
+                {lists.length > 1 && (
+                  <select
+                    className="ge-panes__move"
+                    value={list.id}
+                    aria-label={t('page.orders.lists.move')}
+                    onChange={(event) =>
+                      onMove(row, Number(event.target.value))
+                    }
+                  >
+                    {lists.map((target) => (
+                      <option key={target.id} value={target.id}>
+                        {target.name ??
+                          t('page.orders.card.list', { number: target.number })}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button type="button" onClick={() => onEditPane(row)}>
+                  {t('edit')}
+                </button>
+                <button
+                  type="button"
+                  aria-label={t('delete')}
+                  onClick={() => onRemove(row)}
                 >
-                  {lists.map((target) => (
-                    <option key={target.id} value={target.id}>
-                      {target.name ??
-                        t('page.orders.card.list', { number: target.number })}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <button type="button" onClick={() => onEditPane(row)}>
-                {t('edit')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('delete')}
-                onClick={() => onRemove(row)}
-              >
-                <PiTrash />
-              </button>
-            </span>
+                  <PiTrash />
+                </button>
+              </span>
 
-            {shown === row.id && (
-              <div className="ge-path__trace">
-                <div className="ge-path__trace-head">
-                  {t('page.orders.panes.section.path')}
-                </div>
-                {row.price_path.length === 0 ? (
-                  <div className="ge-quiet">
-                    {t('page.orders.panes.no_trace')}
+              {shown === row.id && (
+                <div className="ge-path__trace">
+                  <div className="ge-path__trace-head">
+                    {t('page.orders.panes.section.path')}
                   </div>
-                ) : (
-                  row.price_path.map((step, position) => (
-                    <div className="ge-kv" key={position}>
+                  {row.price_path.length === 0 ? (
+                    <div className="ge-quiet">
+                      {t('page.orders.panes.no_trace')}
+                    </div>
+                  ) : (
+                    row.price_path.map((step, position) => (
+                      <div className="ge-kv" key={position}>
+                        <span className="ge-kv__k">
+                          {step.label}
+                          {step.detail && (
+                            <span className="ge-quiet"> — {step.detail}</span>
+                          )}
+                        </span>
+                        <span className="ge-dim">{step.value}</span>
+                      </div>
+                    ))
+                  )}
+                  {row.processes.length > 0 && (
+                    <div className="ge-kv">
                       <span className="ge-kv__k">
-                        {step.label}
-                        {step.detail && (
-                          <span className="ge-quiet"> — {step.detail}</span>
+                        {t('page.orders.panes.column.processes')}
+                      </span>
+                      <span className="ge-dim">
+                        {money(
+                          row.processes.reduce(
+                            (sum, entry) => sum + Number(entry.amount),
+                            0,
+                          ),
                         )}
                       </span>
-                      <span className="ge-dim">{step.value}</span>
                     </div>
-                  ))
-                )}
-                {row.processes.length > 0 && (
-                  <div className="ge-kv">
-                    <span className="ge-kv__k">
-                      {t('page.orders.panes.column.processes')}
-                    </span>
-                    <span className="ge-dim">
-                      {money(
-                        row.processes.reduce(
-                          (sum, entry) => sum + Number(entry.amount),
-                          0,
-                        ),
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
 
-        {list.fittings.length > 0 && (
-          <>
-            <div className="ge-panes__sub">
-              {t('page.orders.panes.fittings')}
-            </div>
-            {/* Okucia maja wlasne kolumny: nie maja wymiarow, procesow
+          {list.fittings.length > 0 && (
+            <>
+              <div className="ge-panes__sub">
+                {t('page.orders.panes.fittings')}
+              </div>
+              {/* Okucia maja wlasne kolumny: nie maja wymiarow, procesow
                 ani dni, a maja kod, wykonczenie i stan magazynowy. */}
-            <div className="ge-panes__row ge-panes__row--fitting ge-panes__head--sub">
-              <span>{t('page.orders.card.column.no')}</span>
-              <span>{t('page.orders.panes.column.code')}</span>
-              <span>{t('page.orders.panes.column.material')}</span>
-              <span>{t('page.orders.panes.column.finish')}</span>
-              <span className="r">{t('page.orders.panes.column.count')}</span>
-              <span className="r">{t('page.orders.panes.column.stock')}</span>
-              <span className="r">{t('page.orders.panes.column.unit_price')}</span>
-              <span className="r">{t('page.orders.card.column.amount')}</span>
-              <span />
-            </div>
-            {list.fittings.map((row, index) => (
-              <div
-                className="ge-panes__row ge-panes__row--fitting"
-                key={row.id}
-              >
-                <span>{index + 1}</span>
-                <span className="ge-quiet">{row.code ?? '—'}</span>
-                <span className="ge-cell--wrap">{row.name}</span>
-                <span className="ge-quiet">{row.finish ?? '—'}</span>
-                <span className="r">{Number(row.quantity)}</span>
-                {/* Stan nizszy niz ilosc na zleceniu blokuje wejscie na
+              <div className="ge-panes__row ge-panes__row--fitting ge-panes__head--sub">
+                <span>{t('page.orders.card.column.no')}</span>
+                <span>{t('page.orders.panes.column.code')}</span>
+                <span>{t('page.orders.panes.column.material')}</span>
+                <span>{t('page.orders.panes.column.finish')}</span>
+                <span className="r">{t('page.orders.panes.column.count')}</span>
+                <span className="r">{t('page.orders.panes.column.stock')}</span>
+                <span className="r">
+                  {t('page.orders.panes.column.unit_price')}
+                </span>
+                <span className="r">{t('page.orders.card.column.amount')}</span>
+                <span />
+              </div>
+              {list.fittings.map((row, index) => (
+                <div
+                  className="ge-panes__row ge-panes__row--fitting"
+                  key={row.id}
+                >
+                  <span>{index + 1}</span>
+                  <span className="ge-quiet">{row.code ?? '—'}</span>
+                  <span className="ge-cell--wrap">{row.name}</span>
+                  <span className="ge-quiet">{row.finish ?? '—'}</span>
+                  <span className="r">{Number(row.quantity)}</span>
+                  {/* Stan nizszy niz ilosc na zleceniu blokuje wejscie na
                     produkcje, wiec ma byc widac tutaj, a nie dopiero
                     przy zablokowanym przejsciu. */}
-                <span
-                  className={
-                    row.in_stock !== null && row.in_stock < Number(row.quantity)
-                      ? 'r ge-note--warn'
-                      : 'r ge-quiet'
-                  }
-                >
-                  {row.in_stock === null ? '—' : decimal(row.in_stock, 0)}
-                </span>
-                <span className="r">{money(row.unit_net_price)}</span>
-                <span className="r ge-dim">{money(row.amount)}</span>
-                <span className="ge-panes__actions">
-                  <button type="button" onClick={() => onEditFitting(row)}>
-                    {t('edit')}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={t('delete')}
-                    onClick={() => onRemove(row)}
+                  <span
+                    className={
+                      row.in_stock !== null &&
+                      row.in_stock < Number(row.quantity)
+                        ? 'r ge-note--warn'
+                        : 'r ge-quiet'
+                    }
                   >
-                    <PiTrash />
-                  </button>
-                </span>
-              </div>
-            ))}
-          </>
-        )}
+                    {row.in_stock === null ? '—' : decimal(row.in_stock, 0)}
+                  </span>
+                  <span className="r">{money(row.unit_net_price)}</span>
+                  <span className="r ge-dim">{money(row.amount)}</span>
+                  <span className="ge-panes__actions">
+                    <button type="button" onClick={() => onEditFitting(row)}>
+                      {t('edit')}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('delete')}
+                      onClick={() => onRemove(row)}
+                    >
+                      <PiTrash />
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
 
-        {list.services.length > 0 && (
-          <>
-            <div className="ge-panes__sub">
-              {t('page.orders.panes.services')}
-            </div>
-            {list.services.map((row, index) => (
-              <div
-                className="ge-panes__row ge-panes__row--service"
-                key={row.id}
-              >
-                <span>{index + 1}</span>
-                <span className="ge-cell--wrap">{row.name}</span>
-                <span className="r">{Number(row.quantity)}</span>
-                <span className="r">{money(row.unit_net_price)}</span>
-                <span className="r ge-dim">{money(row.amount)}</span>
-                <span className="ge-panes__actions">
-                  <button type="button" onClick={() => onEditService(row)}>
-                    {t('edit')}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={t('delete')}
-                    onClick={() => onRemove(row)}
-                  >
-                    <PiTrash />
-                  </button>
-                </span>
+          {list.services.length > 0 && (
+            <>
+              <div className="ge-panes__sub">
+                {t('page.orders.panes.services')}
               </div>
-            ))}
-          </>
-        )}
-      </div>
+              {list.services.map((row, index) => (
+                <div
+                  className="ge-panes__row ge-panes__row--service"
+                  key={row.id}
+                >
+                  <span>{index + 1}</span>
+                  <span className="ge-cell--wrap">{row.name}</span>
+                  <span className="r">{Number(row.quantity)}</span>
+                  <span className="r">{money(row.unit_net_price)}</span>
+                  <span className="r ge-dim">{money(row.amount)}</span>
+                  <span className="ge-panes__actions">
+                    <button type="button" onClick={() => onEditService(row)}>
+                      {t('edit')}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t('delete')}
+                      onClick={() => onRemove(row)}
+                    >
+                      <PiTrash />
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

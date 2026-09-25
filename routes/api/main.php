@@ -167,6 +167,10 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/alerts', [OrderController::class, 'alerts'])->name('alerts');
     Route::get('/{order}', [OrderController::class, 'card'])->name('card');
     Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
+    Route::put('/{order}/deadline', [OrderController::class, 'saveDeadline'])->name('deadline');
+    Route::put('/{order}/comments/{field}', [OrderController::class, 'saveComment'])
+        ->whereIn('field', ['short', 'production', 'installer', 'offer'])
+        ->name('comment');
     Route::get('/{order}/items', [OrderController::class, 'items'])->name('items');
     Route::post('/{order}/lists', [OrderController::class, 'saveList'])->name('list_create');
     Route::put('/{order}/lists/{list}', [OrderController::class, 'saveList'])->name('list_update');

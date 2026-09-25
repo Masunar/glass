@@ -1,3 +1,4 @@
+import DeadlineDrawer from '../_components/DeadlineDrawer';
 import InvestmentDrawer from '../_components/InvestmentDrawer';
 import OrderTabs from '../_components/OrderTabs';
 import OwnerDrawer from '../_components/OwnerDrawer';
@@ -9,6 +10,7 @@ import { Link, useParams } from 'react-router';
 
 import { Button } from '@salvon/components/button';
 import { useTranslation } from '@salvon/hooks/useTranslation';
+import { notifyError } from '@salvon/utils/notify';
 
 import {
   type NextStep,
@@ -19,6 +21,7 @@ import {
 import HasPermission from '@app/components/HasPermission';
 import { Strip, Strips } from '@app/components/list';
 import { Permission, SubPermission } from '@app/config/permission';
+import { useHasPermission } from '@app/hook/use-permissions';
 
 const money = (value: string | null) =>
   value === null
@@ -41,6 +44,10 @@ export default function Page() {
   const [busy, setBusy] = useState(false);
   const [investmentOpen, setInvestmentOpen] = useState(false);
   const [ownerOpen, setOwnerOpen] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
+  // Termin i komentarze poprawia ten, kto moze zmieniac zlecenie —
+  // ta sama regula, ktora pilnuje serwer.
+  const canEdit = useHasPermission()(Permission.ORDERS, SubPermission.UPDATE);
 
   const load = async () => {
     const { content } = await OrdersApi.card(id);
@@ -282,6 +289,15 @@ export default function Page() {
                   ? t('page.orders.card.estimated_unknown')
                   : t('page.orders.card.estimated_note')}
               </span>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="ge-from__link"
+                  onClick={() => setDeadlineOpen(true)}
+                >
+                  {t('page.orders.deadline.change')}
+                </button>
+              )}
             </span>
           }
         />
@@ -524,21 +540,37 @@ export default function Page() {
             <Comment
               label={t('page.orders.card.comment_short')}
               value={order.comments.short}
+              field="short"
+              orderId={id}
+              canEdit={canEdit}
+              onSaved={() => void load()}
               t={t}
             />
             <Comment
               label={t('page.orders.card.comment_production')}
               value={order.comments.production}
+              field="production"
+              orderId={id}
+              canEdit={canEdit}
+              onSaved={() => void load()}
               t={t}
             />
             <Comment
               label={t('page.orders.card.comment_installer')}
               value={order.comments.installer}
+              field="installer"
+              orderId={id}
+              canEdit={canEdit}
+              onSaved={() => void load()}
               t={t}
             />
             <Comment
               label={t('page.orders.card.comment_offer')}
               value={order.comments.offer}
+              field="offer"
+              orderId={id}
+              canEdit={canEdit}
+              onSaved={() => void load()}
               t={t}
             />
           </section>
@@ -670,6 +702,17 @@ export default function Page() {
         }}
       />
 
+      <DeadlineDrawer
+        orderId={id}
+        deadline={order.deadline}
+        open={deadlineOpen}
+        onClose={() => setDeadlineOpen(false)}
+        onSaved={() => {
+          setDeadlineOpen(false);
+          void load();
+        }}
+      />
+
       <InvestmentDrawer
         orderId={id}
         investment={order.investment}
@@ -701,23 +744,125 @@ function deadlineValue(
     : t('page.orders.in_days', { count: daysLeft });
 }
 
+/**
+ * Komentarz zlecenia — do podglądu i do poprawienia na miejscu.
+ *
+ * Klik w treść albo w „brak" otwiera pole. Zapis dotyczy tylko tego
+ * jednego komentarza, więc dwie osoby poprawiające różne pola nie
+ * nadpisują sobie nawzajem pracy.
+ */
 function Comment({
   label,
   value,
+  field,
+  orderId,
+  canEdit,
+  onSaved,
   t,
 }: {
   label: string;
   value: string | null;
+  field: 'short' | 'production' | 'installer' | 'offer';
+  orderId: number;
+  canEdit: boolean;
+  onSaved: () => void;
   t: (key: string) => string;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const open = () => {
+    setDraft(value ?? '');
+    setProblem(null);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+
+    const { content, response } = await OrdersApi.saveComment(
+      orderId,
+      field,
+      draft,
+    );
+
+    setSaving(false);
+
+    if (!response.success) {
+      const message: string | undefined =
+        content?.data?.text?.[0] ?? content?.errors?.text?.[0];
+
+      if (message) {
+        setProblem(message);
+      } else {
+        notifyError(t('api.ise'));
+      }
+
+      return;
+    }
+
+    setEditing(false);
+    onSaved();
+  };
+
+  if (editing) {
+    return (
+      <div className="ge-comment ge-comment--edit">
+        <span className="ge-kv__k">{label}</span>
+        <textarea
+          className="ge-uf__input ge-comment__input"
+          value={draft}
+          rows={field === 'short' ? 2 : 4}
+          maxLength={field === 'short' ? 200 : 2000}
+          autoFocus
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setEditing(false);
+            }
+          }}
+        />
+        {problem !== null && (
+          <div className="ge-note ge-note--warn">{problem}</div>
+        )}
+        <div className="ge-comment__actions">
+          <Button variant="text" size="small" onClick={() => setEditing(false)}>
+            {t('cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            loading={saving}
+            onClick={() => void save()}
+          >
+            {t('save')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const text = value ?? (
+    <span className="ge-muted">{t('page.orders.card.none')}</span>
+  );
+
   return (
     <div className="ge-kv" style={{ alignItems: 'flex-start' }}>
       <span className="ge-kv__k">{label}</span>
-      <span style={{ textAlign: 'right', maxWidth: '62%' }}>
-        {value ?? (
-          <span className="ge-muted">{t('page.orders.card.none')}</span>
-        )}
-      </span>
+      {canEdit ? (
+        <button
+          type="button"
+          className="ge-comment__value"
+          title={t('page.orders.card.comment_edit')}
+          onClick={open}
+        >
+          {text}
+        </button>
+      ) : (
+        <span style={{ textAlign: 'right', maxWidth: '62%' }}>{text}</span>
+      )}
     </div>
   );
 }

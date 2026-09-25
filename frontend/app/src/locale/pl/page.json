@@ -728,7 +728,8 @@
       "vat_none": "bez stawki",
       "vat_mixed": "brutto {{gross}} zł — stawki {{rates}}",
       "vat_unknown": "{{amount}} zł bez znanej stawki — brutto nie do policzenia",
-      "created_by": "założył {{name}}"
+      "created_by": "założył {{name}}",
+      "comment_edit": "Kliknij, żeby poprawić"
     },
     "form": {
       "add": "Nowe zlecenie",
@@ -977,7 +978,11 @@
       "vat_default_unknown": "jak w typie faktury (zlecenie go nie ma)",
       "vat_note": "Stawka przy liście, a nie przy zleceniu: montaż w budynku mieszkalnym idzie na inną stawkę niż szkło. Puste znaczy „jak w typie faktury”, a nie zero.",
       "vat_split": "Inwestycja przekracza limit — na stawce {{reduced}}% liczy się {{percent}}% kwoty tej listy, reszta na {{standard}}%.",
-      "vat_within_limit": "Inwestycja mieści się w limicie {{limit}} m² — cała lista na {{reduced}}%."
+      "vat_within_limit": "Inwestycja mieści się w limicie {{limit}} m² — cała lista na {{reduced}}%.",
+      "collapsed_count_one": "{{count}} pozycja",
+      "collapsed_count_few": "{{count}} pozycje",
+      "collapsed_count_many": "{{count}} pozycji",
+      "collapsed_count_other": "{{count}} pozycji"
     },
     "investment": {
       "kicker": "Zlecenie",
@@ -1105,6 +1110,17 @@
       "rectangle": "Prostokąt",
       "irregular": "Kształt",
       "oval": "Owal"
+    },
+    "deadline": {
+      "kicker": "Termin zlecenia",
+      "title": "Zmień termin",
+      "dates": "Terminy",
+      "client": "Termin klienta",
+      "shifted": "Termin przesunięty",
+      "reason": "Powód przesunięcia",
+      "reason_hint": "np. brak szkła u dostawcy",
+      "note": "Przesunięty termin wygrywa na liście i w pasmach pilności, a termin klienta zostaje obok do porównania. Każda zmiana trafia do dziennika.",
+      "change": "Zmień termin →"
     }
   },
   "production": {

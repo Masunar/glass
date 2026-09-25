@@ -23,6 +23,7 @@ use App\Services\Orders\OrderDrawingService;
 use App\Services\Orders\OrderBoardService;
 use App\Services\Orders\OrderOwnerService;
 use App\Services\UserPreferences;
+use App\Services\Orders\OrderDetailsService;
 use App\Models\User;
 use App\Services\Orders\PaymentService;
 
@@ -45,6 +46,7 @@ class OrderController extends ApiController
         private readonly InvestmentService $investmentService,
         private readonly OrderOwnerService $ownerService,
         private readonly UserPreferences $preferences,
+        private readonly OrderDetailsService $detailsService,
     ) {
         $this->protect(
             ['board', 'alerts', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -61,7 +63,7 @@ class OrderController extends ApiController
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
                 'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
-                'saveInvestment', 'changeOwner',
+                'saveInvestment', 'changeOwner', 'saveDeadline', 'saveComment',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
@@ -362,6 +364,36 @@ class OrderController extends ApiController
     {
         return $this->secure(function () use ($request, $order): JsonResponse {
             $result = $this->ownerService->change($order, $request->input('owner_id'));
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
+        });
+    }
+
+    /** Termin klienta, przesunięty i powód przesunięcia — z karty. */
+    public function saveDeadline(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->only(['client_deadline', 'shifted_deadline', 'shift_reason']);
+            $result = $this->detailsService->deadline($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->updatedResponse();
+        });
+    }
+
+    /** Jeden z czterech komentarzy zlecenia. */
+    public function saveComment(Request $request, int $order, string $field): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order, $field): JsonResponse {
+            $result = $this->detailsService->comment($order, $field, $request->input('text'));
 
             if ($result['errors'] !== []) {
                 return $this->validationResponse($result['errors']);

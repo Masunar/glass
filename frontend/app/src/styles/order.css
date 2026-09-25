@@ -6,7 +6,10 @@
 
 .ge-card {
   display: flex;
-  align-items: flex-start;
+  /* Kolumna boczna na cala wysokosc: jej krawedz to linia miedzy
+     kolumnami, a przy `flex-start` konczyla sie razem z trescia boku,
+     w polowie dlugiej listy pozycji. */
+  align-items: stretch;
   border-top: 1px solid var(--ge-neutral-900);
 }
 
@@ -156,8 +159,16 @@
      niej wybieranie listy i przy stalych 96px zawartosc wychodzila
      poza siatke — a `justify-content: flex-end` wypycha nadmiar
      w LEWO, czyli prosto na kwote. */
-  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px auto;
+  --act: 84px;
+  --cols: 30px 110px minmax(140px, 1fr) 78px 78px 52px 88px 106px 92px 104px var(--act);
 }
+/* Ostatnia kolumna ma stala szerokosc, a nie `auto`: kazdy wiersz to
+   osobna siatka, wiec `auto` dawalo naglowkowi (pusta komorka) inna
+   szerokosc niz wierszom (przyciski) — elastyczna kolumna materialu
+   oddawala roznice i wszystkie liczby stawaly przesuniete wzgledem
+   naglowkow. Wybor listy przy kilku listach poszerza ja dla calej
+   tabeli naraz. */
+.ge-panes--movable { --act: 180px; }
 .ge-panes__head,
 .ge-panes__row {
   display: grid;
@@ -191,7 +202,7 @@
    wykonczeniem i stanem magazynowym. */
 .ge-panes__row--fitting {
   grid-template-columns:
-    30px 110px minmax(160px, 1fr) 110px 64px 74px 104px 104px auto;
+    30px 110px minmax(160px, 1fr) 110px 64px 74px 104px 104px var(--act);
 }
 
 /* Naglowek podsekcji czyta sie jak naglowek tabeli, nie jak wiersz. */
@@ -409,6 +420,38 @@
   text-decoration: none;
 }
 .ge-from__link:hover { text-decoration: underline; }
+button.ge-from__link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Komentarz na karcie: tresc jest przyciskiem, zeby dalo sie ja
+   poprawic tam, gdzie sie ja czyta — bez szukania ekranu edycji. */
+.ge-comment__value {
+  max-width: 62%;
+  background: none;
+  border: 0;
+  padding: 0 0 1px;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  white-space: pre-line;
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+.ge-comment__value:hover { border-bottom-color: var(--ge-neutral-400); }
+.ge-comment--edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+.ge-comment__input { width: 100%; resize: vertical; font: inherit; }
+.ge-comment__actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---------- menu "Wiecej" ---------- */
 
