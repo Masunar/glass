@@ -203,6 +203,105 @@ final readonly class OrderStock
     }
 
     /**
+     * Kompletność okuć zleceń — procent do kolumny „Okucia" na liście.
+     *
+     * **Ta sama reguła co `shortages()`**, tylko policzona dla całej
+     * strony naraz: okucie jest „mamy", gdy stan fizyczny pokrywa to, czego
+     * zlecenie potrzebuje. 100% znaczy dokładnie tyle, co brak blokady
+     * „brakuje okuć na stanie" przy przejściu do produkcji — dwie liczby
+     * o tym samym nie mogą się rozjechać.
+     *
+     * Zlecenie, któremu okucia już wydano (rozchód przy wejściu na
+     * produkcję), ma komplet: towar zszedł z półki na to zlecenie, a stan
+     * po wydaniu mówi już o innych zleceniach. Zlecenie bez okuć nie ma
+     * wpisu — kreska, nie „100%" ani „0%".
+     *
+     * Stan jest wspólny: każde zlecenie porównane z całą półką, jak
+     * w `shortages()`. Konflikt dwóch zleceń o ten sam towar to osobna
+     * rozmowa (rezerwacje), nie ta kolumna.
+     *
+     * @param list<int> $orderIds
+     * @return array<int, array{percent: int, short: int, products: int}>
+     */
+    public function completeness(array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+
+        /** @var iterable<\stdClass> $rows */
+        $rows = OrderItem::query()
+            ->toBase()
+            ->join('order_lists', 'order_lists.id', '=', 'order_items.order_list_id')
+            ->whereIn('order_lists.order_id', $orderIds)
+            ->where('order_lists.is_included', true)
+            ->where('order_items.section', Section::FITTINGS->value)
+            ->whereNotNull('order_items.product_id')
+            ->groupBy('order_lists.order_id', 'order_items.product_id')
+            ->selectRaw('order_lists.order_id as order_id, order_items.product_id as product_id,'
+                . ' SUM(order_items.quantity) as needed')
+            ->get();
+
+        $needs = [];
+
+        foreach ($rows as $row) {
+            $needs[(int) $row->order_id][(int) $row->product_id] = (float) $row->needed;
+        }
+
+        if ($needs === []) {
+            return [];
+        }
+
+        /** @var list<int> $issued */
+        $issued = StockMovement::query()
+            ->whereIn('order_id', array_keys($needs))
+            ->where('type', StockMovementType::ISSUE->value)
+            ->distinct()
+            ->pluck('order_id')
+            ->map(static fn(mixed $id): int => (int) $id)
+            ->all();
+
+        $productIds = [];
+
+        foreach ($needs as $products) {
+            foreach (array_keys($products) as $productId) {
+                $productIds[$productId] = true;
+            }
+        }
+
+        $levels = $this->levelsFor(array_keys($productIds));
+        $result = [];
+
+        foreach ($needs as $orderId => $products) {
+            $needed = 0.0;
+            $covered = 0.0;
+            $short = 0;
+
+            foreach ($products as $productId => $quantity) {
+                $have = in_array($orderId, $issued, true)
+                    ? $quantity
+                    : min($quantity, $levels[$productId] ?? 0.0);
+
+                $needed += $quantity;
+                $covered += $have;
+
+                if ($have < $quantity) {
+                    $short++;
+                }
+            }
+
+            $result[$orderId] = [
+                // W dol: 99% to jeszcze nie komplet.
+                'percent' => $needed <= 0.0 ? 100 : (int) floor($covered / $needed * 100 + 1e-9),
+                'short' => $short,
+                'products' => count($products),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * Stany fizyczne dla listy produktów — jednym zapytaniem.
      *
      * Ekran zlecenia pokazuje stan przy każdym okuciu, a pytanie

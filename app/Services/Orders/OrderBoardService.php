@@ -10,6 +10,7 @@ use App\Models\Status;
 use App\Enum\OrderPhase;
 use App\Enum\StatusDomain;
 use App\Services\Alerts\AlertBoard;
+use App\Services\Warehouse\OrderStock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -33,6 +34,7 @@ final readonly class OrderBoardService
         private OrderValue $value = new OrderValue(),
         private AlertBoard $alerts = new AlertBoard(),
         private OrderProgress $progress = new OrderProgress(),
+        private OrderStock $stock = new OrderStock(),
     ) {
     }
 
@@ -136,8 +138,12 @@ final readonly class OrderBoardService
         // na przebieg silnika.
         $alerts = $withAlerts ? $this->alerts->forOrders($day) : [];
 
-        // Postep hali dla calej strony jednym zapytaniem.
+        // Postep hali i kompletnosc okuc dla calej strony — po jednym
+        // przebiegu na strone, nie na wiersz.
         $production = $this->progress->production($orders->modelKeys());
+        /** @var list<int> $pageIds */
+        $pageIds = array_map(intval(...), $orders->modelKeys());
+        $fittings = $this->stock->completeness($pageIds);
 
         $bands = ['today' => [], 'overdue' => [], 'later' => []];
 
@@ -147,6 +153,7 @@ final readonly class OrderBoardService
                 $day,
                 $alerts,
                 $production[(int) $order->getKey()] ?? null,
+                $fittings[(int) $order->getKey()] ?? null,
             );
         }
 
@@ -281,22 +288,73 @@ final readonly class OrderBoardService
             ->count();
     }
 
+    /**
+     * Szukanie po wszystkim, czym biuro identyfikuje klienta: numer
+     * zlecenia, nazwa, NIP, telefon, e-mail, imię i nazwisko, ulica
+     * i miasto z adresów, osoby kontaktowe, adres dostawy (uwagi klienta,
+     * 25.09).
+     *
+     * Telefon i NIP porównywane są po samych cyfrach: „693 118 442",
+     * „693-118-442" i „693118442" to ten sam numer, a klient dyktuje go
+     * zawsze inaczej niż został wpisany.
+     */
     private function applySearch(Builder $builder, string $needle): Builder
     {
         $digits = preg_replace('/\D+/', '', $needle) ?? '';
+        $like = '%' . $needle . '%';
+        // Cyfry w telefonie i NIP-ie dopiero od trzech — „12" pasowaloby
+        // do polowy bazy.
+        $digitsLike = strlen($digits) >= 3 ? '%' . $digits . '%' : null;
 
-        return $builder->where(static function (Builder $query) use ($needle, $digits): void {
+        $strip = static fn(string $column): string => "REPLACE(REPLACE(REPLACE({$column}, ' ', ''), '-', ''), '+', '')";
+
+        return $builder->where(static function (Builder $query) use ($like, $digits, $digitsLike, $strip): void {
             // Numer zlecenia to jedyna rzecz, jaką klient podaje przez
             // telefon — szukanie po nim musi być pierwsze i po cyfrach.
             if ($digits !== '') {
                 $query->where('number', 'like', $digits . '%');
             }
 
+            $query->orWhere('delivery_address', 'like', $like);
+
             $query->orWhereHas(
                 'contractor',
-                static fn(Builder $contractor): Builder => $contractor
-                    ->where('name', 'like', '%' . $needle . '%')
-                    ->orWhere('short_name', 'like', '%' . $needle . '%'),
+                static function (Builder $contractor) use ($like, $digitsLike, $strip): void {
+                    $contractor->where(static function (Builder $any) use ($like, $digitsLike, $strip): void {
+                        $any->where('name', 'like', $like)
+                            ->orWhere('short_name', 'like', $like)
+                            ->orWhere('first_name', 'like', $like)
+                            ->orWhere('last_name', 'like', $like)
+                            ->orWhere('email', 'like', $like)
+                            ->orWhere('tax_id', 'like', $like)
+                            ->orWhere('phone', 'like', $like);
+
+                        if ($digitsLike !== null) {
+                            $any->orWhereRaw($strip('tax_id') . ' like ?', [$digitsLike])
+                                ->orWhereRaw($strip('phone') . ' like ?', [$digitsLike]);
+                        }
+
+                        $any->orWhereHas(
+                            'addresses',
+                            static fn(Builder $address): Builder => $address
+                                ->where('street', 'like', $like)
+                                ->orWhere('city', 'like', $like),
+                        );
+
+                        $any->orWhereHas(
+                            'contacts',
+                            static function (Builder $contact) use ($like, $digitsLike, $strip): void {
+                                $contact->where('first_name', 'like', $like)
+                                    ->orWhere('last_name', 'like', $like)
+                                    ->orWhere('email', 'like', $like);
+
+                                if ($digitsLike !== null) {
+                                    $contact->orWhereRaw($strip('phone') . ' like ?', [$digitsLike]);
+                                }
+                            },
+                        );
+                    });
+                },
             );
         });
     }
@@ -348,9 +406,16 @@ final readonly class OrderBoardService
     /**
      * @param array<int, list<array<string, mixed>>> $alerts
      * @param array{done: int, total: int, percent: int}|null $production
+     * @param array{percent: int, short: int, products: int}|null $fittings
      * @return array<string, mixed>
      */
-    private function row(Order $order, Carbon $day, array $alerts = [], ?array $production = null): array
+    private function row(
+        Order $order,
+        Carbon $day,
+        array $alerts = [],
+        ?array $production = null,
+        ?array $fittings = null,
+    ): array
     {
         $deadline = $this->deadline($order);
         $totals = $this->value->totals($order);
@@ -384,6 +449,9 @@ final readonly class OrderBoardService
             // faktury, zlecenie jeszcze bez etapow), nie zero.
             'paid_percent' => OrderProgress::paidPercent($paid, $totals->gross === null ? null : (float) $totals->gross),
             'production' => $production,
+            // Kompletnosc okuc ta sama regula co warunek przejscia do
+            // produkcji; `null` — zlecenie bez okuc.
+            'fittings' => $fittings,
             'owner_initials' => OrderOwnerService::initials($order->owner),
             // Identyfikator, nie tylko inicjaly: pulpit dzieli wiersze
             // na „moje" i reszte, a dwie osoby moga miec te same

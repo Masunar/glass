@@ -252,4 +252,63 @@ class OrderStockTest extends TestCase
         // to osobny konflikt i osobna rozmowa.
         $this->assertSame([], $this->stock->shortages($mine));
     }
+
+    #[Test]
+    public function kompletnosc_okuc_mowi_to_samo_co_blokada_produkcji(): void
+    {
+        $rotula = $this->fitting('rotula 33 imbus');
+        $zawias = $this->fitting('zawias 90');
+        $this->ledger->receive($rotula, 10);
+        $this->ledger->receive($zawias, 1);
+
+        $full = $this->order();
+        $this->addFitting($full, $rotula, 4);
+
+        $partial = $this->order();
+        $this->addFitting($partial, $rotula, 4);
+        $this->addFitting($partial, $zawias, 4);
+
+        $none = $this->order();
+        $this->addFitting($none, $this->fitting('uchwyt'), 2);
+
+        $bare = $this->order();
+
+        $result = $this->stock->completeness([
+            (int) $full->getKey(),
+            (int) $partial->getKey(),
+            (int) $none->getKey(),
+            (int) $bare->getKey(),
+        ]);
+
+        // Komplet w kolumnie znaczy dokladnie: brak blokady „brakuje okuc"
+        // przy przejsciu do produkcji. Dwie liczby o tym samym.
+        $this->assertSame(100, $result[(int) $full->getKey()]['percent']);
+        $this->assertSame([], $this->stock->shortages($full));
+
+        // 4 z 4 rotul i 1 z 4 zawiasow: 5 z 8 sztuk.
+        $this->assertSame(62, $result[(int) $partial->getKey()]['percent']);
+        $this->assertSame(1, $result[(int) $partial->getKey()]['short']);
+        $this->assertNotSame([], $this->stock->shortages($partial));
+
+        $this->assertSame(0, $result[(int) $none->getKey()]['percent']);
+
+        // Zlecenie bez okuc nie ma czego kompletowac — kreska, nie 100%.
+        $this->assertArrayNotHasKey((int) $bare->getKey(), $result);
+    }
+
+    #[Test]
+    public function wydane_okucia_to_komplet(): void
+    {
+        $product = $this->fitting();
+        $order = $this->order();
+        $this->ledger->receive($product, 4);
+        $this->addFitting($order, $product, 4);
+
+        $this->stock->reserve($order);
+        $this->stock->issue($order);
+
+        // Po wydaniu polka jest pusta, ale towar zszedl na to zlecenie —
+        // stan po wydaniu mowi juz o innych.
+        $this->assertSame(100, $this->stock->completeness([(int) $order->getKey()])[(int) $order->getKey()]['percent']);
+    }
 }

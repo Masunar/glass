@@ -38,6 +38,11 @@ export type OrderRow = {
   paid_percent: number | null;
   /** Etapy produkcji zlecenia; `null`, gdy zlecenie jeszcze ich nie ma. */
   production: { done: number; total: number; percent: number } | null;
+  /**
+   * Kompletność okuć — ta sama reguła co blokada „brakuje okuć" przy
+   * przejściu do produkcji. `null` — zlecenie bez okuć.
+   */
+  fittings: { percent: number; short: number; products: number } | null;
   /** Inicjały prowadzącego, nie zakładającego. */
   owner_initials: string | null;
   owner_id: number | null;
