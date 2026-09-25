@@ -327,7 +327,11 @@ class PickingAndExtraTest extends TestCase
 
         $this->assertSame([], $service->cancel((int) $created['id'])['errors']);
         $this->assertArrayHasKey('status', $service->receive((int) $created['id'])['errors']);
-        $this->assertSame('0.000', (string) $this->ledger->level($handle)->quantity);
+        // Produkt bez zadnego ruchu nie ma jeszcze wiersza stanu —
+        // swiezo zalozony poziom nie niesie liczby, stad brak ruchow
+        // zamiast porownania z „0.000".
+        $this->assertFalse(StockMovement::query()->where('product_id', $handle->id)->exists());
+        $this->assertSame(0.0, (float) $this->ledger->level($handle)->quantity);
     }
 
     #[Test]
