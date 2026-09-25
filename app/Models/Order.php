@@ -36,6 +36,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $offer_comment
  * @property Carbon|null $client_deadline
  * @property bool $deadline_manual
+ * @property Carbon|null $fittings_prepared_at
+ * @property int|null $fittings_prepared_by
  * @property int|null $deadline_days
  * @property Carbon|null $production_deadline
  * @property Carbon|null $shifted_deadline
@@ -66,6 +68,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read User|null $creator
  * @property-read User|null $owner
  * @property-read User|null $creditOverrider
+ * @property-read User|null $fittingsPreparer
  * @property-read InvoiceType|null $invoiceType
  * @property-read Collection<int, OrderDrawing> $drawings
  * @property-read Collection<int, Payment> $payments
@@ -112,6 +115,7 @@ class Order extends Dateable
         'created_by', 'owner_id', 'measurement_id',
         'drawings_complete_by', 'drawings_complete_at',
         'credit_override_by', 'credit_override_at', 'credit_override_reason',
+        'fittings_prepared_at', 'fittings_prepared_by',
     ];
 
     protected function casts(): array
@@ -131,6 +135,7 @@ class Order extends Dateable
             'shifted_deadline' => 'date',
             'drawings_complete_at' => 'datetime',
             'credit_override_at' => 'datetime',
+            'fittings_prepared_at' => 'datetime',
             'status_changed_at' => 'datetime',
             'value_net' => 'decimal:2',
             'value_gross' => 'decimal:2',
@@ -263,6 +268,12 @@ class Order extends Dateable
     public function creditOverrider(): BelongsTo
     {
         return $this->belongsTo(User::class, 'credit_override_by', 'id');
+    }
+
+    /** Kto odhaczył okucia jako przygotowane do wydania. */
+    public function fittingsPreparer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'fittings_prepared_by', 'id');
     }
 
 }

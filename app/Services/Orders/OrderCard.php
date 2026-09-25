@@ -68,6 +68,7 @@ final readonly class OrderCard
                 'owner',
                 'invoiceType',
                 'creditOverrider',
+                'fittingsPreparer',
                 'discounts',
                 'lists.items.pane',
                 'lists.items.processes.process',
@@ -178,6 +179,14 @@ final readonly class OrderCard
                     ? 'manual'
                     : ($this->deadlineRule->follows($order) ? 'auto' : 'frozen'),
                 'computed_days' => $order->deadline_days,
+                // Magazyn odhaczyl okucia jako przygotowane (lista
+                // kompletacji) — kto i kiedy.
+                'fittings_prepared' => $order->fittings_prepared_at === null ? null : [
+                    'at' => $order->fittings_prepared_at->format('Y-m-d H:i'),
+                    'by' => $order->fittingsPreparer === null
+                        ? null
+                        : OrderOwnerService::name($order->fittingsPreparer),
+                ],
                 'effective' => $deadline?->toDateString(),
                 'days_left' => $deadline === null ? null : (int) $day->diffInDays($deadline, false),
             ],

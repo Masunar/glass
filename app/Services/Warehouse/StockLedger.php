@@ -30,15 +30,19 @@ use Illuminate\Support\Facades\Auth;
  */
 final readonly class StockLedger
 {
-    /** Przyjęcie towaru od dostawcy. */
+    /**
+     * Przyjęcie towaru od dostawcy. `$orderId` przy dostawie dodatkowej
+     * — towar przyszedł dla konkretnego zlecenia.
+     */
     public function receive(
         Product $product,
         float $quantity,
         ?Location $location = null,
         ?string $document = null,
         ?string $note = null,
+        ?int $orderId = null,
     ): StockLevel {
-        return $this->record(StockMovementType::RECEIPT, $product, $quantity, $location, null, $document, $note);
+        return $this->record(StockMovementType::RECEIPT, $product, $quantity, $location, $orderId, $document, $note);
     }
 
     /** Wydanie na zlecenie. */

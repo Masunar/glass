@@ -128,6 +128,68 @@ export type DriftBoard = {
   summary: { drifted: number };
 };
 
+/** Dostawa dodatkowa do zlecenia — reklamacja, błędne okucie, domówienie. */
+export type ExtraDelivery = {
+  id: number;
+  number: number;
+  order_id: number;
+  order_number: number | null;
+  contractor: string | null;
+  supplier: string | null;
+  reason: string;
+  reason_label: string;
+  status: 'expected' | 'received' | 'cancelled';
+  status_label: string;
+  expected_at: string | null;
+  received_at: string | null;
+  note: string | null;
+  items: {
+    product_id: number;
+    code: string | null;
+    name: string | null;
+    quantity: number;
+  }[];
+};
+
+export type ExtraDeliveryBoard = {
+  rows: ExtraDelivery[];
+  filters: { code: string; name: string; count: number }[];
+  reasons: { value: string; label: string }[];
+  suppliers: { id: number; name: string }[];
+};
+
+export type PickingFitting = {
+  product_id: number;
+  code: string | null;
+  name: string;
+  quantity: number;
+  in_stock: number;
+  /** Wydane na zlecenie, leży na półce albo brakuje. */
+  state: 'issued' | 'in_stock' | 'short';
+};
+
+export type PickingRow = {
+  id: number;
+  number: number;
+  contractor: string | null;
+  status: string | null;
+  delivery_method: string;
+  /** Obowiązujący termin zlecenia; `null` = bez terminu. */
+  deadline: string | null;
+  is_late: boolean;
+  prepared: { at: string; by: string | null } | null;
+  missing: number;
+  fittings: PickingFitting[];
+  extra: ExtraDelivery[];
+};
+
+export type PickingBoard = {
+  from: string;
+  to: string;
+  rows: PickingRow[];
+  summary: { orders: number; prepared: number; short: number };
+};
+
 export class WarehouseApi extends ApiRequest {
   static prefix: string = '/warehouse';
 
@@ -166,7 +228,9 @@ export class WarehouseApi extends ApiRequest {
     return await this.get('/orders', { status });
   }
 
-  public static async order(id: number): Promise<ResponseProps<ResponseContent>> {
+  public static async order(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
     return await this.get(`/orders/${id}`, {});
   }
 
@@ -186,7 +250,9 @@ export class WarehouseApi extends ApiRequest {
   public static async ordersFromSuggestions(
     productIds: number[],
   ): Promise<ResponseProps<ResponseContent>> {
-    return await this.post('/orders/from-suggestions', { product_ids: productIds });
+    return await this.post('/orders/from-suggestions', {
+      product_ids: productIds,
+    });
   }
 
   public static async addOrderItem(
@@ -209,11 +275,15 @@ export class WarehouseApi extends ApiRequest {
     return await this.delete(`/orders/${orderId}/items/${itemId}`, {});
   }
 
-  public static async sendOrder(id: number): Promise<ResponseProps<ResponseContent>> {
+  public static async sendOrder(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
     return await this.post(`/orders/${id}/send`, {});
   }
 
-  public static async cancelOrder(id: number): Promise<ResponseProps<ResponseContent>> {
+  public static async cancelOrder(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
     return await this.post(`/orders/${id}/cancel`, {});
   }
 
@@ -233,6 +303,63 @@ export class WarehouseApi extends ApiRequest {
     });
   }
 
+  /** Wydruk zamówienia — zwykły link, jak PDF oferty. */
+  public static orderPdfUrl(id: number): string {
+    return `${this.baseUrl ?? ''}/warehouse/orders/${id}/pdf`;
+  }
+
+  /** Lista kompletacji okuć na zakres dat (terminy zleceń). */
+  public static async picking(
+    from: string,
+    to: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/picking', { from, to });
+  }
+
+  public static pickingPdfUrl(from: string, to: string): string {
+    return `${this.baseUrl ?? ''}/warehouse/picking/pdf?from=${from}&to=${to}`;
+  }
+
+  /** Odhaczenie okuć zlecenia jako przygotowanych — albo cofnięcie. */
+  public static async markPrepared(
+    orderId: number,
+    prepared: boolean,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return prepared
+      ? await this.post(`/picking/${orderId}/prepared`, {})
+      : await this.delete(`/picking/${orderId}/prepared`, {});
+  }
+
+  public static async extraDeliveries(
+    status: string = 'open',
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.get('/extra', { status });
+  }
+
+  public static async createExtraDelivery(data: {
+    order_id: number;
+    supplier_id: number | null;
+    reason: string;
+    expected_at: string | null;
+    note: string | null;
+    items: { product_id: number; quantity: number }[];
+  }): Promise<ResponseProps<ResponseContent>> {
+    return await this.post('/extra', data);
+  }
+
+  public static async receiveExtraDelivery(
+    id: number,
+    receivedAt: string = '',
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/extra/${id}/receive`, { received_at: receivedAt });
+  }
+
+  public static async cancelExtraDelivery(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/extra/${id}/cancel`, {});
+  }
+
   /** Produkty, których cena zakupu wyprzedziła cennik sprzedaży. */
   public static async priceDrift(): Promise<ResponseProps<ResponseContent>> {
     return await this.get('/price-drift', {});
@@ -247,6 +374,8 @@ export class WarehouseApi extends ApiRequest {
   public static async recalculatePrices(
     productIds: number[],
   ): Promise<ResponseProps<ResponseContent>> {
-    return await this.post('/price-drift/recalculate', { product_ids: productIds });
+    return await this.post('/price-drift/recalculate', {
+      product_ids: productIds,
+    });
   }
 }

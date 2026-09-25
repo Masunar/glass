@@ -226,6 +226,8 @@ export type OrderCard = {
       source: 'manual' | 'auto' | 'frozen';
       /** Z ilu dni roboczych policzono termin; `null` przy ręcznym. */
       computed_days: number | null;
+      /** Magazyn odhaczył okucia jako przygotowane — kto i kiedy. */
+      fittings_prepared: { at: string; by: string | null } | null;
       effective: string | null;
       days_left: number | null;
     };

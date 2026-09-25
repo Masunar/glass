@@ -321,6 +321,14 @@ export default function Page() {
                   t,
                 )}
               </span>
+              {order.deadline.fittings_prepared && (
+                <span className="ge-from__note">
+                  {t('page.orders.card.fittings_prepared', {
+                    who: order.deadline.fittings_prepared.by ?? '—',
+                    at: order.deadline.fittings_prepared.at,
+                  })}
+                </span>
+              )}
               {canEdit && (
                 <button
                   type="button"

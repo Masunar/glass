@@ -18,6 +18,8 @@ use App\Services\PriceListService;
 use App\Services\Warehouse\StockBoard;
 use App\Services\Warehouse\PurchaseOrderBoard;
 use App\Services\Warehouse\PurchaseOrderService;
+use App\Services\Warehouse\WarehouseDocuments;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 /**
  * Zamówienia do dostawców i przyjęcia towaru.
@@ -29,9 +31,10 @@ class PurchaseOrderController extends ApiController
         private readonly PurchaseOrderService $service,
         private readonly StockBoard $stock,
         private readonly PriceListService $priceList,
+        private readonly WarehouseDocuments $documents,
     ) {
         $this->protect(
-            ['index', 'show', 'drift'],
+            ['index', 'show', 'drift', 'pdf'],
             Permission::WAREHOUSE->value,
             SubPermission::LIST->value,
         );
@@ -68,6 +71,22 @@ class PurchaseOrderController extends ApiController
         return $this->secure(fn(): JsonResponse => $this->dataResponse(
             $this->board->card($this->order($order)),
         ));
+    }
+
+    /** Wydruk zamówienia — kartka do sprawdzenia dostawy. */
+    public function pdf(int $order): HttpResponse
+    {
+        return $this->secure(function () use ($order): HttpResponse {
+            $row = $this->order($order);
+
+            return response()->streamDownload(
+                function () use ($row): void {
+                    echo $this->documents->purchaseOrder($row);
+                },
+                $this->documents->purchaseOrderFileName($row),
+                ['Content-Type' => 'application/pdf'],
+            );
+        });
     }
 
     /** Produkty, których cena zakupu wyprzedziła cennik sprzedaży. */

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enum\Section;
 use Salvon\Model\Dateable;
 use App\Services\Orders\OrderValueStore;
+use App\Services\Warehouse\PickingList;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -49,6 +50,12 @@ class OrderItem extends Dateable
     {
         $stale = static function (self $item): void {
             OrderValueStore::markStaleByList((int) $item->order_list_id);
+
+            // Zmiana okuc uniewaznia „przygotowane" — magazynier
+            // spakowal inny komplet niz ten, ktory jest teraz na zleceniu.
+            if ($item->section === Section::FITTINGS) {
+                PickingList::invalidateByList((int) $item->order_list_id);
+            }
         };
 
         static::saved($stale);

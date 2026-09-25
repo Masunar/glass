@@ -1,3 +1,4 @@
+import { decimal } from './decimal';
 import { useState } from 'react';
 
 import type {
@@ -5,8 +6,7 @@ import type {
   PurchaseOrderCard,
   PurchaseOrderRow,
 } from '@app/api/WarehouseApi';
-
-import { decimal } from './decimal';
+import { WarehouseApi } from '@app/api/WarehouseApi';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -52,7 +52,10 @@ export function PurchaseOrders({
   return (
     <>
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--filter" aria-label={t('page.warehouse.tab_orders')}>
+        <nav
+          className="ge-seg ge-seg--filter"
+          aria-label={t('page.warehouse.tab_orders')}
+        >
           {(board?.filters ?? []).map((filter) => {
             const here = filter.code === status;
 
@@ -162,7 +165,9 @@ function OrderLine({
       <div className={open ? 'ge-stock__row is-open' : 'ge-stock__row'}>
         <span className="r ge-dim">{row.number}</span>
         <span className="ge-cell--wrap">{row.supplier}</span>
-        <span className={row.is_open ? '' : 'ge-quiet'}>{row.status_label}</span>
+        <span className={row.is_open ? '' : 'ge-quiet'}>
+          {row.status_label}
+        </span>
         <span className="r ge-quiet">{row.ordered_at ?? '—'}</span>
         <span className="r ge-quiet">{row.expected_at ?? '—'}</span>
         <span className="r ge-quiet">{row.lines}</span>
@@ -214,11 +219,16 @@ function OrderCard({
   // a rozbiezna wymaga poprawki — czyli swiadomej decyzji.
   const [quantities, setQuantities] = useState<Record<number, string>>(() =>
     Object.fromEntries(
-      card.items.map((item) => [item.id, item.outstanding > 0 ? String(item.outstanding) : '']),
+      card.items.map((item) => [
+        item.id,
+        item.outstanding > 0 ? String(item.outstanding) : '',
+      ]),
     ),
   );
   const [prices, setPrices] = useState<Record<number, string>>(() =>
-    Object.fromEntries(card.items.map((item) => [item.id, item.unit_net_price ?? ''])),
+    Object.fromEntries(
+      card.items.map((item) => [item.id, item.unit_net_price ?? '']),
+    ),
   );
   const [receivedAt, setReceivedAt] = useState('');
   const [documentNo, setDocumentNo] = useState('');
@@ -262,7 +272,10 @@ function OrderCard({
                 className="ge-uf__input r"
                 value={quantities[item.id] ?? ''}
                 onChange={(event) =>
-                  setQuantities((current) => ({ ...current, [item.id]: event.target.value }))
+                  setQuantities((current) => ({
+                    ...current,
+                    [item.id]: event.target.value,
+                  }))
                 }
               />
             ) : (
@@ -276,7 +289,10 @@ function OrderCard({
                 placeholder="—"
                 value={prices[item.id] ?? ''}
                 onChange={(event) =>
-                  setPrices((current) => ({ ...current, [item.id]: event.target.value }))
+                  setPrices((current) => ({
+                    ...current,
+                    [item.id]: event.target.value,
+                  }))
                 }
               />
             ) : (
@@ -294,6 +310,15 @@ function OrderCard({
       )}
 
       <div className="ge-po__foot">
+        {/* Kartka do sprawdzenia dostawy — z pusta kolumna „jest". */}
+        <a
+          className="ge-po__print"
+          href={WarehouseApi.orderPdfUrl(card.id)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t('page.warehouse.print_order')}
+        </a>
         {card.status === 'draft' && (
           <button type="button" className="ge-act--go" onClick={onSend}>
             {t('page.warehouse.send_order')}
@@ -368,7 +393,9 @@ function NewOrder({
 
   if (suppliers.length === 0) {
     return (
-      <p className="ge-lead ge-lead--warn">{t('page.warehouse.no_suppliers')}</p>
+      <p className="ge-lead ge-lead--warn">
+        {t('page.warehouse.no_suppliers')}
+      </p>
     );
   }
 

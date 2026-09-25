@@ -1,12 +1,26 @@
+import { Demand } from './_components/Demand';
+import { ExtraDeliveries } from './_components/ExtraDeliveries';
+import { ExtraDeliveryDrawer } from './_components/ExtraDeliveryDrawer';
+import { PICKING_RANGES, Picking } from './_components/Picking';
+import { PriceDrift } from './_components/PriceDrift';
+import { PurchaseOrders } from './_components/PurchaseOrders';
+import { StockLevels } from './_components/StockLevels';
 import { useCallback, useEffect, useState } from 'react';
 
-import type { ResponseContent, ResponseProps } from '@salvon/request';
 import { useTranslation } from '@salvon/hooks/useTranslation';
-import { notifyError, notifySuccess, notifyWarning } from '@salvon/utils/notify';
+import type { ResponseContent, ResponseProps } from '@salvon/request';
+import {
+  notifyError,
+  notifySuccess,
+  notifyWarning,
+} from '@salvon/utils/notify';
 
 import type {
   DemandBoard,
   DriftBoard,
+  ExtraDeliveryBoard,
+  PickingBoard,
+  PickingRow,
   PurchaseOrderBoard,
   PurchaseOrderCard,
   SkippedSuggestion,
@@ -15,12 +29,9 @@ import type {
 } from '@app/api/WarehouseApi';
 import { WarehouseApi } from '@app/api/WarehouseApi';
 
-import { Demand } from './_components/Demand';
-import { PriceDrift } from './_components/PriceDrift';
-import { PurchaseOrders } from './_components/PurchaseOrders';
-import { StockLevels } from './_components/StockLevels';
+type Tab = 'levels' | 'demand' | 'picking' | 'orders' | 'extra' | 'drift';
 
-type Tab = 'levels' | 'demand' | 'orders' | 'drift';
+const week = PICKING_RANGES.find((range) => range.key === 'week');
 
 /**
  * Magazyn: cztery pytania, cztery zakładki.
@@ -47,6 +58,12 @@ export default function Page() {
   const [status, setStatus] = useState('open');
   const [selected, setSelected] = useState<number[]>([]);
   const [driftPicked, setDriftPicked] = useState<number[]>([]);
+  const [picking, setPicking] = useState<PickingBoard | null>(null);
+  const [pickFrom, setPickFrom] = useState(() => week?.from() ?? '');
+  const [pickTo, setPickTo] = useState(() => week?.to() ?? '');
+  const [extra, setExtra] = useState<ExtraDeliveryBoard | null>(null);
+  const [extraStatus, setExtraStatus] = useState('open');
+  const [extraFor, setExtraFor] = useState<PickingRow | null>(null);
 
   const loadLevels = useCallback(async () => {
     const { content } = await WarehouseApi.levels(query, shortages);
@@ -79,6 +96,28 @@ export default function Page() {
       return;
     }
 
+    if (tab === 'picking') {
+      const { content } = await WarehouseApi.picking(pickFrom, pickTo);
+      const data: PickingBoard | undefined = content?.data;
+
+      if (data) {
+        setPicking(data);
+      }
+
+      return;
+    }
+
+    if (tab === 'extra') {
+      const { content } = await WarehouseApi.extraDeliveries(extraStatus);
+      const data: ExtraDeliveryBoard | undefined = content?.data;
+
+      if (data) {
+        setExtra(data);
+      }
+
+      return;
+    }
+
     if (tab === 'drift') {
       const { content } = await WarehouseApi.priceDrift();
       const data: DriftBoard | undefined = content?.data;
@@ -96,7 +135,32 @@ export default function Page() {
     if (data) {
       setDemand(data);
     }
-  }, [tab, loadLevels, loadOrders]);
+  }, [tab, loadLevels, loadOrders, pickFrom, pickTo, extraStatus]);
+
+  /** Wspolna obsluga akcji kompletacji i dostaw: blad z serwera wprost. */
+  const done = async (
+    call: Promise<ResponseProps<ResponseContent>>,
+    success?: string,
+  ) => {
+    const { content, response } = await call;
+
+    if (!response.success) {
+      const errors = content?.data ?? content?.errors ?? {};
+      const first = Object.values(errors).find(
+        (value): value is string[] =>
+          Array.isArray(value) && typeof value[0] === 'string',
+      );
+      notifyError(first?.[0] ?? t('api.ise'));
+
+      return;
+    }
+
+    if (success) {
+      notifySuccess(success);
+    }
+
+    await load();
+  };
 
   useEffect(() => {
     void load();
@@ -142,7 +206,11 @@ export default function Page() {
   };
 
   const saveThresholds = async (row: StockRow, min: number, max: number) => {
-    const { response } = await WarehouseApi.thresholds(row.product_id, min, max);
+    const { response } = await WarehouseApi.thresholds(
+      row.product_id,
+      min,
+      max,
+    );
 
     if (!response.success) {
       notifyError(t('api.ise'));
@@ -176,7 +244,8 @@ export default function Page() {
    * dziesięć pozycji i ma prawo wiedzieć, że zamówienia objęły osiem.
    */
   const createOrders = async () => {
-    const { response, content } = await WarehouseApi.ordersFromSuggestions(selected);
+    const { response, content } =
+      await WarehouseApi.ordersFromSuggestions(selected);
 
     if (!response.success) {
       notifyError(t('api.ise'));
@@ -185,8 +254,7 @@ export default function Page() {
     }
 
     const data = content?.data as
-      | { orders: PurchaseOrderCard[]; skipped: SkippedSuggestion[] }
-      | undefined;
+      { orders: PurchaseOrderCard[]; skipped: SkippedSuggestion[] } | undefined;
 
     const skipped = data?.skipped ?? [];
 
@@ -218,7 +286,8 @@ export default function Page() {
    * w tej samej chwili, w której akcja się udała.
    */
   const recalculate = async () => {
-    const { response, content } = await WarehouseApi.recalculatePrices(driftPicked);
+    const { response, content } =
+      await WarehouseApi.recalculatePrices(driftPicked);
 
     if (!response.success) {
       notifyError(t('api.ise'));
@@ -227,8 +296,7 @@ export default function Page() {
     }
 
     const data = content?.data as
-      | { recalculated: number; skipped: number; drift: DriftBoard }
-      | undefined;
+      { recalculated: number; skipped: number; drift: DriftBoard } | undefined;
 
     if (data) {
       setDrift(data.drift);
@@ -252,9 +320,23 @@ export default function Page() {
       count: demand?.summary.missing ?? null,
     },
     {
+      key: 'picking',
+      label: t('page.warehouse.tab_picking'),
+      count:
+        picking === null
+          ? null
+          : picking.summary.orders - picking.summary.prepared,
+    },
+    {
       key: 'orders',
       label: t('page.warehouse.tab_orders'),
       count: null,
+    },
+    {
+      key: 'extra',
+      label: t('page.warehouse.tab_extra'),
+      count:
+        extra?.filters.find((filter) => filter.code === 'open')?.count ?? null,
     },
     {
       key: 'drift',
@@ -273,7 +355,10 @@ export default function Page() {
       </header>
 
       <div className="ge-segbar">
-        <nav className="ge-seg ge-seg--nav" aria-label={t('page.warehouse.title')}>
+        <nav
+          className="ge-seg ge-seg--nav"
+          aria-label={t('page.warehouse.title')}
+        >
           {tabs.map((item) => (
             <button
               key={item.key}
@@ -311,7 +396,9 @@ export default function Page() {
           }
           onClear={() => setSelected([])}
           onCreateOrders={() => void createOrders()}
-          onSaveThresholds={(row, min, max) => void saveThresholds(row, min, max)}
+          onSaveThresholds={(row, min, max) =>
+            void saveThresholds(row, min, max)
+          }
           onCount={(row, counted) => void count(row, counted)}
         />
       )}
@@ -330,15 +417,62 @@ export default function Page() {
           }}
           onOpen={(id) => void openCard(id)}
           onCreate={(supplierId, expectedAt, note) =>
-            void act(() => WarehouseApi.createOrder(supplierId, expectedAt, note))
+            void act(() =>
+              WarehouseApi.createOrder(supplierId, expectedAt, note),
+            )
           }
           onSend={(id) => void act(() => WarehouseApi.sendOrder(id))}
           onCancel={(id) => void act(() => WarehouseApi.cancelOrder(id))}
           onReceive={(id, lines, receivedAt, documentNo) =>
-            void act(() => WarehouseApi.receiveOrder(id, lines, receivedAt, documentNo))
+            void act(() =>
+              WarehouseApi.receiveOrder(id, lines, receivedAt, documentNo),
+            )
           }
         />
       )}
+
+      {tab === 'picking' && (
+        <Picking
+          board={picking}
+          t={t}
+          from={pickFrom}
+          to={pickTo}
+          onRange={(from, to) => {
+            setPickFrom(from);
+            setPickTo(to);
+          }}
+          onPrepared={(row, prepared) =>
+            void done(WarehouseApi.markPrepared(row.id, prepared))
+          }
+          onExtra={setExtraFor}
+        />
+      )}
+
+      {tab === 'extra' && (
+        <ExtraDeliveries
+          board={extra}
+          t={t}
+          status={extraStatus}
+          onStatus={setExtraStatus}
+          onReceive={(id, receivedAt) =>
+            void done(
+              WarehouseApi.receiveExtraDelivery(id, receivedAt),
+              t('page.warehouse.extra.received'),
+            )
+          }
+          onCancel={(id) => void done(WarehouseApi.cancelExtraDelivery(id))}
+        />
+      )}
+
+      <ExtraDeliveryDrawer
+        order={extraFor}
+        t={t}
+        onClose={() => setExtraFor(null)}
+        onSaved={() => {
+          setExtraFor(null);
+          void load();
+        }}
+      />
 
       {tab === 'drift' && (
         <PriceDrift

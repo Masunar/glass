@@ -942,3 +942,74 @@ button.ge-mark:disabled { cursor: default; }
 }
 button.ge-mark.is-acknowledged:hover { background: var(--ge-neutral-200); }
 .ge-mark.is-busy { opacity: 0.5; }
+
+/* ---------- kompletacja okuc i dostawy dodatkowe ---------- */
+
+.ge-stock--extra {
+  --cols: 70px minmax(150px, 1fr) 140px minmax(200px, 1.4fr) 130px 100px 120px 290px;
+}
+.ge-pick__range { display: flex; align-items: center; gap: 8px; }
+.ge-pick__range .ge-uf__input { width: 150px; }
+.ge-pick__print,
+.ge-po__print {
+  font-size: 13px;
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  text-decoration: none;
+  padding: 4px 2px;
+  white-space: nowrap;
+}
+.ge-pick__print:hover,
+.ge-po__print:hover { text-decoration: underline; }
+
+/* Dzien to naglowek, bo magazynier mysli „co na jutro". */
+.ge-pickgroup { padding: 0 24px 8px; }
+.ge-pickgroup__head {
+  font-family: var(--ge-font-heading);
+  font-size: 16px;
+  font-weight: 400;
+  margin: 18px 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ge-neutral-900);
+}
+.ge-pickgroup__head--late { color: var(--m-alert); }
+
+.ge-pickorder { border-bottom: 1px solid var(--ge-divider); padding: 10px 0; }
+/* Przygotowane zostaje na liscie, ale schodzi z pierwszego planu. */
+.ge-pickorder.is-done { opacity: 0.62; }
+.ge-pickorder__head {
+  display: grid;
+  grid-template-columns: 80px minmax(160px, 1fr) 160px 240px 260px;
+  gap: 12px;
+  align-items: center;
+  font-size: 14px;
+}
+.ge-pickorder__state { font-size: 12.5px; }
+.ge-pickorder__lines { padding: 4px 0 0 92px; }
+.ge-pickline {
+  display: grid;
+  grid-template-columns: 110px minmax(180px, 1fr) 70px 200px;
+  gap: 12px;
+  font-size: 13px;
+  padding-block: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.ge-pickline .r { text-align: right; }
+.ge-pickline--extra { color: var(--ge-neutral-800); }
+.ge-stock__actions button.ge-act--go {
+  background: var(--ge-mod);
+  color: var(--ge-surface);
+  padding: 6px 12px;
+}
+.ge-stock__actions button.ge-act--go:hover {
+  background: color-mix(in oklab, var(--ge-mod) 85%, black);
+  color: var(--ge-surface);
+}
+.ge-stock__actions .ge-uf__input { width: 140px; }
+
+.ge-extra__line {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding-block: 4px;
+}

@@ -13,6 +13,7 @@ use App\Http\Controllers\AccessController;
 use App\Http\Controllers\AlertController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WarehousePickingController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\TemperingController;
 use App\Http\Controllers\SearchController;
@@ -88,6 +89,19 @@ Route::prefix('/dictionaries')->name('dictionaries_')->group(static function ():
 
 Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void {
     Route::get('/levels', [WarehouseController::class, 'levels'])->name('levels');
+
+    // Kompletacja i dostawy dodatkowe (uwagi klienta 25.09, 3c/3d).
+    Route::get('/picking', [WarehousePickingController::class, 'picking'])->name('picking');
+    Route::get('/picking/pdf', [WarehousePickingController::class, 'pickingPdf'])->name('picking_pdf');
+    Route::post('/picking/{order}/prepared', [WarehousePickingController::class, 'prepare'])->name('picking_prepare');
+    Route::delete('/picking/{order}/prepared', [WarehousePickingController::class, 'unprepare'])
+        ->name('picking_unprepare');
+    Route::get('/extra', [WarehousePickingController::class, 'extraIndex'])->name('extra_index');
+    Route::post('/extra', [WarehousePickingController::class, 'extraStore'])->name('extra_store');
+    Route::post('/extra/{delivery}/receive', [WarehousePickingController::class, 'extraReceive'])
+        ->name('extra_receive');
+    Route::post('/extra/{delivery}/cancel', [WarehousePickingController::class, 'extraCancel'])
+        ->name('extra_cancel');
     Route::get('/demand', [WarehouseController::class, 'demand'])->name('demand');
     Route::put('/{product}/thresholds', [WarehouseController::class, 'thresholds'])->name('thresholds');
     Route::post('/{product}/count', [WarehouseController::class, 'count'])->name('count');
@@ -105,6 +119,7 @@ Route::prefix('/warehouse')->name('warehouse_')->group(static function (): void 
         Route::post('/from-suggestions', [PurchaseOrderController::class, 'fromSuggestions'])
             ->name('from_suggestions');
         Route::get('/{order}', [PurchaseOrderController::class, 'show'])->name('show');
+        Route::get('/{order}/pdf', [PurchaseOrderController::class, 'pdf'])->name('pdf');
         Route::post('/{order}/items', [PurchaseOrderController::class, 'addItem'])->name('add_item');
         Route::delete('/{order}/items/{item}', [PurchaseOrderController::class, 'removeItem'])
             ->name('remove_item');
