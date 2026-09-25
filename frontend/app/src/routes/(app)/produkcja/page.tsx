@@ -12,6 +12,7 @@ import type {
   ProductionRow,
 } from '@app/api/ProductionApi';
 import { ProductionApi } from '@app/api/ProductionApi';
+import RichNote from '@app/components/RichNote';
 import { Pager } from '@app/components/list';
 import { Permission, SubPermission } from '@app/config/permission';
 import { useHasPermission } from '@app/hook/use-permissions';
@@ -411,7 +412,11 @@ export default function Page() {
                     {t('page.production.comment')}
                   </div>
                   <div className="ge-section__body">
-                    {current.comment && <div>{current.comment}</div>}
+                    {current.comment && (
+                      <div className="ge-rich">
+                        <RichNote text={current.comment} />
+                      </div>
+                    )}
                     {current.list_comment && (
                       <div className="ge-quiet">{current.list_comment}</div>
                     )}

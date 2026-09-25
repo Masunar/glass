@@ -16,6 +16,7 @@ import {
 } from '@app/api/OrdersApi';
 import { PreferencesApi } from '@app/api/PreferencesApi';
 import HasPermission from '@app/components/HasPermission';
+import { NoteLine } from '@app/components/RichNote';
 import AlertChips from '@app/components/alerts/AlertChips';
 import {
   Band,
@@ -525,9 +526,13 @@ export default function Page() {
 
                   <div style={{ minWidth: 0 }}>
                     <div className="ge-name">{row.contractor ?? '—'}</div>
-                    <div className="ge-note">
-                      {row.note ?? row.contractor_phone ?? ''}
-                    </div>
+                    {row.note !== null ? (
+                      <NoteLine text={row.note} />
+                    ) : (
+                      <div className="ge-note">
+                        {row.contractor_phone ?? ''}
+                      </div>
+                    )}
                     {/* Powod wstrzymania i otwarta reklamacja jada teraz
                         znacznikiem z reguly, razem z reszta alertow —
                         wczesniej byly recznie wyliczonym wyjatkiem obok
