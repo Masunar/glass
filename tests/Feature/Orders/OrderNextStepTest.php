@@ -193,13 +193,13 @@ class OrderNextStepTest extends TestCase
         $this->assertFalse($step->available);
         $this->assertFalse($step->unknown);
         $this->assertSame(
-            'Brak zaliczki, a kontrahent nie mieści się w limicie kredytowym.',
+            'Kontrahent przekracza limit kupiecki — przekazanie wymaga zgody administratora.',
             $step->blockedBy,
         );
     }
 
     #[Test]
-    public function sama_zaliczka_wystarczy_zeby_ruszyc_produkcje(): void
+    public function zaliczka_nie_omija_limitu(): void
     {
         $order = $this->withDrawings($this->withList($this->order('ZLECENIE', [
             'invoice_type_id' => $this->invoiceType()->id,
@@ -214,8 +214,8 @@ class OrderNextStepTest extends TestCase
             'position' => 1,
         ]);
 
-        // Klient, ktory cos wplacil, potwierdzil zamowienie czynem —
-        // limit kupiecki przestaje byc pytaniem.
+        // Tysiac zlotych wplaty przepuszczalo kontrahenta miliony ponad
+        // limitem. Od 25.09 limit blokuje zawsze (decyzja Marcina).
         Payment::query()->create([
             'order_id' => $order->id,
             'cash_register_id' => $register->id,
@@ -230,6 +230,37 @@ class OrderNextStepTest extends TestCase
             $order->fresh(['lists.items.processes', 'payments']) ?? $order,
             'PRODUKCJA',
         );
+
+        $this->assertNotNull($step);
+        $this->assertFalse($step->available);
+        $this->assertStringContainsString('limit kupiecki', (string) $step->blockedBy);
+    }
+
+    #[Test]
+    public function w_limicie_produkcja_rusza_bez_zaliczki(): void
+    {
+        $order = $this->withDrawings($this->withList($this->order('ZLECENIE', [
+            'invoice_type_id' => $this->invoiceType()->id,
+        ])));
+
+        $order->contractor?->update(['credit_limit' => '100000.00']);
+
+        $step = $this->step($order->fresh(['lists.items.processes', 'contractor']) ?? $order, 'PRODUKCJA');
+
+        $this->assertNotNull($step);
+        $this->assertTrue($step->available, (string) $step->blockedBy);
+    }
+
+    #[Test]
+    public function zgoda_administratora_przepuszcza_ponad_limitem(): void
+    {
+        $order = $this->withDrawings($this->withList($this->order('ZLECENIE', [
+            'invoice_type_id' => $this->invoiceType()->id,
+            'credit_override_at' => Carbon::now(),
+            'credit_override_reason' => 'stały klient, płaci po montażu',
+        ])));
+
+        $step = $this->step($order, 'PRODUKCJA');
 
         $this->assertNotNull($step);
         $this->assertTrue($step->available, (string) $step->blockedBy);

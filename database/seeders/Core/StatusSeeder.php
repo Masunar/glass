@@ -104,7 +104,12 @@ class StatusSeeder extends Seeder
             ['ZLECENIE', 'PRODUKCJA', 'Przekaż do produkcji', [
                 ['rule' => 'all_drawings_added', 'message' => 'Nie zaznaczono, że wszystkie rysunki są dodane.'],
                 ['rule' => 'no_list_on_hold', 'message' => 'Co najmniej jedna lista jest wstrzymana.'],
-                ['rule' => 'prepayment_or_credit_limit', 'message' => 'Brak zaliczki, a kontrahent nie mieści się w limicie kredytowym.'],
+                // Ponad limitem blokuje zawsze; administrator moze dac zgode
+                // na zleceniu (decyzja Marcina, 25.09).
+                [
+                    'rule' => 'credit_limit',
+                    'message' => 'Kontrahent przekracza limit kupiecki — przekazanie wymaga zgody administratora.',
+                ],
                 ['rule' => 'fittings_in_stock', 'message' => 'Brakuje okuć na stanie.'],
             ]],
             ['PRODUKCJA', 'GOTOWE', 'Oznacz jako gotowe', [

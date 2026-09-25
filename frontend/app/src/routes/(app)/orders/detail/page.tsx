@@ -1,5 +1,7 @@
+import CreditOverrideDrawer from '../_components/CreditOverrideDrawer';
 import DeadlineDrawer from '../_components/DeadlineDrawer';
 import InvestmentDrawer from '../_components/InvestmentDrawer';
+import InvoiceDrawer from '../_components/InvoiceDrawer';
 import OrderTabs from '../_components/OrderTabs';
 import OwnerDrawer from '../_components/OwnerDrawer';
 import VatLines from '../_components/VatLines';
@@ -45,6 +47,8 @@ export default function Page() {
   const [investmentOpen, setInvestmentOpen] = useState(false);
   const [ownerOpen, setOwnerOpen] = useState(false);
   const [deadlineOpen, setDeadlineOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
   // Termin i komentarze poprawia ten, kto moze zmieniac zlecenie —
   // ta sama regula, ktora pilnuje serwer.
   const canEdit = useHasPermission()(Permission.ORDERS, SubPermission.UPDATE);
@@ -61,6 +65,19 @@ export default function Page() {
   useEffect(() => {
     void load();
   }, [id]);
+
+  /** Cofnięcie zgody — przejście do produkcji znów pilnuje limitu. */
+  const revokeOverride = async () => {
+    const { response } = await OrdersApi.revokeCreditOverride(id);
+
+    if (!response.success) {
+      notifyError(t('api.ise'));
+
+      return;
+    }
+
+    await load();
+  };
 
   const order = card?.order;
 
@@ -373,6 +390,38 @@ export default function Page() {
                   <span>{t('page.orders.card.credit_this_order')}</span>
                   <span>{money(card.credit.order_value)}</span>
                 </span>
+                {/* Zgoda mimo limitu stoi na karcie wprost — kto, kiedy,
+                    dlaczego. Schowana w dzienniku bylaby zgoda, o ktorej
+                    nikt nie wie. */}
+                {card.credit.override && (
+                  <span className="ge-from__note">
+                    {t('page.orders.credit_override.granted', {
+                      who: card.credit.override.by ?? '—',
+                      when: card.credit.override.at,
+                      reason: card.credit.override.reason ?? '—',
+                    })}
+                  </span>
+                )}
+                {card.credit.can_override &&
+                  card.credit.exceeds_by !== null &&
+                  card.credit.override === null && (
+                    <button
+                      type="button"
+                      className="ge-from__link"
+                      onClick={() => setOverrideOpen(true)}
+                    >
+                      {t('page.orders.credit_override.open')}
+                    </button>
+                  )}
+                {card.credit.can_override && card.credit.override && (
+                  <button
+                    type="button"
+                    className="ge-from__link"
+                    onClick={() => void revokeOverride()}
+                  >
+                    {t('page.orders.credit_override.revoke')}
+                  </button>
+                )}
               </span>
             }
           />
@@ -491,6 +540,14 @@ export default function Page() {
               <div className="ge-quiet">
                 {order.invoice.buyer_name ?? t('page.orders.card.buyer_client')}
               </div>
+              {order.invoice.buyer_name && order.invoice.buyer_tax_id && (
+                <div className="ge-quiet">NIP {order.invoice.buyer_tax_id}</div>
+              )}
+              {canEdit && (
+                <Button variant="text" onClick={() => setInvoiceOpen(true)}>
+                  {t('page.orders.invoice.edit')}
+                </Button>
+              )}
               {order.invoice.accounting_note && (
                 <div className="ge-quiet">{order.invoice.accounting_note}</div>
               )}
@@ -711,6 +768,31 @@ export default function Page() {
         onClose={() => setOwnerOpen(false)}
         onSaved={() => {
           setOwnerOpen(false);
+          void load();
+        }}
+      />
+
+      <InvoiceDrawer
+        orderId={id}
+        invoice={order.invoice}
+        types={card.invoice_types}
+        open={invoiceOpen}
+        onClose={() => setInvoiceOpen(false)}
+        onSaved={() => {
+          setInvoiceOpen(false);
+          void load();
+        }}
+      />
+
+      <CreditOverrideDrawer
+        orderId={id}
+        exceedsBy={
+          card.credit?.exceeds_by ? money(card.credit.exceeds_by) : null
+        }
+        open={overrideOpen}
+        onClose={() => setOverrideOpen(false)}
+        onSaved={() => {
+          setOverrideOpen(false);
           void load();
         }}
       />

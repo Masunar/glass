@@ -1125,6 +1125,32 @@
       "reason_hint": "np. brak szkła u dostawcy",
       "note": "Przesunięty termin wygrywa na liście i w pasmach pilności, a termin klienta zostaje obok do porównania. Każda zmiana trafia do dziennika.",
       "change": "Zmień termin →"
+    },
+    "invoice": {
+      "kicker": "Faktura",
+      "title": "Dane do faktury",
+      "edit": "Zmień dane do faktury",
+      "type": "Typ faktury",
+      "type_pick": "— wybierz —",
+      "type_note": "Typ wyznacza stawkę VAT. Bez niego nie znamy kwoty brutto, więc nie da się sprawdzić limitu kupieckiego ani policzyć, ile zostało do zapłaty.",
+      "buyer": "Nabywca",
+      "buyer_same": "Dane jak kontrahent",
+      "buyer_name": "Nazwa nabywcy",
+      "buyer_tax_id": "NIP nabywcy",
+      "buyer_address": "Adres nabywcy",
+      "accounting_note": "Uwaga dla księgowości"
+    },
+    "credit_override": {
+      "kicker": "Limit kupiecki",
+      "title": "Zgoda mimo limitu",
+      "why": "Dlaczego",
+      "reason": "Powód zgody",
+      "reason_hint": "np. stały klient, płaci po montażu",
+      "note": "Kontrahent jest ponad limitem o {{amount}} zł. Zgoda odblokuje przekazanie tego jednego zlecenia na produkcję — na karcie i w dzienniku zostanie zapisane, kto, kiedy i dlaczego.",
+      "confirm": "Zezwól mimo limitu",
+      "open": "Zezwól mimo limitu →",
+      "revoke": "Cofnij zgodę",
+      "granted": "zgoda mimo limitu: {{who}}, {{when}} — {{reason}}"
     }
   },
   "production": {

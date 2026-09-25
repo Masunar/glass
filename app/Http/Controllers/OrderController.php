@@ -24,6 +24,7 @@ use App\Services\Orders\OrderBoardService;
 use App\Services\Orders\OrderOwnerService;
 use App\Services\UserPreferences;
 use App\Services\Orders\OrderDetailsService;
+use App\Services\Orders\OrderCreditOverride;
 use App\Models\User;
 use App\Services\Orders\PaymentService;
 
@@ -47,6 +48,7 @@ class OrderController extends ApiController
         private readonly OrderOwnerService $ownerService,
         private readonly UserPreferences $preferences,
         private readonly OrderDetailsService $detailsService,
+        private readonly OrderCreditOverride $creditOverride,
     ) {
         $this->protect(
             ['board', 'alerts', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -63,7 +65,8 @@ class OrderController extends ApiController
                 'transition', 'savePane', 'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
                 'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
-                'saveInvestment', 'changeOwner', 'saveDeadline', 'saveComment',
+                'saveInvestment', 'changeOwner', 'saveDeadline', 'saveComment', 'saveInvoice',
+                'grantCreditOverride', 'revokeCreditOverride',
             ],
             Permission::ORDERS->value,
             SubPermission::UPDATE->value,
@@ -387,6 +390,50 @@ class OrderController extends ApiController
 
             return $this->updatedResponse();
         });
+    }
+
+    /** Typ faktury i nabywca. */
+    public function saveInvoice(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->only([
+                'invoice_type_id', 'buyer_same', 'buyer_name', 'buyer_tax_id', 'buyer_address', 'accounting_note',
+            ]);
+
+            return $this->resultResponse($this->detailsService->invoice($order, $input));
+        });
+    }
+
+    /**
+     * Zgoda na produkcję mimo limitu kupieckiego. Trasa chodzi na
+     * `orders.update`, a to, że zgodę daje wyłącznie administrator,
+     * sprawdza usługa — tak jak przy odhaczaniu alertów.
+     */
+    public function grantCreditOverride(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(fn(): JsonResponse => $this->resultResponse(
+            $this->creditOverride->grant($order, $request->input('reason')),
+        ));
+    }
+
+    public function revokeCreditOverride(int $order): JsonResponse
+    {
+        return $this->secure(fn(): JsonResponse => $this->resultResponse(
+            $this->creditOverride->revoke($order),
+        ));
+    }
+
+    /**
+     * @param array{errors: array<string, list<string>>} $result
+     */
+    private function resultResponse(array $result): JsonResponse
+    {
+        if ($result['errors'] !== []) {
+            return $this->validationResponse($result['errors']);
+        }
+
+        return $this->updatedResponse();
     }
 
     /** Jeden z czterech komentarzy zlecenia. */

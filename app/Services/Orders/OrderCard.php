@@ -6,6 +6,9 @@ namespace App\Services\Orders;
 
 use Carbon\Carbon;
 use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use App\Models\InvoiceType;
 use App\Models\Process;
 use App\Enum\AddressKind;
 use App\Models\OrderItem;
@@ -63,6 +66,7 @@ final readonly class OrderCard
                 'creator',
                 'owner',
                 'invoiceType',
+                'creditOverrider',
                 'discounts',
                 'lists.items.pane',
                 'lists.items.processes.process',
@@ -83,6 +87,9 @@ final readonly class OrderCard
             'owners' => $this->owners->candidates(),
             'payment' => $this->payment($order, $totals->gross),
             'credit' => $this->credit($order, (float) $totals->net, $totals->gross),
+            // Typy faktury do szuflady „dane do faktury" — jada z karta,
+            // bo wybor typu to jedna decyzja, a nie osobny ekran.
+            'invoice_types' => $this->invoiceTypes(),
             // `null` znaczy, ze zlecenie nie bylo jeszcze ofertowane —
             // inaczej niz „zero ofert", ktore trzeba przeczytac, zeby
             // dowiedziec sie tego samego.
@@ -144,6 +151,7 @@ final readonly class OrderCard
                 'contact' => $order->delivery_contact,
             ],
             'invoice' => [
+                'type_id' => $order->invoice_type_id === null ? null : (int) $order->invoice_type_id,
                 'type' => $order->invoiceType?->name,
                 'vat_rate' => $order->invoiceType?->vat_rate,
                 'buyer_name' => $order->buyer_name,
@@ -232,6 +240,7 @@ final readonly class OrderCard
         // a przelicznik dalby kwote, ktorej nie ma na zadnej fakturze.
         $value = $gross === null ? $net : (float) $gross;
         $outstanding = (float) $this->balance->outstanding($contractor);
+        $user = Auth::user();
 
         return [
             'limit' => $this->amount($limit),
@@ -240,7 +249,42 @@ final readonly class OrderCard
             'outstanding' => $this->amount($outstanding),
             'exceeds_by' => $outstanding > $limit ? $this->amount($outstanding - $limit) : null,
             'is_gross' => $gross !== null,
+            // Zgoda administratora na produkcje mimo limitu — na karcie
+            // wprost, kto i dlaczego, a nie ukryta w dzienniku.
+            'override' => $order->credit_override_at === null ? null : [
+                'by' => $order->creditOverrider === null
+                    ? null
+                    : OrderOwnerService::name($order->creditOverrider),
+                'at' => $order->credit_override_at->format('d.m.Y H:i'),
+                'reason' => $order->credit_override_reason,
+            ],
+            'can_override' => OrderCreditOverride::allowed($user instanceof User ? $user : null),
         ];
+    }
+
+    /**
+     * @return list<array{id: int, name: string, vat_rate: int}>
+     */
+    private function invoiceTypes(): array
+    {
+        /** @var iterable<InvoiceType> $types */
+        $types = InvoiceType::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+
+        $rows = [];
+
+        foreach ($types as $type) {
+            $rows[] = [
+                'id' => (int) $type->getKey(),
+                'name' => $type->name,
+                'vat_rate' => $type->vat_rate,
+            ];
+        }
+
+        return $rows;
     }
 
     /**
