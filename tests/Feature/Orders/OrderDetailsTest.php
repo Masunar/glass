@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\Orders;
 
 use Tests\TestCase;
+use App\Models\Role;
+use App\Models\User;
 use App\Models\Order;
+use App\Models\InvoiceType;
 use App\Models\Status;
 use App\Models\AuditEntry;
 use App\Enum\StatusDomain;
@@ -14,6 +17,8 @@ use App\Enum\ContractorType;
 use App\Enum\DeliveryMethod;
 use PHPUnit\Framework\Attributes\Test;
 use App\Services\Orders\OrderDetailsService;
+use App\Services\Orders\OrderCreditOverride;
+use Database\Seeders\Core\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -148,5 +153,103 @@ class OrderDetailsTest extends TestCase
         $order = $this->order();
 
         $this->assertArrayHasKey('field', $this->service->comment((int) $order->getKey(), 'accounting', 'x')['errors']);
+    }
+
+    private function person(bool $admin): User
+    {
+        /** @var User $user */
+        $user = User::query()->create([
+            'first_name' => 'Anna',
+            'last_name' => $admin ? 'Admin' : 'Handlowiec',
+            'email' => 'zgoda' . random_int(1000, 99999) . '@example.test',
+            'password' => 'secret-not-used',
+            'is_active' => true,
+        ]);
+
+        if ($admin) {
+            /** @var Role $role */
+            $role = Role::query()->where('name', RoleSeeder::ADMINISTRATOR)->firstOrFail();
+            $user->assignRole($role);
+        }
+
+        return $user->fresh() ?? $user;
+    }
+
+    #[Test]
+    public function typ_faktury_ustawia_sie_z_karty_a_nabywca_jak_kontrahent_zostaje_pusty(): void
+    {
+        $order = $this->order();
+
+        /** @var InvoiceType $type */
+        $type = InvoiceType::query()->create(['name' => 'Typ karty ' . random_int(1000, 9999), 'vat_rate' => 23]);
+
+        $result = $this->service->invoice((int) $order->getKey(), [
+            'invoice_type_id' => $type->id,
+            'buyer_same' => true,
+            'buyer_name' => 'zostawione z poprzedniego wpisu',
+        ]);
+
+        $fresh = $this->fresh($order);
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame((int) $type->id, (int) $fresh->invoice_type_id);
+        // „Dane jak kontrahent" to brak wlasnego nabywcy, a nie kopia
+        // danych kontrahenta, ktora rozjedzie sie z kartoteka.
+        $this->assertNull($fresh->buyer_name);
+        $this->assertSame(1, AuditEntry::query()->where('event', 'invoice_changed')->count());
+    }
+
+    #[Test]
+    public function inny_nabywca_wymaga_nazwy(): void
+    {
+        $order = $this->order();
+
+        /** @var InvoiceType $type */
+        $type = InvoiceType::query()->create(['name' => 'Typ nabywcy ' . random_int(1000, 9999), 'vat_rate' => 23]);
+
+        $result = $this->service->invoice((int) $order->getKey(), [
+            'invoice_type_id' => $type->id,
+            'buyer_same' => false,
+        ]);
+
+        $this->assertArrayHasKey('buyer_name', $result['errors']);
+    }
+
+    #[Test]
+    public function zgode_mimo_limitu_daje_tylko_administrator(): void
+    {
+        $order = $this->order();
+
+        $this->actingAs($this->person(admin: false));
+        $refused = (new OrderCreditOverride())->grant((int) $order->getKey(), 'stały klient');
+
+        $this->assertArrayHasKey('reason', $refused['errors']);
+        $this->assertNull($this->fresh($order)->credit_override_at);
+    }
+
+    #[Test]
+    public function zgoda_wymaga_powodu_i_zostawia_slad(): void
+    {
+        $order = $this->order();
+        $admin = $this->person(admin: true);
+        $this->actingAs($admin);
+
+        $service = new OrderCreditOverride();
+
+        $this->assertArrayHasKey('reason', $service->grant((int) $order->getKey(), '  ')['errors']);
+        $this->assertSame([], $service->grant((int) $order->getKey(), 'płaci po montażu')['errors']);
+
+        $fresh = $this->fresh($order);
+
+        // Kto i dlaczego — na zleceniu i w dzienniku, nie tylko w pamieci
+        // osoby, ktora kliknela.
+        $this->assertSame((int) $admin->getKey(), $fresh->credit_override_by);
+        $this->assertSame('płaci po montażu', $fresh->credit_override_reason);
+        $this->assertSame(1, AuditEntry::query()->where('event', 'credit_override_granted')->count());
+
+        $service->revoke((int) $order->getKey());
+
+        $this->assertNull($this->fresh($order)->credit_override_at);
+        $this->assertSame(1, AuditEntry::query()->where('event', 'credit_override_revoked')->count());
     }
 }

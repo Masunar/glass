@@ -202,6 +202,7 @@ export type OrderCard = {
       contact: string | null;
     };
     invoice: {
+      type_id: number | null;
       type: string | null;
       vat_rate: number | null;
       buyer_name: string | null;
@@ -239,7 +240,13 @@ export type OrderCard = {
     outstanding: string;
     exceeds_by: string | null;
     is_gross: boolean;
+    /** Zgoda administratora na produkcję mimo limitu — kto, kiedy, dlaczego. */
+    override: { by: string | null; at: string; reason: string | null } | null;
+    /** Czy zalogowany może dać albo cofnąć zgodę (rola nadrzędna). */
+    can_override: boolean;
   } | null;
+  /** Typy faktury do szuflady „dane do faktury". */
+  invoice_types: { id: number; name: string; vat_rate: number }[];
   /** `null` = zlecenie nie było jeszcze ofertowane, a nie „zero ofert". */
   offers: {
     count: number;
@@ -805,6 +812,33 @@ export class OrdersApi extends ApiRequest {
     },
   ): Promise<ResponseProps<ResponseContent>> {
     return await this.put(`/${id}/deadline`, data);
+  }
+
+  public static async saveInvoice(
+    id: number,
+    data: {
+      invoice_type_id: number | string;
+      buyer_same: boolean;
+      buyer_name: string;
+      buyer_tax_id: string;
+      buyer_address: string;
+      accounting_note: string;
+    },
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.put(`/${id}/invoice`, data);
+  }
+
+  public static async grantCreditOverride(
+    id: number,
+    reason: string,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.post(`/${id}/credit-override`, { reason });
+  }
+
+  public static async revokeCreditOverride(
+    id: number,
+  ): Promise<ResponseProps<ResponseContent>> {
+    return await this.delete(`/${id}/credit-override`);
   }
 
   /** Jeden z czterech komentarzy — karta zapisuje pole, które poprawiono. */

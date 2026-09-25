@@ -168,6 +168,10 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     Route::get('/{order}', [OrderController::class, 'card'])->name('card');
     Route::post('/{order}/transition', [OrderController::class, 'transition'])->name('transition');
     Route::put('/{order}/deadline', [OrderController::class, 'saveDeadline'])->name('deadline');
+    Route::put('/{order}/invoice', [OrderController::class, 'saveInvoice'])->name('invoice');
+    Route::post('/{order}/credit-override', [OrderController::class, 'grantCreditOverride'])->name('credit_override');
+    Route::delete('/{order}/credit-override', [OrderController::class, 'revokeCreditOverride'])
+        ->name('credit_override_revoke');
     Route::put('/{order}/comments/{field}', [OrderController::class, 'saveComment'])
         ->whereIn('field', ['short', 'production', 'installer', 'offer'])
         ->name('comment');

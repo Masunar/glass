@@ -204,9 +204,13 @@ final readonly class OrderNextStep
             // Ta sama regula zapala alert „brak rysunkow".
             'all_drawings_added' => $order->drawings_complete_at !== null
                 || !$this->drawings->requires($order),
-            // Zaliczka albo limit kupiecki. Sama zaliczka wystarczy —
-            // klient, ktory cos wplacil, potwierdzil zamowienie czynem.
-            'prepayment_or_credit_limit' => $this->prepaidOrWithinLimit($order),
+            // Limit kupiecki, bez wyjatku dla zaliczki: tysiac zlotych
+            // wplaty przepuszczal kontrahenta miliony ponad limitem.
+            // Omija go wylacznie zgoda administratora zapisana na
+            // zleceniu (decyzja Marcina, 25.09).
+            'credit_limit' => $order->credit_override_at !== null
+                ? true
+                : $this->balance->withinLimit($order),
             'balance_is_zero' => $this->balanceIsZero($order),
             // Zlecenie bez ani jednego zadania nie ma czego czekać:
             // pozycja usługowa bez procesów technologicznych nie
@@ -235,17 +239,12 @@ final readonly class OrderNextStep
             'rejection_reason_set' => 'Wymaga pola „powód nieprzyjęcia oferty" — jeszcze go nie ma.',
             // Limit kupiecki i saldo sa kwotami brutto, a brutto bez
             // stawki VAT nie istnieje. To brak danej, nie brak modulu.
-            'prepayment_or_credit_limit', 'balance_is_zero' =>
+            'credit_limit', 'balance_is_zero' =>
                 'Bez typu faktury nie znamy kwoty brutto — limit i saldo są kwotami brutto.',
             default => sprintf('Nieznany warunek „%s" — nie da się go rozstrzygnąć.', $rule),
         };
     }
 
-    /**
-     * Zaliczka albo limit. „Nie wiadomo" tylko wtedy, gdy nie znamy
-     * kwoty brutto — zlecenie bez typu faktury nie ma jak zmierzyć się
-     * z limitem, który jest kwotą brutto.
-     */
     /**
      * Lista zleceń sprawdza ten warunek dla każdego wiersza, więc musi
      * móc wypełnić pamięć sald jednym zapytaniem zamiast dwustu.
@@ -253,21 +252,6 @@ final readonly class OrderNextStep
     public function balance(): ContractorBalance
     {
         return $this->balance;
-    }
-
-    private function prepaidOrWithinLimit(Order $order): ?bool
-    {
-        $paid = 0.0;
-
-        foreach ($order->payments as $payment) {
-            $paid += (float) $payment->amount_base;
-        }
-
-        if ($paid > 0.0) {
-            return true;
-        }
-
-        return $this->balance->withinLimit($order);
     }
 
     /**

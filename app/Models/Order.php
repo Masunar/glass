@@ -47,6 +47,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $cancellation_reason
  * @property int|null $created_by
  * @property int|null $owner_id
+ * @property int|null $credit_override_by
+ * @property Carbon|null $credit_override_at
+ * @property string|null $credit_override_reason
  * @property string|null $value_net
  * @property string|null $value_gross
  * @property bool $value_stale
@@ -59,6 +62,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Location|null $pickupLocation
  * @property-read User|null $creator
  * @property-read User|null $owner
+ * @property-read User|null $creditOverrider
  * @property-read InvoiceType|null $invoiceType
  * @property-read Collection<int, OrderDrawing> $drawings
  * @property-read Collection<int, Payment> $payments
@@ -96,6 +100,7 @@ class Order extends Dateable
         'shift_reason', 'shift_approved_by', 'cancellation_reason',
         'created_by', 'owner_id', 'measurement_id',
         'drawings_complete_by', 'drawings_complete_at',
+        'credit_override_by', 'credit_override_at', 'credit_override_reason',
     ];
 
     protected function casts(): array
@@ -112,6 +117,7 @@ class Order extends Dateable
             'production_deadline' => 'date',
             'shifted_deadline' => 'date',
             'drawings_complete_at' => 'datetime',
+            'credit_override_at' => 'datetime',
             'value_net' => 'decimal:2',
             'value_gross' => 'decimal:2',
             'value_stale' => 'boolean',
@@ -232,6 +238,17 @@ class Order extends Dateable
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id', 'id');
+    }
+
+    /**
+     * Kto zgodził się przekazać zlecenie na produkcję mimo przekroczonego
+     * limitu kupieckiego.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creditOverrider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'credit_override_by', 'id');
     }
 
 }

@@ -6,6 +6,7 @@ namespace App\Services\Orders;
 
 use Carbon\Carbon;
 use App\Models\Order;
+use App\Models\InvoiceType;
 use App\Support\Normalize;
 use App\Services\AuditTrail;
 use Illuminate\Support\Facades\Validator;
@@ -148,6 +149,88 @@ final readonly class OrderDetailsService
             [['field' => $definition['label'], 'before' => $before, 'after' => $value]],
             'comment_changed',
         );
+
+        return ['errors' => []];
+    }
+
+    /**
+     * Typ faktury (stawka VAT) i nabywca.
+     *
+     * „Dane jak kontrahent" to brak własnego nabywcy — pola zostają puste
+     * i faktura bierze dane z kartoteki. Wpisany nabywca to wyjątek dla
+     * tego jednego zlecenia (np. faktura na inną firmę z grupy).
+     *
+     * @param array<string, mixed> $input
+     * @return array{errors: array<string, list<string>>}
+     */
+    public function invoice(int $orderId, array $input): array
+    {
+        /** @var Order $order */
+        $order = Order::query()->with('invoiceType')->findOrFail($orderId);
+
+        $same = filter_var($input['buyer_same'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+        $validator = Validator::make($input, [
+            'invoice_type_id' => ['required', 'integer', 'exists:invoice_types,id'],
+            'buyer_name' => $same ? ['nullable'] : ['required', 'string', 'max:200'],
+            'buyer_tax_id' => ['nullable', 'string', 'max:20'],
+            'buyer_address' => ['nullable', 'string', 'max:200'],
+            'accounting_note' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'invoice_type_id.required' => 'Wybierz typ faktury — bez niego nie znamy stawki VAT.',
+            'invoice_type_id.exists' => 'Takiego typu faktury nie ma.',
+            'buyer_name.required' => 'Podaj nabywcę albo zaznacz „dane jak kontrahent".',
+        ]);
+
+        if ($validator->fails()) {
+            /** @var array<string, list<string>> $errors */
+            $errors = $validator->errors()->toArray();
+
+            return ['errors' => $errors];
+        }
+
+        /** @var InvoiceType $type */
+        $type = InvoiceType::query()->findOrFail((int) $input['invoice_type_id']);
+
+        $next = [
+            'buyer_name' => $same ? null : Normalize::text($input['buyer_name'] ?? null),
+            'buyer_tax_id' => $same ? null : Normalize::text($input['buyer_tax_id'] ?? null),
+            'buyer_address' => $same ? null : Normalize::text($input['buyer_address'] ?? null),
+            'accounting_note' => Normalize::text($input['accounting_note'] ?? null),
+        ];
+
+        $labels = [
+            'buyer_name' => 'nabywca',
+            'buyer_tax_id' => 'NIP nabywcy',
+            'buyer_address' => 'adres nabywcy',
+            'accounting_note' => 'uwaga dla księgowości',
+        ];
+
+        $changes = [];
+
+        if ((int) $order->invoice_type_id !== (int) $type->getKey()) {
+            $changes[] = ['field' => 'typ faktury', 'before' => $order->invoiceType?->name, 'after' => $type->name];
+            // Przez model, nie przez zapytanie: zmiana typu oznacza
+            // zapamietana wartosc zlecenia jako nieaktualna (brutto).
+            $order->invoice_type_id = (int) $type->getKey();
+        }
+
+        foreach ($next as $column => $value) {
+            /** @var string|null $before */
+            $before = $order->{$column};
+
+            if ($before !== $value) {
+                $changes[] = ['field' => $labels[$column], 'before' => $before, 'after' => $value];
+                $order->{$column} = $value;
+            }
+        }
+
+        if ($changes === []) {
+            return ['errors' => []];
+        }
+
+        $order->save();
+        $this->audit->write(Order::class, (int) $order->getKey(), $changes, 'invoice_changed');
 
         return ['errors' => []];
     }
