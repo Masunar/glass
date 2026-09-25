@@ -4,6 +4,7 @@ import ListDrawer from '../_components/ListDrawer';
 import OrderTabs from '../_components/OrderTabs';
 import PaneDrawer from '../_components/PaneDrawer';
 import ServiceDrawer from '../_components/ServiceDrawer';
+import SwapDrawer from '../_components/SwapDrawer';
 import VatLines from '../_components/VatLines';
 import { vatNote } from '../_components/vat';
 import { useEffect, useState } from 'react';
@@ -53,6 +54,10 @@ export default function Page() {
   const [fittingOpen, setFittingOpen] = useState(false);
   const [list, setList] = useState<OrderItemsList | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  // Zaznaczone formatki — pod „Zamien material". Zbior, a nie lista
+  // per lista zlecenia: zamiana moze objac kilka list naraz.
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [swapOpen, setSwapOpen] = useState(false);
 
   const load = async () => {
     const { content } = await OrdersApi.items(id);
@@ -60,8 +65,32 @@ export default function Page() {
 
     if (data) {
       setBoard(data);
+      // Usunieta formatka nie moze zostac w zaznaczeniu — zamiana
+      // odrzucilaby cala paczke za jedna nieistniejaca pozycje.
+      const present = new Set(
+        data.lists.flatMap((entry) => entry.glass.map((row) => row.id)),
+      );
+      setSelected(
+        (current) =>
+          new Set([...current].filter((itemId) => present.has(itemId))),
+      );
     }
   };
+
+  const select = (ids: number[], on: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+
+      for (const itemId of ids) {
+        if (on) {
+          next.add(itemId);
+        } else {
+          next.delete(itemId);
+        }
+      }
+
+      return next;
+    });
 
   useEffect(() => {
     void load();
@@ -137,6 +166,18 @@ export default function Page() {
           >
             {t('page.orders.panes.add_fitting')}
           </Button>
+          {selected.size > 0 && (
+            <>
+              <Button variant="text" onClick={() => setSelected(new Set())}>
+                {t('page.orders.panes.select_clear')}
+              </Button>
+              <Button variant="outlined" onClick={() => setSwapOpen(true)}>
+                {t('page.orders.panes.swap_selected', {
+                  count: selected.size,
+                })}
+              </Button>
+            </>
+          )}
           <Button
             variant="contained"
             icon={<PiPlus />}
@@ -178,6 +219,8 @@ export default function Page() {
               }}
               onMove={(row, target) => void move(row, target)}
               lists={board.lists}
+              selected={selected}
+              onSelect={select}
             />
           ))}
         </div>
@@ -283,6 +326,19 @@ export default function Page() {
         }}
       />
 
+      <SwapDrawer
+        orderId={id}
+        board={board}
+        itemIds={[...selected]}
+        open={swapOpen}
+        onClose={() => setSwapOpen(false)}
+        onSaved={() => {
+          setSwapOpen(false);
+          setSelected(new Set());
+          void load();
+        }}
+      />
+
       <ListDrawer
         orderId={id}
         list={list}
@@ -333,6 +389,8 @@ function ListBlock({
   onRemove,
   onEditList,
   onMove,
+  selected,
+  onSelect,
 }: {
   list: OrderItemsList;
   lists: OrderItemsList[];
@@ -343,6 +401,8 @@ function ListBlock({
   onRemove: (row: OrderPaneRow) => void;
   onEditList: () => void;
   onMove: (row: OrderPaneRow, listId: number) => void;
+  selected: Set<number>;
+  onSelect: (ids: number[], on: boolean) => void;
 }) {
   const title =
     list.name ?? t('page.orders.card.list', { number: list.number });
@@ -438,7 +498,24 @@ function ListBlock({
           }
         >
           <div className="ge-panes__head">
-            <span>{t('page.orders.card.column.no')}</span>
+            <label className="ge-pick">
+              <input
+                type="checkbox"
+                aria-label={t('page.orders.panes.select_all')}
+                disabled={list.glass.length === 0}
+                checked={
+                  list.glass.length > 0 &&
+                  list.glass.every((row) => selected.has(row.id))
+                }
+                onChange={(event) =>
+                  onSelect(
+                    list.glass.map((row) => row.id),
+                    event.target.checked,
+                  )
+                }
+              />
+              {t('page.orders.card.column.no')}
+            </label>
             <span>{t('page.orders.panes.column.kind')}</span>
             <span>{t('page.orders.panes.column.material')}</span>
             <span className="r">{t('page.orders.panes.column.width')}</span>
@@ -466,7 +543,15 @@ function ListBlock({
               }
               key={row.id}
             >
-              <span>{index + 1}</span>
+              <label className="ge-pick">
+                <input
+                  type="checkbox"
+                  aria-label={t('page.orders.panes.select')}
+                  checked={selected.has(row.id)}
+                  onChange={(event) => onSelect([row.id], event.target.checked)}
+                />
+                {index + 1}
+              </label>
               <span>{row.group ?? '—'}</span>
               {/* Pilna formatka ma byc widoczna z listy, a nie dopiero po
                 otwarciu panelu — to ona ustawia kolejnosc na hali. */}

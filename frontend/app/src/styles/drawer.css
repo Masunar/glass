@@ -489,3 +489,33 @@
   font-weight: 600;
   box-shadow: inset 0 -3px 0 var(--ge-mod);
 }
+
+/* ---------- wycena hurtem: wiersze wymiarow ---------- */
+/* Kwota wiersza przy jego wymiarach — przy dziesieciu formatkach suma
+   w stopce nie mowi, ktora z nich jest droga. */
+.ge-sizes__end {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: end;
+  padding-bottom: 6px;
+}
+.ge-sizes__amount {
+  font-family: var(--ge-font-heading);
+  font-size: 13px;
+  color: var(--ge-neutral-700);
+  white-space: nowrap;
+}
+.ge-sizes__add {
+  align-self: flex-start;
+  margin-top: 8px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: color-mix(in oklab, var(--ge-mod) 75%, black);
+  cursor: pointer;
+}
+.ge-sizes__add:hover { text-decoration: underline; }

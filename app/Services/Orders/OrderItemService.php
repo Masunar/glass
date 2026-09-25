@@ -40,6 +40,9 @@ final readonly class OrderItemService
 {
     private const MAX_MM = 6000;
 
+    /** Ile formatek wchodzi jednym zapisem hurtowym. */
+    private const MAX_BATCH = 50;
+
     public function __construct(
         private OrderPricing $pricing = new OrderPricing(),
         private OrderValue $value = new OrderValue(),
@@ -210,10 +213,69 @@ final readonly class OrderItemService
      * policzenia: człowiek w trakcie wpisywania ma niekompletny
      * formularz i nie chce dostawać za to czerwonych pól.
      *
+     * Przy wycenie hurtem (`sizes`) szczegóły — kroki materiału
+     * i etapy — pokazuje pierwszy kompletny wiersz, a `batch` dokłada
+     * kwotę każdego wiersza i sumę paczki. Każdy wiersz liczy ta sama
+     * droga co pojedyncza formatka, więc suma paczki to dokładnie to,
+     * co zapisze `savePanes`.
+     *
      * @param array<string, mixed> $input
      * @return array<string, mixed>
      */
     public function preview(int $orderId, array $input): array
+    {
+        $sizes = $this->sizes($input['sizes'] ?? null);
+
+        if ($sizes === null) {
+            return $this->previewOne($orderId, $input);
+        }
+
+        $rows = [];
+        $total = 0.0;
+        $count = 0;
+        $pieces = 0;
+        $first = null;
+
+        foreach ($sizes as $size) {
+            if ((int) $size['width_mm'] <= 0 || (int) $size['height_mm'] <= 0) {
+                $rows[] = null;
+
+                continue;
+            }
+
+            $one = $this->previewOne($orderId, [...$input, ...$size]);
+            $first ??= $one;
+
+            // Bez materialu nie ma kwoty — wiersz nie wchodzi do sumy,
+            // zeby stopka nie pokazala „razem 0,00" za cala paczke.
+            if ($one['total'] === null) {
+                $rows[] = null;
+
+                continue;
+            }
+
+            $rows[] = $one['total'];
+            $total += (float) $one['total'];
+            $count++;
+            $pieces += max(1, (int) $size['quantity']);
+        }
+
+        $result = $first ?? $this->previewOne($orderId, [...$input, 'width_mm' => 0, 'height_mm' => 0]);
+        $result['batch'] = [
+            'rows' => $rows,
+            'count' => $count,
+            'pieces' => $pieces,
+            'total' => $count === 0 ? null : $this->money($total),
+        ];
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array<string, mixed>
+     */
+    private function previewOne(int $orderId, array $input): array
     {
         /** @var Order $order */
         $order = Order::query()->with('contractor')->findOrFail($orderId);
@@ -428,6 +490,92 @@ final readonly class OrderItemService
         $this->deadline->refresh((int) $order->getKey());
 
         return ['errors' => [], 'id' => (int) $item->getKey()];
+    }
+
+    /**
+     * Kilka formatek z jednego materiału naraz (uwaga klienta z 25.09).
+     *
+     * Wspólne są materiał, lista, etapy, kształt i flagi; każdy wiersz
+     * `sizes` niesie tylko szerokość, wysokość i ilość. Każda formatka
+     * zapisuje się tą samą drogą co pojedyncza (`savePane`) — wycena,
+     * ścieżka ceny, dziennik i termin są więc dokładnie takie same, jak
+     * gdyby dodać je po kolei. Całość w jednej transakcji: paczka
+     * wchodzi w całości albo wcale.
+     *
+     * @param array<string, mixed> $input
+     * @return array{errors: array<string, list<string>>, ids: list<int>}
+     */
+    public function savePanes(int $orderId, array $input): array
+    {
+        $validator = Validator::make($input, [
+            'sizes' => ['required', 'array', 'min:1', 'max:' . self::MAX_BATCH],
+            'sizes.*.width_mm' => ['required', 'integer', 'min:1', 'max:' . self::MAX_MM],
+            'sizes.*.height_mm' => ['required', 'integer', 'min:1', 'max:' . self::MAX_MM],
+            'sizes.*.quantity' => ['nullable', 'integer', 'min:1', 'max:9999'],
+        ], [
+            'sizes.required' => 'Dodaj co najmniej jeden wymiar.',
+            'sizes.max' => 'Jednym zapisem wejdzie najwyżej ' . self::MAX_BATCH . ' formatek.',
+            'sizes.*.width_mm.required' => 'Podaj szerokość.',
+            'sizes.*.height_mm.required' => 'Podaj wysokość.',
+            'sizes.*.width_mm.max' => 'Szerokość powyżej ' . self::MAX_MM . ' mm nie przejdzie przez halę.',
+            'sizes.*.height_mm.max' => 'Wysokość powyżej ' . self::MAX_MM . ' mm nie przejdzie przez halę.',
+        ]);
+
+        if ($validator->fails()) {
+            /** @var array<string, list<string>> $messages */
+            $messages = $validator->errors()->messages();
+
+            return ['errors' => $messages, 'ids' => []];
+        }
+
+        $sizes = $this->sizes($input['sizes']) ?? [];
+        $common = $input;
+        unset($common['sizes']);
+
+        return DB::transaction(function () use ($orderId, $sizes, $common): array {
+            $ids = [];
+
+            foreach ($sizes as $size) {
+                $result = $this->savePane($orderId, [...$common, ...$size]);
+
+                // Wymiary sa juz sprawdzone, wiec blad tutaj dotyczy
+                // czesci wspolnej (material, lista) i wychodzi na
+                // pierwszym wierszu — zanim cokolwiek sie zapisalo.
+                if ($result['errors'] !== [] || $result['id'] === null) {
+                    return ['errors' => $result['errors'], 'ids' => []];
+                }
+
+                $ids[] = $result['id'];
+            }
+
+            return ['errors' => [], 'ids' => $ids];
+        });
+    }
+
+    /**
+     * Wiersze wymiarów z formularza hurtowego; `null`, gdy to zwykła
+     * pojedyncza formatka.
+     *
+     * @return list<array{width_mm: int, height_mm: int, quantity: int}>|null
+     */
+    private function sizes(mixed $sizes): ?array
+    {
+        if (!is_array($sizes)) {
+            return null;
+        }
+
+        $rows = [];
+
+        foreach ($sizes as $size) {
+            $row = is_array($size) ? $size : [];
+            $rows[] = [
+                'width_mm' => is_numeric($row['width_mm'] ?? null) ? (int) $row['width_mm'] : 0,
+                'height_mm' => is_numeric($row['height_mm'] ?? null) ? (int) $row['height_mm'] : 0,
+                'quantity' => is_numeric($row['quantity'] ?? null) ? max(1, (int) $row['quantity']) : 1,
+            ];
+        }
+
+        return $rows;
     }
 
     /**

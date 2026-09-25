@@ -183,6 +183,11 @@ Route::prefix('/orders')->name('orders_')->group(static function (): void {
     // Podglad przed zapisem: POST, bo niesie caly formularz, ale nic
     // nie zmienia.
     Route::post('/{order}/panes/preview', [OrderController::class, 'previewPane'])->name('pane_preview');
+    // Stale czlony przed '/{order}/panes/{item}': 'batch' i 'swap' nie
+    // moga wpasc w identyfikator pozycji.
+    Route::post('/{order}/panes/batch', [OrderController::class, 'savePanes'])->name('pane_batch');
+    Route::post('/{order}/panes/swap/preview', [OrderController::class, 'previewSwap'])->name('pane_swap_preview');
+    Route::post('/{order}/panes/swap', [OrderController::class, 'swapMaterial'])->name('pane_swap');
     Route::post('/{order}/panes', [OrderController::class, 'savePane'])->name('pane_create');
     Route::put('/{order}/panes/{item}', [OrderController::class, 'savePane'])->name('pane_update');
     // Zestaw przed pojedyncza pozycja: '/{order}/fittings/set' nie moze

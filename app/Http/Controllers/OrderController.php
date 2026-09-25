@@ -25,6 +25,7 @@ use App\Services\Orders\OrderOwnerService;
 use App\Services\UserPreferences;
 use App\Services\Orders\OrderDetailsService;
 use App\Services\Orders\OrderCreditOverride;
+use App\Services\Orders\PaneMaterialSwap;
 use App\Models\User;
 use App\Services\Orders\PaymentService;
 
@@ -49,6 +50,7 @@ class OrderController extends ApiController
         private readonly UserPreferences $preferences,
         private readonly OrderDetailsService $detailsService,
         private readonly OrderCreditOverride $creditOverride,
+        private readonly PaneMaterialSwap $materialSwap,
     ) {
         $this->protect(
             ['board', 'alerts', 'card', 'items', 'drawings', 'drawingFile', 'payments', 'previewPane'],
@@ -62,7 +64,8 @@ class OrderController extends ApiController
         );
         $this->protect(
             [
-                'transition', 'savePane', 'saveService', 'saveDiscounts',
+                'transition', 'savePane', 'savePanes', 'previewSwap', 'swapMaterial',
+                'saveService', 'saveDiscounts',
                 'addDrawing', 'declareDrawings', 'addPayment', 'reversePayment',
                 'saveList', 'moveItem', 'saveFitting', 'addFittingSet',
                 'saveInvestment', 'changeOwner', 'saveDeadline', 'saveComment', 'saveInvoice',
@@ -207,6 +210,59 @@ class OrderController extends ApiController
             }
 
             return $this->dataResponse(['id' => $result['id']]);
+        });
+    }
+
+    /** Kilka formatek z jednego materiału jednym zapisem. */
+    public function savePanes(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->itemService->savePanes($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['ids' => $result['ids']]);
+        });
+    }
+
+    /** Podgląd zamiany materiału — kwoty przed i po, bez zapisu. */
+    public function previewSwap(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->materialSwap->preview($order, $input);
+
+            if ($result['errors'] !== []) {
+                /** @var array<string, list<string>> $errors */
+                $errors = $result['errors'];
+
+                return $this->validationResponse($errors);
+            }
+
+            return $this->dataResponse($result);
+        });
+    }
+
+    public function swapMaterial(Request $request, int $order): JsonResponse
+    {
+        return $this->secure(function () use ($request, $order): JsonResponse {
+            /** @var array<string, mixed> $input */
+            $input = $request->all();
+
+            $result = $this->materialSwap->apply($order, $input);
+
+            if ($result['errors'] !== []) {
+                return $this->validationResponse($result['errors']);
+            }
+
+            return $this->dataResponse(['changed' => $result['changed']]);
         });
     }
 
