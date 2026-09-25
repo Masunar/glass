@@ -6,6 +6,7 @@ namespace Tests\Feature\Alerts;
 
 use Carbon\Carbon;
 use Tests\TestCase;
+use App\Models\User;
 use App\Models\Order;
 use App\Models\Status;
 use App\Models\Contractor;
@@ -156,6 +157,45 @@ class AlertEngineTest extends TestCase
         // nie dwie — licznik przy zakladce liczy zlecenia.
         $this->assertGreaterThanOrEqual(2, count($alerts));
         $this->assertSame(1, $counts['']);
+    }
+
+    #[Test]
+    public function liczniki_zgadzaja_sie_ze_znacznikami_takze_dla_moich(): void
+    {
+        /** @var User $owner */
+        $owner = User::query()->create([
+            'first_name' => 'Anna',
+            'last_name' => 'Liczniki',
+            'email' => 'liczniki' . random_int(1000, 99999) . '@example.test',
+            'password' => 'secret-not-used',
+            'is_active' => true,
+        ]);
+
+        $mine = $this->order(70011, '2026-03-01');
+        $mine->owner_id = (int) $owner->getKey();
+        $mine->save();
+
+        $this->order(70012, '2026-03-02');
+
+        $day = Carbon::parse('2026-03-10');
+        $board = new AlertBoard($this->engine);
+
+        // Liczniki licza sie w bazie, znaczniki w silniku — to ma byc ten
+        // sam zbior zlecen, inaczej czerwona liczba klamie o wierszach.
+        $withMarks = array_keys(array_filter(
+            $board->forOrders($day),
+            static fn(array $marks): bool => array_filter(
+                $marks,
+                static fn(array $mark): bool => $mark['acknowledged'] !== true,
+            ) !== [],
+        ));
+
+        $all = $board->orderCounts($day);
+        $this->assertSame(count($withMarks), $all['']);
+        $this->assertSame($all[''], $all['ZLECENIE']);
+
+        $only = $board->orderCounts($day, (int) $owner->getKey());
+        $this->assertSame(['' => 1, 'ZLECENIE' => 1], $only);
     }
 
     private function fires(string $code, Order $order, Carbon $day): bool

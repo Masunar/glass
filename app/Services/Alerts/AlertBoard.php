@@ -7,8 +7,9 @@ namespace App\Services\Alerts;
 use Carbon\Carbon;
 use App\Models\Order;
 use App\Services\Orders\OrderOwnerService;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Odczyt alertów: znaczniki w wierszach, liczniki przy zakładkach,
@@ -33,6 +34,9 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class AlertBoard
 {
+    /** Ile numerow zlecen idzie w jednym zapytaniu licznikow. */
+    private const COUNT_CHUNK = 900;
+
     /**
      * Prowadzący zleceń objętych alertami, jeden raz na dzień przebiegu.
      *
@@ -98,42 +102,53 @@ final class AlertBoard
      */
     public function orderCounts(?Carbon $day = null, ?int $ownerId = null): array
     {
+        // Numery zlecen prosto z przebiegu silnika — bez skladania
+        // znacznikow, ktore licznik i tak by wyrzucil. Zbior, bo jedno
+        // zlecenie z trzema regulami to jedna sprawa.
         $ids = [];
 
-        foreach ($this->forOrders($day) as $id => $marks) {
-            foreach ($marks as $mark) {
-                if ($mark['acknowledged'] !== true) {
-                    $ids[] = $id;
-
-                    break;
-                }
+        foreach ($this->engine->run($day) as $row) {
+            if ($row['alertable_type'] !== Order::class || $row['acknowledged'] === true) {
+                continue;
             }
+
+            $ids[(int) $row['alertable_id']] = true;
         }
 
         if ($ids === []) {
             return ['' => 0];
         }
 
-        /** @var Collection<int, Order> $orders */
-        $orders = Order::query()
-            ->with('status')
-            ->whereIn('id', $ids)
-            ->when(
-                $ownerId !== null,
-                static fn(Builder $builder): Builder => $builder->where('owner_id', $ownerId),
-            )
-            ->get();
+        // Liczenie w bazie, nie w modelach: wczytanie kilku tysiecy
+        // zlecen ze statusem tylko po to, zeby je policzyc, kosztowalo
+        // wiecej niz caly przebieg regul. Paczkami, bo SQLite ma limit
+        // parametrow w jednym zapytaniu.
+        $counts = ['' => 0];
 
-        $counts = ['' => $orders->count()];
+        foreach (array_chunk(array_keys($ids), self::COUNT_CHUNK) as $chunk) {
+            /** @var iterable<\stdClass> $rows */
+            $rows = DB::table('orders')
+                ->leftJoin('statuses', 'statuses.id', '=', 'orders.status_id')
+                ->whereIn('orders.id', $chunk)
+                ->when(
+                    $ownerId !== null,
+                    static fn(QueryBuilder $builder): QueryBuilder => $builder->where('orders.owner_id', $ownerId),
+                )
+                ->groupBy('statuses.code')
+                ->selectRaw('statuses.code as code, COUNT(*) as total')
+                ->get();
 
-        foreach ($orders as $order) {
-            $code = $order->status?->code;
+            foreach ($rows as $row) {
+                $total = (int) $row->total;
+                $counts[''] += $total;
 
-            if ($code === null) {
-                continue;
+                if ($row->code === null) {
+                    continue;
+                }
+
+                $code = (string) $row->code;
+                $counts[$code] = ($counts[$code] ?? 0) + $total;
             }
-
-            $counts[$code] = ($counts[$code] ?? 0) + 1;
         }
 
         return $counts;
